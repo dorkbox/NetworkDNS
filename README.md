@@ -1,15 +1,15 @@
-Network
+NetworkDNS
 =======
 
 ###### [![Dorkbox](https://badge.dorkbox.com/dorkbox.svg "Dorkbox")](https://git.dorkbox.com/dorkbox/NetworkDNS) [![Github](https://badge.dorkbox.com/github.svg "Github")](https://github.com/dorkbox/NetworkDNS) [![Gitlab](https://badge.dorkbox.com/gitlab.svg "Gitlab")](https://gitlab.com/dorkbox/NetworkDNS) [![Bitbucket](https://badge.dorkbox.com/bitbucket.svg "Bitbucket")](https://bitbucket.org/dorkbox/NetworkDNS)
 
 
-The NetworkDNS project is an high-performance, event-driven DNS client and server. 
+The NetworkDNS project is a high-performance and event-driven/reactive DNS network stack for Java 8+
 
 - Note: There is a maximum packet size for UDP, 508 bytes *to guarantee it's unfragmented*
 
 - This is for cross-platform use, specifically - linux 32/64, mac 32/64, and windows 32/64. Java 8+
-    - Please note that Java6 runtimes have issues with their classloader loading classes recursively (you will get a StackOverflow exception). We have taken precautions to mitigate this, but be aware that it is a very real possibility. We recommend using Java7+ to prevent this issue.
+
 
 Maven Info
 ---------
@@ -44,5 +44,5 @@ https://repo1.maven.org/maven2/com/esotericsoftware/kryo/
 
 License
 ---------
-This project is © 2010 dorkbox llc, and is distributed under the terms of the Apache v2.0 License. See file "LICENSE" for further references.
+This project is © 2018 dorkbox llc, and is distributed under the terms of the Apache v2.0 License. See file "LICENSE" for further references.
 

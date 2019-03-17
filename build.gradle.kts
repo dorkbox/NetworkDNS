@@ -49,7 +49,7 @@ plugins {
 
 object Extras {
     // set for the project
-    const val description = "High-performance, and event-driven/reactive DNS network stack for Java 8+"
+    const val description = "High-performance and event-driven/reactive DNS network stack for Java 8+"
     const val group = "com.dorkbox"
     const val version = "1.0"
 

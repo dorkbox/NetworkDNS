@@ -1,0 +1,120 @@
+ - Network-DNS - 
+   https://git.dorkbox.com/dorkbox/Network
+   Copyright 2019 - The Apache Software License, Version 2.0
+     dorkbox, llc
+   Encrypted, high-performance, and event-driven/reactive network stack for Java 6+
+
+
+ - Bennidi Iterator - 
+   https://github.com/bennidi/mbassador
+   Copyright 2012 - MIT License
+     Benjamin Diedrichsen
+   Fast iterators from the MBassador project
+
+
+ - BouncyCastle - 
+   http://www.bouncycastle.org
+   Copyright 2009 - MIT License
+     The Legion Of The Bouncy Castle
+
+
+ - Dorkbox Utils - 
+   https://git.dorkbox.com/dorkbox/Utilities
+   Copyright 2019 - The Apache Software License, Version 2.0
+     dorkbox, llc
+
+
+ - FastThreadLocal - 
+   https://github.com/LWJGL/lwjgl3/blob/5819c9123222f6ce51f208e022cb907091dd8023/modules/core/src/main/java/org/lwjgl/system/FastThreadLocal.java
+   Copyright 2014 - BSD 3-Clause License
+     Lightweight Java Game Library Project
+     Riven
+
+
+ - Javassist - 
+   http://www.csg.is.titech.ac.jp/~chiba/java
+   Copyright 1999 - BSD 3-Clause License
+     Shigeru Chiba
+     Bill Burke
+     Jason T. Greene
+   Licensed under the MPL/LGPL/Apache triple license
+
+
+ - Kryo - 
+   https://github.com/EsotericSoftware/kryo
+   Copyright 2008 - BSD 3-Clause License
+     Nathan Sweet
+
+
+ - kryo-serializers - 
+   https://github.com/magro/kryo-serializers
+   Copyright 2010 - The Apache Software License, Version 2.0
+     Martin Grotzke
+     Rafael Winterhalter
+
+
+ - KryoNet RMI - 
+   https://github.com/EsotericSoftware/kryonet
+   Copyright 2008 - BSD 3-Clause License
+     Nathan Sweet
+
+
+ - LAN HostDiscovery from Apache Commons JCS - 
+   https://issues.apache.org/jira/browse/JCS-40
+   Copyright 2014 - The Apache Software License, Version 2.0
+     The Apache Software Foundation
+
+
+ - LZ4 and XXhash - 
+   https://github.com/jpountz/lz4-java
+   Copyright 2011, 2012 - The Apache Software License, Version 2.0
+     Yann Collet
+     Adrien Grand
+
+
+ - MathUtils, IntArray, IntMap - 
+   http://github.com/libgdx/libgdx/
+   Copyright 2013 - The Apache Software License, Version 2.0
+     Mario Zechner <badlogicgames@gmail.com>
+     Nathan Sweet <nathan.sweet@gmail.com>
+
+
+ - MinLog-SLF4J - 
+   https://git.dorkbox.com/dorkbox/MinLog-SLF4J
+   https://github.com/EsotericSoftware/minlog
+   Copyright 2008 - The Apache Software License, Version 2.0
+     dorkbox, llc
+     Nathan Sweet
+     Dan Brown
+   Drop-in replacement for MinLog to log through SLF4j.
+
+
+ - ObjectPool - 
+   https://git.dorkbox.com/dorkbox/ObjectPool
+   Copyright 2019 - The Apache Software License, Version 2.0
+     dorkbox, llc
+
+
+ - ReflectASM - 
+   https://github.com/EsotericSoftware/reflectasm
+   Copyright 2008 - BSD 3-Clause License
+     Nathan Sweet
+
+
+ - SLF4J - 
+   http://www.slf4j.org
+   Copyright 2008 - MIT License
+     QOS.ch
+
+
+ - TypeTools - 
+   https://github.com/jhalterman/typetools/
+   Copyright 2017 - The Apache Software License, Version 2.0
+     Jonathan Halterman
+   Tools for resolving generic types
+
+
+ - XBill DNS - 
+   http://www.xbill.org/dnsjava
+   Copyright 2005 - BSD 3-Clause License
+     Brian Wellington

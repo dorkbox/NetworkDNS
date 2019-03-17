@@ -8,7 +8,7 @@ The NetworkDNS project is a high-performance and event-driven/reactive DNS netwo
 
 - Note: There is a maximum packet size for UDP, 508 bytes *to guarantee it's unfragmented*
 
-- This is for cross-platform use, specifically - linux 32/64, mac 32/64, and windows 32/64. Java 8+
+- This is for cross-platform use, specifically - linux 32/64, mac 64, and windows 32/64. Java 8+
 
 
 Maven Info

@@ -349,4 +349,12 @@ class DnsServer extends Shutdownable {
 
         dnsServerHandler.addARecord(name, records);
     }
+
+    /**
+     * Gets the version number.
+     */
+    public static
+    String getVersion() {
+        return "1.0";
+    }
 }

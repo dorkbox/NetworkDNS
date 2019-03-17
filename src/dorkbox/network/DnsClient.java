@@ -16,8 +16,6 @@
 package dorkbox.network;
 
 import static dorkbox.network.dns.resolver.addressProvider.DnsServerAddressStreamProviders.platformDefault;
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
-import static io.netty.util.internal.ObjectUtil.intValue;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -122,7 +120,7 @@ class DnsClient extends Shutdownable {
      */
     public static
     String getVersion() {
-        return "2.13";
+        return "1.0";
     }
 
     /**
@@ -169,9 +167,9 @@ class DnsClient extends Shutdownable {
     private DnsCache resolveCache;
     private DnsCache authoritativeDnsServerCache;
 
-    private Integer minTtl;
-    private Integer maxTtl;
-    private Integer negativeTtl;
+    private int minTtl = 0;
+    private int maxTtl = Integer.MAX_VALUE;
+    private int negativeTtl = 0;
     private long queryTimeoutMillis = 5000;
 
     private ResolvedAddressTypes resolvedAddressTypes = DnsNameResolver.DEFAULT_RESOLVE_ADDRESS_TYPES;
@@ -288,7 +286,11 @@ class DnsClient extends Shutdownable {
      */
     public
     DnsClient dnsQueryLifecycleObserverFactory(DnsQueryLifecycleObserverFactory lifecycleObserverFactory) {
-        this.dnsQueryLifecycleObserverFactory = checkNotNull(lifecycleObserverFactory, "lifecycleObserverFactory");
+        if (lifecycleObserverFactory == null) {
+            throw new NullPointerException("lifecycleObserverFactory");
+        }
+
+        this.dnsQueryLifecycleObserverFactory = lifecycleObserverFactory;
         return this;
     }
 
@@ -439,7 +441,11 @@ class DnsClient extends Shutdownable {
      */
     public
     DnsClient nameServerProvider(DnsServerAddressStreamProvider dnsServerAddressStreamProvider) {
-        this.dnsServerAddressStreamProvider = checkNotNull(dnsServerAddressStreamProvider, "dnsServerAddressStreamProvider");
+        if (dnsServerAddressStreamProvider == null) {
+            throw new NullPointerException("dnsServerAddressStreamProvider");
+        }
+
+        this.dnsServerAddressStreamProvider = dnsServerAddressStreamProvider;
         return this;
     }
 
@@ -452,7 +458,9 @@ class DnsClient extends Shutdownable {
      */
     public
     DnsClient searchDomains(Iterable<String> searchDomains) {
-        checkNotNull(searchDomains, "searchDomains");
+        if (searchDomains == null) {
+            throw new NullPointerException("searchDomains");
+        }
 
         final List<String> list = new ArrayList<String>(4);
 
@@ -489,7 +497,7 @@ class DnsClient extends Shutdownable {
 
     private
     DnsCache newCache() {
-        return new DefaultDnsCache(intValue(minTtl, 0), intValue(maxTtl, Integer.MAX_VALUE), intValue(negativeTtl, 0));
+        return new DefaultDnsCache(minTtl, maxTtl, negativeTtl);
     }
 
     /**
@@ -552,11 +560,11 @@ class DnsClient extends Shutdownable {
             this.resolvedAddressTypes = ResolvedAddressTypes.IPV4_ONLY;
         }
 
-        if (resolveCache != null && (minTtl != null || maxTtl != null || negativeTtl != null)) {
+        if (resolveCache != null && (minTtl != 0 || maxTtl != Integer.MAX_VALUE || negativeTtl != 0)) {
             throw new IllegalStateException("resolveCache and TTLs are mutually exclusive");
         }
 
-        if (authoritativeDnsServerCache != null && (minTtl != null || maxTtl != null || negativeTtl != null)) {
+        if (authoritativeDnsServerCache != null && (minTtl != 0 || maxTtl != Integer.MAX_VALUE || negativeTtl != 0)) {
             throw new IllegalStateException("authoritativeDnsServerCache and TTLs are mutually exclusive");
         }
 

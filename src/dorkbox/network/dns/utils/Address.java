@@ -32,14 +32,6 @@ class Address {
     private
     Address() {}
 
-    private static
-    List<InetAddress> lookupHostName(String name) throws UnknownHostException {
-        DnsClient client = new DnsClient();
-        List<InetAddress> resolved = client.resolve(name);
-        client.stop();
-        return resolved;
-    }
-
     /**
      * Determines the IP address of a host
      *
@@ -59,11 +51,9 @@ class Address {
             return dorkbox.netUtil.IPv6.INSTANCE.toAddress(name);
         }
 
-        List<InetAddress> records = lookupHostName(name);
-        if (records == null) {
-            return null;
-        }
-
+        DnsClient client = new DnsClient();
+        List<InetAddress> records = client.resolve(name);
+        client.stop();
         return records.get(0);
     }
 
@@ -86,10 +76,6 @@ class Address {
             return new InetAddress[] {dorkbox.netUtil.IPv6.INSTANCE.toAddress(name)};
         }
 
-        List<InetAddress> records = lookupHostName(name);
-        if (records == null) {
-            return null;
-        }
 
         List<InetAddress> combined = new ArrayList<InetAddress>();
         DnsClient client = new DnsClient();
@@ -97,12 +83,14 @@ class Address {
         client.resolvedAddressTypes(ResolvedAddressTypes.IPV4_ONLY);
         List<InetAddress> resolved = client.resolve(name);
         combined.addAll(resolved);
+        client.stop();
 
         // ipv6
+        client = new DnsClient();
         client.resolvedAddressTypes(ResolvedAddressTypes.IPV6_ONLY);
         resolved = client.resolve(name);
-        combined.addAll(resolved);
         client.stop();
+        combined.addAll(resolved);
 
         return combined.toArray(new InetAddress[0]);
     }

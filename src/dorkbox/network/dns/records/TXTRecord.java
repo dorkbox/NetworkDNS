@@ -33,7 +33,7 @@ class TXTRecord extends TXTBase {
      * @throws IllegalArgumentException One of the strings has invalid escapes
      */
     public
-    TXTRecord(Name name, int dclass, long ttl, List strings) {
+    TXTRecord(Name name, int dclass, long ttl, List<String> strings) {
         super(name, DnsRecordType.TXT, dclass, ttl, strings);
     }
 

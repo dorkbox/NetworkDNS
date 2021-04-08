@@ -35,7 +35,7 @@ class OPTRecord extends DnsRecord {
 
     private static final long serialVersionUID = -6254521894809367938L;
 
-    private List options;
+    private List<EDNSOption> options;
 
     OPTRecord() {}
 
@@ -47,7 +47,7 @@ class OPTRecord extends DnsRecord {
     @Override
     void rrFromWire(DnsInput in) throws IOException {
         if (in.remaining() > 0) {
-            options = new ArrayList();
+            options = new ArrayList<>();
         }
         while (in.remaining() > 0) {
             EDNSOption option = EDNSOption.fromWire(in);
@@ -177,7 +177,7 @@ class OPTRecord extends DnsRecord {
      * @see ExtendedFlags
      */
     public
-    OPTRecord(int payloadSize, int xrcode, int version, int flags, List options) {
+    OPTRecord(int payloadSize, int xrcode, int version, int flags, List<EDNSOption> options) {
         super(Name.root, DnsRecordType.OPT, payloadSize, 0);
         checkU16("payloadSize", payloadSize);
         checkU8("xrcode", xrcode);
@@ -185,7 +185,7 @@ class OPTRecord extends DnsRecord {
         checkU16("flags", flags);
         ttl = ((long) xrcode << 24) + ((long) version << 16) + flags;
         if (options != null) {
-            this.options = new ArrayList(options);
+            this.options = new ArrayList<>(options);
         }
     }
 
@@ -201,8 +201,9 @@ class OPTRecord extends DnsRecord {
     /**
      * Gets all options in the OPTRecord.  This returns a list of EDNSOptions.
      */
+    @SuppressWarnings("unchecked")
     public
-    List getOptions() {
+    List<EDNSOption> getOptions() {
         if (options == null) {
             return Collections.EMPTY_LIST;
         }
@@ -213,14 +214,16 @@ class OPTRecord extends DnsRecord {
      * Gets all options in the OPTRecord with a specific code.  This returns a list
      * of EDNSOptions.
      */
+    @SuppressWarnings("unchecked")
     public
-    List getOptions(int code) {
+    List<EDNSOption> getOptions(int code) {
         if (options == null) {
             return Collections.EMPTY_LIST;
         }
-        List list = Collections.EMPTY_LIST;
-        for (Iterator it = options.iterator(); it.hasNext(); ) {
-            EDNSOption opt = (EDNSOption) it.next();
+        List<EDNSOption> list = Collections.EMPTY_LIST;
+
+        for (Iterator<EDNSOption> it = options.iterator(); it.hasNext(); ) {
+            EDNSOption opt = it.next();
             if (opt.getCode() == code) {
                 if (list == Collections.EMPTY_LIST) {
                     list = new ArrayList();

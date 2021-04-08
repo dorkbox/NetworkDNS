@@ -68,11 +68,13 @@ class APLRecord extends DnsRecord {
             }
         }
 
+        @Override
         public
         int hashCode() {
             return address.hashCode() + prefixLength + (negative ? 1 : 0);
         }
 
+        @Override
         public
         boolean equals(Object arg) {
             if (arg == null || !(arg instanceof Element)) {
@@ -82,6 +84,7 @@ class APLRecord extends DnsRecord {
             return (family == elt.family && negative == elt.negative && prefixLength == elt.prefixLength && address.equals(elt.address));
         }
 
+        @Override
         public
         String toString() {
             StringBuilder sb = new StringBuilder();
@@ -111,7 +114,7 @@ class APLRecord extends DnsRecord {
 
     @Override
     void rrFromWire(DnsInput in) throws IOException {
-        elements = new ArrayList(1);
+        elements = new ArrayList<Element>(1);
         while (in.remaining() != 0) {
             int family = in.readU16();
             int prefix = in.readU8();
@@ -201,7 +204,7 @@ class APLRecord extends DnsRecord {
 
     @Override
     void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        elements = new ArrayList(1);
+        elements = new ArrayList<Element>(1);
         while (true) {
             Tokenizer.Token t = st.get();
             if (!t.isString()) {

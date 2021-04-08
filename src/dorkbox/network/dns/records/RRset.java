@@ -75,7 +75,7 @@ class RRset implements Serializable {
     public
     RRset(RRset rrset) {
         synchronized (rrset) {
-            resourceRecords = (List) ((ArrayList) rrset.resourceRecords).clone();
+            resourceRecords = new ArrayList<>(rrset.resourceRecords);
             nsigs = rrset.nsigs;
             position = rrset.position;
         }
@@ -190,7 +190,7 @@ class RRset implements Serializable {
             start = total - nsigs;
         }
 
-        List list = new ArrayList(size);
+        List<DnsRecord> list = new ArrayList<>(size);
         if (data) {
             list.addAll(resourceRecords.subList(start, size));
             if (start != 0) {

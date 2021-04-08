@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import dorkbox.netUtil.IPv4;
 import dorkbox.network.dns.Compression;
 import dorkbox.network.dns.DnsInput;
 import dorkbox.network.dns.DnsOutput;
@@ -732,18 +733,18 @@ class WKSRecord extends DnsRecord {
         address = in.readByteArray(4);
         protocol = in.readU8();
         byte[] array = in.readByteArray();
-        List list = new ArrayList();
+        List<Integer> list = new ArrayList<>();
         for (int i = 0; i < array.length; i++) {
             for (int j = 0; j < 8; j++) {
                 int octet = array[i] & 0xFF;
                 if ((octet & (1 << (7 - j))) != 0) {
-                    list.add(new Integer(i * 8 + j));
+                    list.add(i * 8 + j);
                 }
             }
         }
         services = new int[list.size()];
         for (int i = 0; i < list.size(); i++) {
-            services[i] = ((Integer) list.get(i)).intValue();
+            services[i] = list.get(i);
         }
     }
 
@@ -753,8 +754,8 @@ class WKSRecord extends DnsRecord {
         out.writeU8(protocol);
         int highestPort = services[services.length - 1];
         byte[] array = new byte[highestPort / 8 + 1];
-        for (int i = 0; i < services.length; i++) {
-            int port = services[i];
+
+        for (int port : services) {
             array[port / 8] |= (1 << (7 - port % 8));
         }
         out.writeByteArray(array);
@@ -765,12 +766,12 @@ class WKSRecord extends DnsRecord {
      */
     @Override
     void rrToString(StringBuilder sb) {
-        sb.append(Address.toDottedQuad(address));
+        IPv4.INSTANCE.toString(address, sb);
         sb.append(" ");
         sb.append(protocol);
-        for (int i = 0; i < services.length; i++) {
+        for (final int service : services) {
             sb.append(" ")
-              .append(services[i]);
+              .append(service);
         }
     }
 
@@ -788,7 +789,7 @@ class WKSRecord extends DnsRecord {
             throw st.exception("Invalid IP protocol: " + s);
         }
 
-        List list = new ArrayList();
+        List<Integer> list = new ArrayList<>();
         while (true) {
             Tokenizer.Token t = st.get();
             if (!t.isString()) {
@@ -798,12 +799,12 @@ class WKSRecord extends DnsRecord {
             if (service < 0) {
                 throw st.exception("Invalid TCP/UDP service: " + t.value);
             }
-            list.add(new Integer(service));
+            list.add(service);
         }
         st.unget();
         services = new int[list.size()];
         for (int i = 0; i < list.size(); i++) {
-            services[i] = ((Integer) list.get(i)).intValue();
+            services[i] = list.get(i);
         }
     }
 
@@ -822,8 +823,8 @@ class WKSRecord extends DnsRecord {
         }
         this.address = address.getAddress();
         this.protocol = checkU8("protocol", protocol);
-        for (int i = 0; i < services.length; i++) {
-            checkU16("service", services[i]);
+        for (final int service : services) {
+            checkU16("service", service);
         }
         this.services = new int[services.length];
         System.arraycopy(services, 0, this.services, 0, services.length);

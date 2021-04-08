@@ -27,7 +27,7 @@ class TXTBase extends DnsRecord {
 
     private static final long serialVersionUID = -4319510507246305931L;
 
-    protected List strings;
+    protected List<byte[]> strings;
 
     protected
     TXTBase() {}
@@ -43,16 +43,17 @@ class TXTBase extends DnsRecord {
     }
 
     protected
-    TXTBase(Name name, int type, int dclass, long ttl, List strings) {
+    TXTBase(Name name, int type, int dclass, long ttl, List<String> strings) {
         super(name, type, dclass, ttl);
         if (strings == null) {
             throw new IllegalArgumentException("strings must not be null");
         }
-        this.strings = new ArrayList(strings.size());
-        Iterator it = strings.iterator();
+        this.strings = new ArrayList<byte[]>(strings.size());
+
+        Iterator<String> it = strings.iterator();
         try {
             while (it.hasNext()) {
-                String s = (String) it.next();
+                String s = it.next();
                 this.strings.add(byteArrayFromString(s));
             }
         } catch (TextParseException e) {
@@ -62,7 +63,8 @@ class TXTBase extends DnsRecord {
 
     @Override
     void rrFromWire(DnsInput in) throws IOException {
-        strings = new ArrayList(2);
+        strings = new ArrayList<byte[]>(2);
+
         while (in.remaining() > 0) {
             byte[] b = in.readCountedString();
             strings.add(b);
@@ -71,9 +73,7 @@ class TXTBase extends DnsRecord {
 
     @Override
     void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        Iterator it = strings.iterator();
-        while (it.hasNext()) {
-            byte[] b = (byte[]) it.next();
+        for (final byte[] b : strings) {
             out.writeCountedString(b);
         }
     }
@@ -83,9 +83,9 @@ class TXTBase extends DnsRecord {
      */
     @Override
     void rrToString(StringBuilder sb) {
-        Iterator it = strings.iterator();
+        Iterator<byte[]> it = strings.iterator();
         while (it.hasNext()) {
-            byte[] array = (byte[]) it.next();
+            byte[] array = it.next();
             sb.append(byteArrayToString(array, true));
             if (it.hasNext()) {
                 sb.append(" ");
@@ -95,7 +95,8 @@ class TXTBase extends DnsRecord {
 
     @Override
     void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        strings = new ArrayList(2);
+        strings = new ArrayList<byte[]>(2);
+
         while (true) {
             Tokenizer.Token t = st.get();
             if (!t.isString()) {
@@ -117,10 +118,11 @@ class TXTBase extends DnsRecord {
      * @return A list of Strings corresponding to the text strings.
      */
     public
-    List getStrings() {
-        List list = new ArrayList(strings.size());
+    List<String> getStrings() {
+        List<String> list = new ArrayList<>(strings.size());
+
         for (int i = 0; i < strings.size(); i++) {
-            list.add(byteArrayToString((byte[]) strings.get(i), false));
+            list.add(byteArrayToString(strings.get(i), false));
         }
         return list;
     }
@@ -131,8 +133,7 @@ class TXTBase extends DnsRecord {
      * @return A list of byte arrays corresponding to the text strings.
      */
     public
-    List getStringsAsByteArrays() {
+    List<byte[]> getStringsAsByteArrays() {
         return strings;
     }
-
 }

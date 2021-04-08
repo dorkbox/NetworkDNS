@@ -142,7 +142,7 @@ class TypeBitmap implements Serializable {
         }
 
         int mapbase = -1;
-        TreeSet map = new TreeSet();
+        TreeSet<Integer> map = new TreeSet();
 
         Keys keys = types.keys();
         while (keys.hasNext) {
@@ -156,7 +156,7 @@ class TypeBitmap implements Serializable {
                 }
                 mapbase = base;
             }
-            map.add(new Integer(t));
+            map.add(t);
         }
 
         mapToWire(out, map, mapbase);
@@ -166,16 +166,16 @@ class TypeBitmap implements Serializable {
      * @param map this must be an ordered data structure!
      */
     private static
-    void mapToWire(DnsOutput out, TreeSet map, int mapbase) {
-        int arraymax = (((Integer) map.last()).intValue()) & 0xFF;
+    void mapToWire(DnsOutput out, TreeSet<Integer> map, int mapbase) {
+        int arraymax = map.last() & 0xFF;
         int arraylength = (arraymax / 8) + 1;
         int[] array = new int[arraylength];
 
         out.writeU8(mapbase);
         out.writeU8(arraylength);
 
-        for (Iterator it = map.iterator(); it.hasNext(); ) {
-            int typecode = ((Integer) it.next()).intValue();
+        for (Iterator<Integer> it = map.iterator(); it.hasNext(); ) {
+            int typecode = it.next();
             array[(typecode & 0xFF) / 8] |= (1 << (7 - typecode % 8));
         }
 

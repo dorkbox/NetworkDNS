@@ -38,32 +38,61 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.ConsoleAppender;
+import dorkbox.netUtil.IPv4;
+import dorkbox.netUtil.IPv6;
 import dorkbox.network.dns.utils.Address;
 import junit.framework.TestCase;
 
 public
 class AddressTest extends TestCase {
-    public
-    void test_toByteArray_invalid() {
-        try {
-            Address.toByteArray("doesn't matter", 3);
-            fail("IllegalArgumentException not thrown");
-        } catch (IllegalArgumentException ignored) {
-        }
+    static {
+        // assume SLF4J is bound to logback in the current environment
+        Logger rootLogger = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        LoggerContext context = rootLogger.getLoggerContext();
+        final JoranConfigurator jc = new JoranConfigurator();
+        jc.setContext(context);
+        context.reset(); // override default configuration
+
+        rootLogger.setLevel(Level.DEBUG);
+
+        // we only want error messages
+        ((Logger) LoggerFactory.getLogger("io.netty.util.internal")).setLevel(Level.ERROR);
+
+
+        PatternLayoutEncoder encoder = new PatternLayoutEncoder();
+        encoder.setContext(context);
+        encoder.setPattern("%date{HH:mm:ss.SSS}  %-5level [%logger{35}] %msg%n");
+        encoder.start();
+
+        final ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<ILoggingEvent>();
+        consoleAppender.setContext(context);
+        consoleAppender.setEncoder(encoder);
+        consoleAppender.start();
+        rootLogger.addAppender(consoleAppender);
     }
 
     public
     void test_toByteArray_IPv4() {
         byte[] exp = new byte[] {(byte) 198, (byte) 121, (byte) 10, (byte) 234};
-        byte[] ret = Address.toByteArray("198.121.10.234", Address.IPv4);
+        byte[] ret = IPv4.INSTANCE.toBytes("198.121.10.234");
         assertEquals(exp, ret);
 
         exp = new byte[] {0, 0, 0, 0};
-        ret = Address.toByteArray("0.0.0.0", Address.IPv4);
+        ret = IPv4.INSTANCE.toBytes("0.0.0.0");
         assertEquals(exp, ret);
 
         exp = new byte[] {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
-        ret = Address.toByteArray("255.255.255.255", Address.IPv4);
+        ret = IPv4.INSTANCE.toBytes("255.255.255.255");
+        assertEquals(exp, ret);
     }
 
     private
@@ -73,141 +102,146 @@ class AddressTest extends TestCase {
 
     public
     void test_toByteArray_IPv4_invalid() {
-        assertNull(Address.toByteArray("A.B.C.D", Address.IPv4));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("A.B.C.D"));
 
-        assertNull(Address.toByteArray("128...", Address.IPv4));
-        assertNull(Address.toByteArray("128.121", Address.IPv4));
-        assertNull(Address.toByteArray("128.111.8", Address.IPv4));
-        assertNull(Address.toByteArray("128.198.10.", Address.IPv4));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128..."));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.121"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.111.8"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.198.10."));
 
-        assertNull(Address.toByteArray("128.121.90..10", Address.IPv4));
-        assertNull(Address.toByteArray("128.121..90.10", Address.IPv4));
-        assertNull(Address.toByteArray("128..121.90.10", Address.IPv4));
-        assertNull(Address.toByteArray(".128.121.90.10", Address.IPv4));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.121.90..10"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.121..90.10"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128..121.90.10"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull(".128.121.90.10"));
 
-        assertNull(Address.toByteArray("128.121.90.256", Address.IPv4));
-        assertNull(Address.toByteArray("128.121.256.10", Address.IPv4));
-        assertNull(Address.toByteArray("128.256.90.10", Address.IPv4));
-        assertNull(Address.toByteArray("256.121.90.10", Address.IPv4));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.121.90.256"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.121.256.10"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.256.90.10"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("256.121.90.10"));
 
-        assertNull(Address.toByteArray("128.121.90.-1", Address.IPv4));
-        assertNull(Address.toByteArray("128.121.-1.10", Address.IPv4));
-        assertNull(Address.toByteArray("128.-1.90.10", Address.IPv4));
-        assertNull(Address.toByteArray("-1.121.90.10", Address.IPv4));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.121.90.-1"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.121.-1.10"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.-1.90.10"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("-1.121.90.10"));
 
-        assertNull(Address.toByteArray("120.121.90.10.10", Address.IPv4));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("120.121.90.10.10"));
 
-        assertNull(Address.toByteArray("120.121.90.010", Address.IPv4));
-        assertNull(Address.toByteArray("120.121.090.10", Address.IPv4));
-        assertNull(Address.toByteArray("120.021.90.10", Address.IPv4));
-        assertNull(Address.toByteArray("020.121.90.10", Address.IPv4));
+        // assertNull(IPv4.INSTANCE.toBytesOrNull("120.121.90.010")); // this is valid!
+        // assertNull(IPv4.INSTANCE.toBytesOrNull("120.121.090.10")); // this is valid!
+        // assertNull(IPv4.INSTANCE.toBytesOrNull("120.021.90.10")); // this is valid!
+        // assertNull(IPv4.INSTANCE.toBytesOrNull("020.121.90.10")); // this is valid!
 
-        assertNull(Address.toByteArray("1120.121.90.10", Address.IPv4));
-        assertNull(Address.toByteArray("120.2121.90.10", Address.IPv4));
-        assertNull(Address.toByteArray("120.121.4190.10", Address.IPv4));
-        assertNull(Address.toByteArray("120.121.190.1000", Address.IPv4));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("1120.121.90.10"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("120.2121.90.10"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("120.121.4190.10"));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("120.121.190.1000"));
 
-        assertNull(Address.toByteArray("", Address.IPv4));
+        assertNull(IPv4.INSTANCE.toBytesOrNull(""));
     }
 
     public
     void test_toByteArray_IPv6() {
-        byte[] exp = new byte[] {(byte) 32, (byte) 1, (byte) 13, (byte) 184, (byte) 133, (byte) 163, (byte) 8, (byte) 211, (byte) 19,
-                                 (byte) 25, (byte) 138, (byte) 46, (byte) 3, (byte) 112, (byte) 115, (byte) 52};
-        byte[] ret = Address.toByteArray("2001:0db8:85a3:08d3:1319:8a2e:0370:7334", Address.IPv6);
+        byte[] exp;
+        byte[] ret;
+
+        exp = new byte[] {(byte) 32, (byte) 1, (byte) 13, (byte) 184, (byte) 133, (byte) 163, (byte) 8, (byte) 211, (byte) 19,
+                          (byte) 25, (byte) 138, (byte) 46, (byte) 3, (byte) 112, (byte) 115, (byte) 52};
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:0db8:85a3:08d3:1319:8a2e:0370:7334");
         assertEquals(exp, ret);
-        ret = Address.toByteArray("2001:db8:85a3:8d3:1319:8a2e:370:7334", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:db8:85a3:8d3:1319:8a2e:370:7334");
         assertEquals(exp, ret);
-        ret = Address.toByteArray("2001:DB8:85A3:8D3:1319:8A2E:370:7334", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:DB8:85A3:8D3:1319:8A2E:370:7334");
         assertEquals(exp, ret);
 
         exp = new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-        ret = Address.toByteArray("0:0:0:0:0:0:0:0", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("0:0:0:0:0:0:0:0");
         assertEquals(exp, ret);
 
         exp = new byte[] {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
                           (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
-        ret = Address.toByteArray("FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF");
         assertEquals(exp, ret);
 
         exp = new byte[] {(byte) 32, (byte) 1, (byte) 13, (byte) 184, (byte) 0, (byte) 0, (byte) 8, (byte) 211, (byte) 19, (byte) 25,
                           (byte) 138, (byte) 46, (byte) 3, (byte) 112, (byte) 115, (byte) 52};
-        ret = Address.toByteArray("2001:0db8:0000:08d3:1319:8a2e:0370:7334", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:0db8:0000:08d3:1319:8a2e:0370:7334");
         assertEquals(exp, ret);
 
-        ret = Address.toByteArray("2001:0db8::08d3:1319:8a2e:0370:7334", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:0db8::08d3:1319:8a2e:0370:7334");
         assertEquals(exp, ret);
 
         exp = new byte[] {(byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 133, (byte) 163, (byte) 8, (byte) 211, (byte) 19, (byte) 25,
                           (byte) 138, (byte) 46, (byte) 3, (byte) 112, (byte) 115, (byte) 52};
-        ret = Address.toByteArray("0000:0000:85a3:08d3:1319:8a2e:0370:7334", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("0000:0000:85a3:08d3:1319:8a2e:0370:7334");
         assertEquals(exp, ret);
-        ret = Address.toByteArray("::85a3:08d3:1319:8a2e:0370:7334", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("::85a3:08d3:1319:8a2e:0370:7334");
         assertEquals(exp, ret);
 
         exp = new byte[] {(byte) 32, (byte) 1, (byte) 13, (byte) 184, (byte) 133, (byte) 163, (byte) 8, (byte) 211, (byte) 19, (byte) 25,
                           (byte) 138, (byte) 46, (byte) 0, (byte) 0, (byte) 0, (byte) 0};
-        ret = Address.toByteArray("2001:0db8:85a3:08d3:1319:8a2e:0:0", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:0db8:85a3:08d3:1319:8a2e:0:0");
         assertEquals(exp, ret);
 
-        ret = Address.toByteArray("2001:0db8:85a3:08d3:1319:8a2e::", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:0db8:85a3:08d3:1319:8a2e::");
         assertEquals(exp, ret);
 
         exp = new byte[] {(byte) 32, (byte) 1, (byte) 13, (byte) 184, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0,
                           (byte) 0, (byte) 3, (byte) 112, (byte) 115, (byte) 52};
-        ret = Address.toByteArray("2001:0db8:0000:0000:0000:0000:0370:7334", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:0db8:0000:0000:0000:0000:0370:7334");
         assertEquals(exp, ret);
-        ret = Address.toByteArray("2001:0db8:0:0:0:0:0370:7334", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:0db8:0:0:0:0:0370:7334");
         assertEquals(exp, ret);
-        ret = Address.toByteArray("2001:0db8::0:0370:7334", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:0db8::0:0370:7334");
         assertEquals(exp, ret);
-        ret = Address.toByteArray("2001:db8::370:7334", Address.IPv6);
-        assertEquals(exp, ret);
-
-        exp = new byte[] {(byte) 32, (byte) 1, (byte) 13, (byte) 184, (byte) 133, (byte) 163, (byte) 8, (byte) 211, (byte) 19, (byte) 25,
-                          (byte) 138, (byte) 46, (byte) 0xC0, (byte) 0xA8, (byte) 0x59, (byte) 0x09};
-        ret = Address.toByteArray("2001:0db8:85a3:08d3:1319:8a2e:192.168.89.9", Address.IPv6);
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:db8::370:7334");
         assertEquals(exp, ret);
 
-        exp = new byte[] {(byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0,
-                          (byte) 0, (byte) 0xC0, (byte) 0xA8, (byte) 0x59, (byte) 0x09};
-        ret = Address.toByteArray("::192.168.89.9", Address.IPv6);
+        exp = new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -64, -88, 89, 9};
+        ret = IPv6.INSTANCE.toBytesOrNull("0000:0000:0000:0000:0000:0000:192.168.89.9");
+        assertEquals(exp, ret);
+
+        ret = IPv6.INSTANCE.toBytesOrNull("2001:0db8:85a3:08d3:1319:0000:192.168.89.9");
+        assertEquals(null, ret);
+
+        exp = new byte[] {(byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) -1,
+                          (byte) -1, (byte) 0xC0, (byte) 0xA8, (byte) 0x59, (byte) 0x09};
+        ret = IPv6.INSTANCE.toBytesOrNull("::192.168.89.9");
         assertEquals(exp, ret);
     }
 
     public
     void test_toByteArray_IPv6_invalid() {
         // not enough groups
-        assertNull(Address.toByteArray("2001:0db8:85a3:08d3:1319:8a2e:0370", Address.IPv6));
+        assertNull(IPv6.INSTANCE.toBytesOrNull("2001:0db8:85a3:08d3:1319:8a2e:0370"));
         // too many groups
-        assertNull(Address.toByteArray("2001:0db8:85a3:08d3:1319:8a2e:0370:193A:BCdE", Address.IPv6));
+        assertNull(IPv6.INSTANCE.toBytesOrNull("2001:0db8:85a3:08d3:1319:8a2e:0370:193A:BCdE"));
         // invalid letter
-        assertNull(Address.toByteArray("2001:0gb8:85a3:08d3:1319:8a2e:0370:9819", Address.IPv6));
-        assertNull(Address.toByteArray("lmno:0bb8:85a3:08d3:1319:8a2e:0370:9819", Address.IPv6));
-        assertNull(Address.toByteArray("11ab:0ab8:85a3:08d3:1319:8a2e:0370:qrst", Address.IPv6));
+        assertNull(IPv6.INSTANCE.toBytesOrNull("2001:0gb8:85a3:08d3:1319:8a2e:0370:9819"));
+        assertNull(IPv6.INSTANCE.toBytesOrNull("lmno:0bb8:85a3:08d3:1319:8a2e:0370:9819"));
+        assertNull(IPv6.INSTANCE.toBytesOrNull("11ab:0ab8:85a3:08d3:1319:8a2e:0370:qrst"));
         // three consecutive colons
-        assertNull(Address.toByteArray("11ab:0ab8:85a3:08d3:::", Address.IPv6));
+        assertNull(IPv6.INSTANCE.toBytesOrNull("11ab:0ab8:85a3:08d3:::"));
         // IPv4 in the middle
-        assertNull(Address.toByteArray("2001:0ab8:192.168.0.1:1319:8a2e:0370:9819", Address.IPv6));
+        assertNull(IPv6.INSTANCE.toBytesOrNull("2001:0ab8:192.168.0.1:1319:8a2e:0370:9819"));
         // invalid IPv4
-        assertNull(Address.toByteArray("2001:0ab8:1212:AbAb:8a2e:345.12.22.1", Address.IPv6));
+        assertNull(IPv6.INSTANCE.toBytesOrNull("2001:0ab8:1212:AbAb:8a2e:345.12.22.1"));
         // group with too many digits
-        assertNull(Address.toByteArray("2001:0ab8:85a3:128d3:1319:8a2e:0370:9819", Address.IPv6));
+        assertNull(IPv6.INSTANCE.toBytesOrNull("2001:0ab8:85a3:128d3:1319:8a2e:0370:9819"));
 
     }
 
     public
     void test_toArray() {
         int[] exp = new int[] {1, 2, 3, 4};
-        int[] ret = Address.toArray("1.2.3.4", Address.IPv4);
+        int[] ret = IPv4.INSTANCE.toInts("1.2.3.4");
         assertEquals(exp, ret);
 
         exp = new int[] {0, 0, 0, 0};
-        ret = Address.toArray("0.0.0.0", Address.IPv4);
+        ret = IPv4.INSTANCE.toInts("0.0.0.0");
         assertEquals(exp, ret);
 
         exp = new int[] {255, 255, 255, 255};
-        ret = Address.toArray("255.255.255.255", Address.IPv4);
+        ret = IPv4.INSTANCE.toInts("255.255.255.255");
         assertEquals(exp, ret);
     }
 
@@ -221,34 +255,27 @@ class AddressTest extends TestCase {
 
     public
     void test_toArray_invalid() {
-        assertNull(Address.toArray("128.121.1", Address.IPv4));
+        assertNull(IPv4.INSTANCE.toBytesOrNull("128.121.1"));
 
-        assertNull(Address.toArray(""));
+        assertNull(IPv4.INSTANCE.toBytesOrNull(""));
     }
 
     public
     void test_isDottedQuad() {
-        assertTrue(Address.isDottedQuad("1.2.3.4"));
-        assertFalse(Address.isDottedQuad("256.2.3.4"));
+        assertTrue(IPv4.INSTANCE.isValid("1.2.3.4"));
+        assertFalse(IPv4.INSTANCE.isValid("256.2.3.4"));
     }
 
     public
     void test_toDottedQuad() {
-        assertEquals("128.176.201.1", Address.toDottedQuad(new byte[] {(byte) 128, (byte) 176, (byte) 201, (byte) 1}));
-
-        assertEquals("200.1.255.128", Address.toDottedQuad(new int[] {200, 1, 255, 128}));
+        assertEquals("128.176.201.1", IPv4.INSTANCE.toString(new byte[] {(byte) 128, (byte) 176, (byte) 201, (byte) 1}));
+        assertEquals("200.1.255.128", IPv4.INSTANCE.toString(new int[] {200, 1, 255, 128}));
     }
 
     public
     void test_addressLength() {
-        assertEquals(4, Address.addressLength(Address.IPv4));
-        assertEquals(16, Address.addressLength(Address.IPv6));
-
-        try {
-            Address.addressLength(3);
-            fail("IllegalArgumentException not thrown");
-        } catch (IllegalArgumentException ignored) {
-        }
+        assertEquals(4, IPv4.INSTANCE.getLength());
+        assertEquals(16, IPv6.INSTANCE.getLength());
     }
 
     public
@@ -278,7 +305,9 @@ class AddressTest extends TestCase {
 
     public
     void test_getAllByName() throws UnknownHostException {
-        InetAddress[] out = Address.getAllByName("128.145.198.231");
+        InetAddress[] out;
+
+        out = Address.getAllByName("128.145.198.231");
         assertEquals(1, out.length);
         assertEquals("128.145.198.231", out[0].getHostAddress());
 
@@ -314,8 +343,8 @@ class AddressTest extends TestCase {
 
     public
     void test_familyOf() throws UnknownHostException {
-        assertEquals(Address.IPv4, Address.familyOf(InetAddress.getByName("192.168.0.1")));
-        assertEquals(Address.IPv6, Address.familyOf(InetAddress.getByName("1:2:3:4:5:6:7:8")));
+        assertTrue(IPv4.INSTANCE.isFamily(InetAddress.getByName("192.168.0.1")));
+        assertTrue(IPv6.INSTANCE.isFamily(InetAddress.getByName("1:2:3:4:5:6:7:8")));
 
         try {
             Address.familyOf(null);

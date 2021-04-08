@@ -127,10 +127,14 @@ class TokenizerTest extends TestCase {
         assertTrue(tt.isEOL());
         assertNull(tt.value);
 
+        m_t.close();
+
         m_t = new Tokenizer("onlyOneIdentifier");
         tt = m_t.get();
         assertEquals(Tokenizer.IDENTIFIER, tt.type);
         assertEquals("onlyOneIdentifier", tt.value);
+
+        m_t.close();
 
         m_t = new Tokenizer("identifier ;");
         tt = m_t.get();
@@ -138,6 +142,7 @@ class TokenizerTest extends TestCase {
         tt = m_t.get();
         assertEquals(Tokenizer.EOF, tt.type);
 
+        m_t.close();
 
         // some ungets
         m_t = new Tokenizer("identifier \nidentifier2; junk comment");
@@ -181,11 +186,15 @@ class TokenizerTest extends TestCase {
         tt = m_t.get(true, true);
         assertEquals(Tokenizer.EOF, tt.type);
 
+        m_t.close();
+
         m_t = new Tokenizer("identifier ( junk ; comment\n )");
         tt = m_t.get();
         assertEquals(Tokenizer.IDENTIFIER, tt.type);
         assertEquals(Tokenizer.IDENTIFIER, m_t.get().type);
         assertEquals(Tokenizer.EOF, m_t.get().type);
+
+        m_t.close();
     }
 
     public
@@ -198,12 +207,16 @@ class TokenizerTest extends TestCase {
         } catch (TextParseException e) {
         }
 
+        m_t.close();
+
         m_t = new Tokenizer("\"bad");
         try {
             m_t.get();
             fail("TextParseException not thrown");
         } catch (TextParseException e) {
         }
+
+        m_t.close();
 
         m_t = new Tokenizer(")");
         try {
@@ -212,12 +225,16 @@ class TokenizerTest extends TestCase {
         } catch (TextParseException e) {
         }
 
+        m_t.close();
+
         m_t = new Tokenizer("\\");
         try {
             m_t.get();
             fail("TextParseException not thrown");
         } catch (TextParseException e) {
         }
+
+        m_t.close();
 
         m_t = new Tokenizer("\"\n");
         try {

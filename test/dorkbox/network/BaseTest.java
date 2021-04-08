@@ -20,7 +20,6 @@
 package dorkbox.network;
 
 
-import static dorkbox.network.connection.EndPoint.THREADGROUP_NAME;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -34,7 +33,7 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
-import dorkbox.network.connection.EndPoint;
+import dorkbox.network.util.Shutdownable;
 import dorkbox.util.entropy.Entropy;
 import dorkbox.util.entropy.SimpleEntropy;
 import dorkbox.util.exceptions.InitializationException;
@@ -57,7 +56,7 @@ class BaseTest {
     }
 
     volatile boolean fail_check;
-    private final ArrayList<EndPoint> endPointConnections = new ArrayList<EndPoint>();
+    private final ArrayList<Shutdownable> endPointConnections = new ArrayList<Shutdownable>();
 
     public
     BaseTest() {
@@ -108,7 +107,7 @@ class BaseTest {
     }
 
     public
-    void addEndPoint(final EndPoint endPointConnection) {
+    void addEndPoint(final Shutdownable endPointConnection) {
         this.endPointConnections.add(endPointConnection);
     }
 
@@ -126,7 +125,7 @@ class BaseTest {
                                         .getThreadGroup();
         final String name = threadGroup.getName();
 
-        if (name.contains(THREADGROUP_NAME)) {
+        if (name.contains(Shutdownable.THREADGROUP_NAME)) {
             // We have to ALWAYS run this in a new thread, BECAUSE if stopEndPoints() is called from a client/server thread, it will
             // DEADLOCK
             final Thread thread = new Thread(threadGroup.getParent(), new Runnable() {
@@ -148,7 +147,7 @@ class BaseTest {
             thread.start();
         } else {
             synchronized (this.endPointConnections) {
-                for (EndPoint endPointConnection : this.endPointConnections) {
+                for (Shutdownable endPointConnection : this.endPointConnections) {
                     endPointConnection.stop();
                     endPointConnection.waitForShutdown();
                 }
@@ -185,7 +184,7 @@ class BaseTest {
                 ThreadGroup threadGroup = Thread.currentThread()
                                                 .getThreadGroup();
                 if (threadGroup.getName()
-                               .contains(THREADGROUP_NAME)) {
+                               .contains(Shutdownable.THREADGROUP_NAME)) {
                     threadGroup = threadGroup.getParent();
                 }
 

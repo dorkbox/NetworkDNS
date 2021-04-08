@@ -45,7 +45,7 @@ import dorkbox.network.dns.records.TTL;
  */
 
 public
-class Tokenizer {
+class Tokenizer implements AutoCloseable {
     private static final char[] VALID = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
     private static final int[] INTERNAL = new int[256];
 
@@ -878,6 +878,7 @@ class Tokenizer {
     /**
      * Closes any files opened by this tokenizer.
      */
+    @Override
     public
     void close() {
         if (wantClose) {
@@ -887,11 +888,4 @@ class Tokenizer {
             }
         }
     }
-
-    @Override
-    protected
-    void finalize() {
-        close();
-    }
-
 }

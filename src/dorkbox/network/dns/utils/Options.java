@@ -4,7 +4,7 @@ package dorkbox.network.dns.utils;
 
 import java.util.StringTokenizer;
 
-import com.esotericsoftware.kryo.util.ObjectMap;
+import dorkbox.util.collections.ObjectMap;
 
 /**
  * Boolean options:<BR>

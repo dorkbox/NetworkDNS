@@ -2,8 +2,7 @@
 
 package dorkbox.network.dns;
 
-import com.esotericsoftware.kryo.util.IntMap;
-
+import dorkbox.util.collections.IntMap;
 import dorkbox.util.collections.ObjectIntMap;
 
 /**

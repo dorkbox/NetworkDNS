@@ -2,7 +2,6 @@
 
 package dorkbox.network.dns.records;
 
-import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Base64;
@@ -12,8 +11,6 @@ import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.esotericsoftware.kryo.util.ObjectMap;
-
 import dorkbox.network.dns.DnsOutput;
 import dorkbox.network.dns.Name;
 import dorkbox.network.dns.constants.DnsClass;
@@ -21,6 +18,7 @@ import dorkbox.network.dns.constants.DnsResponseCode;
 import dorkbox.network.dns.constants.DnsSection;
 import dorkbox.network.dns.exceptions.TextParseException;
 import dorkbox.network.dns.utils.Options;
+import dorkbox.util.collections.ObjectMap;
 
 /**
  * Transaction signature handling.  This class generates and verifies

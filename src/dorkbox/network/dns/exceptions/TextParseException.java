@@ -23,4 +23,8 @@ class TextParseException extends IOException {
         super(s);
     }
 
+    public
+    TextParseException(String s, Exception e) {
+        super(s, e);
+    }
 }

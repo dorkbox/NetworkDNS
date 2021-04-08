@@ -11,6 +11,7 @@ import dorkbox.network.dns.DnsInput;
 import dorkbox.network.dns.DnsOutput;
 import dorkbox.network.dns.Name;
 import dorkbox.network.dns.constants.DnsRecordType;
+import dorkbox.network.dns.exceptions.TextParseException;
 import dorkbox.network.dns.utils.Tokenizer;
 
 /**
@@ -88,7 +89,11 @@ class A6Record extends DnsRecord {
         }
         else if (prefixBits < 128) {
             String s = st.getString();
-            suffix = IPv6.INSTANCE.toAddress(s);
+            try {
+                suffix = IPv6.INSTANCE.toAddress(s);
+            } catch (Exception e) {
+                throw new TextParseException("Invalid address: " + s, e);
+            }
         }
         if (prefixBits > 0) {
             prefix = st.getName(origin);

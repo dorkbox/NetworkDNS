@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 dorkbox, llc
+ * Copyright 2020 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,38 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
-import org.jetbrains.kotlin.js.translate.context.Namer.kotlin
+
 import java.time.Instant
-import java.util.*
-import kotlin.reflect.KMutableProperty
-import kotlin.reflect.full.declaredMemberProperties
 
 ///////////////////////////////
 //////    PUBLISH TO SONATYPE / MAVEN CENTRAL
-//////
-////// TESTING : local maven repo <PUBLISHING - publishToMavenLocal>
-//////
-////// RELEASE : sonatype / maven central, <PUBLISHING - publish> then <RELEASE - closeAndReleaseRepository>
+////// TESTING : (to local maven repo) <'publish and release' - 'publishToMavenLocal'>
+////// RELEASE : (to sonatype/maven central), <'publish and release' - 'publishToSonatypeAndRelease'>
 ///////////////////////////////
 
-println("\tGradle ${project.gradle.gradleVersion} on Java ${JavaVersion.current()}")
+gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS   // always show the stacktrace!
+gradle.startParameter.warningMode = WarningMode.All
 
 plugins {
     java
-    signing
-    `maven-publish`
 
-    // close and release on sonatype
-    id("io.codearte.nexus-staging") version "0.20.0"
+    id("com.dorkbox.GradleUtils") version "1.17"
+    id("com.dorkbox.Licensing") version "2.5.5"
+    id("com.dorkbox.VersionUpdate") version "2.3"
+    id("com.dorkbox.GradlePublish") version "1.10"
+//    id("com.dorkbox.GradleModuleInfo") version "1.1"
 
-    id("com.dorkbox.Licensing") version "1.4"
-    id("com.dorkbox.VersionUpdate") version "1.4.1"
-    id("com.dorkbox.GradleUtils") version "1.0"
-
-    kotlin("jvm") version "1.3.21"
+    kotlin("jvm") version "1.4.32"
 }
-
 
 object Extras {
     // set for the project
@@ -56,46 +47,18 @@ object Extras {
     const val name = "NetworkDNS"
     const val id = "NetworkDNS"
     const val vendor = "Dorkbox LLC"
+    const val vendorUrl = "https://dorkbox.com"
     const val url = "https://git.dorkbox.com/dorkbox/NetworkDNS"
     val buildDate = Instant.now().toString()
-
-    val JAVA_VERSION = JavaVersion.VERSION_1_8.toString()
-
-    var sonatypeUserName = ""
-    var sonatypePassword = ""
 }
 
 ///////////////////////////////
 /////  assign 'Extras'
 ///////////////////////////////
-description = Extras.description
-group = Extras.group
-version = Extras.version
-
-val propsFile = File("$projectDir/../../gradle.properties").normalize()
-if (propsFile.canRead()) {
-    println("\tLoading custom property data from: [$propsFile]")
-
-    val props = Properties()
-    propsFile.inputStream().use {
-        props.load(it)
-    }
-
-    val extraProperties = Extras::class.declaredMemberProperties.filterIsInstance<KMutableProperty<String>>()
-    props.forEach { (k, v) -> run {
-        val key = k as String
-        val value = v as String
-
-        val member = extraProperties.find { it.name == key }
-        if (member != null) {
-            member.setter.call(Extras::class.objectInstance, value)
-        }
-        else {
-            project.extra.set(k, v)
-        }
-    }}
-}
-
+GradleUtils.load("$projectDir/../../gradle.properties", Extras)
+GradleUtils.fixIntellijPaths()
+GradleUtils.defaultResolutionStrategy()
+GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
 
 
 licensing {
@@ -103,23 +66,12 @@ licensing {
         author(Extras.vendor)
         url(Extras.url)
         note(Extras.description)
-    }
 
-    license("ObjectPool", License.APACHE_2) {
-        author("dorkbox, llc")
-        url("https://git.dorkbox.com/dorkbox/ObjectPool")
-    }
-
-    license("Kryo", License.BSD_3) {
-        copyright(2008)
-        author("Nathan Sweet")
-        url("https://github.com/EsotericSoftware/kryo")
-    }
-
-    license("XBill DNS", License.BSD_3) {
-        copyright (2005)
-        author ("Brian Wellington")
-        url("http://www.xbill.org/dnsjava")
+        extra("XBill DNS", License.BSD_2) {
+            it.copyright(2011)
+            it.author("Brian Wellington")
+            it.url("https://github.com/dnsjava/dnsjava")
+        }
     }
 }
 
@@ -149,25 +101,6 @@ repositories {
     jcenter()
 }
 
-
-///////////////////////////////
-//////    Task defaults
-///////////////////////////////
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
-
-    sourceCompatibility = Extras.JAVA_VERSION
-    targetCompatibility = Extras.JAVA_VERSION
-}
-
-tasks.withType<Jar> {
-    duplicatesStrategy = DuplicatesStrategy.FAIL
-}
-
-tasks.compileJava.get().apply {
-    println("\tCompiling classes to Java $sourceCompatibility")
-}
-
 tasks.jar.get().apply {
     manifest {
         // https://docs.oracle.com/javase/tutorial/deployment/jar/packageman.html
@@ -186,119 +119,14 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    api("com.dorkbox:Network:2.17")
-    api("io.netty:netty-all:4.1.32.Final")
-    api("com.esotericsoftware:kryo:4.0.2")
+    implementation("com.dorkbox:NetworkUtils:2.3")
+    implementation("com.dorkbox:Utilities:1.9")
+    implementation("com.dorkbox:PropertyLoader:1.0")
 
-    implementation ("org.slf4j:slf4j-api:1.7.25")
+    implementation("io.netty:netty-all:4.1.63.Final")
 
-    testCompile("junit:junit:4.12")
-    testCompile("ch.qos.logback:logback-classic:1.2.3")
-}
+    implementation ("org.slf4j:slf4j-api:1.7.30")
 
-
-/////////////////////////////
-////    PUBLISH TO SONATYPE / MAVEN CENTRAL
-////
-//// TESTING : local maven repo <PUBLISHING - publishToMavenLocal>
-////
-//// RELEASE : sonatype / maven central, <PUBLISHING - publish> then <RELEASE - closeAndReleaseRepository>
-/////////////////////////////
-val sourceJar = task<Jar>("sourceJar") {
-    description = "Creates a JAR that contains the source code."
-
-    from(sourceSets["main"].java)
-
-    archiveClassifier.set("sources")
-}
-
-val javaDocJar = task<Jar>("javaDocJar") {
-    description = "Creates a JAR that contains the javadocs."
-
-    archiveClassifier.set("javadoc")
-}
-
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = Extras.group
-            artifactId = Extras.id
-            version = Extras.version
-
-            from(components["java"])
-
-            artifact(sourceJar)
-            artifact(javaDocJar)
-
-            pom {
-                name.set(Extras.name)
-                description.set(Extras.description)
-                url.set(Extras.url)
-
-                issueManagement {
-                    url.set("${Extras.url}/issues")
-                    system.set("Gitea Issues")
-                }
-                organization {
-                    name.set(Extras.vendor)
-                    url.set("https://dorkbox.com")
-                }
-                developers {
-                    developer {
-                        id.set("dorkbox")
-                        name.set(Extras.vendor)
-                        email.set("email@dorkbox.com")
-                    }
-                }
-                scm {
-                    url.set(Extras.url)
-                    connection.set("scm:${Extras.url}.git")
-                }
-            }
-
-        }
-    }
-
-
-    repositories {
-        maven {
-            setUrl("https://oss.sonatype.org/service/local/staging/deploy/maven2")
-            credentials {
-                username = Extras.sonatypeUserName
-                password = Extras.sonatypePassword
-            }
-        }
-    }
-
-
-    tasks.withType<PublishToMavenRepository> {
-        onlyIf {
-            publication == publishing.publications["maven"] && repository == publishing.repositories["maven"]
-        }
-    }
-
-    tasks.withType<PublishToMavenLocal> {
-        onlyIf {
-            publication == publishing.publications["maven"]
-        }
-    }
-
-    // output the release URL in the console
-    tasks["releaseRepository"].doLast {
-        val url = "https://oss.sonatype.org/content/repositories/releases/"
-        val projectName = Extras.group.replace('.', '/')
-        val name = Extras.name
-        val version = Extras.version
-
-        println("Maven URL: $url$projectName/$name/$version/")
-    }
-}
-
-nexusStaging {
-    username = Extras.sonatypeUserName
-    password = Extras.sonatypePassword
-}
-
-signing {
-    sign(publishing.publications["maven"])
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("ch.qos.logback:logback-classic:1.2.3")
 }

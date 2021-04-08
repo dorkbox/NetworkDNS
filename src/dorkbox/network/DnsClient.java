@@ -50,16 +50,8 @@ import dorkbox.util.NamedThreadFactory;
 import io.netty.channel.ChannelFactory;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ReflectiveChannelFactory;
-import io.netty.channel.epoll.EpollDatagramChannel;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.kqueue.KQueueDatagramChannel;
-import io.netty.channel.kqueue.KQueueEventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.InternetProtocolFamily;
-import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.channel.socket.oio.OioDatagramChannel;
 import io.netty.util.concurrent.Future;
 
 /**
@@ -212,28 +204,29 @@ class DnsClient extends Shutdownable {
      *
      * @param nameServerAddresses the list of servers to receive your DNS questions, until it succeeds
      */
+    @SuppressWarnings("deprecation")
     public
     DnsClient(Collection<InetSocketAddress> nameServerAddresses) {
         super(DnsClient.class);
 
         if (OS.isAndroid()) {
             // android ONLY supports OIO (not NIO)
-            eventLoopGroup = new OioEventLoopGroup(1, new NamedThreadFactory(THREAD_NAME + "-DNS", threadGroup));
-            channelType = OioDatagramChannel.class;
+            eventLoopGroup = new io.netty.channel.oio.OioEventLoopGroup(1, new NamedThreadFactory(THREAD_NAME + "-DNS", threadGroup));
+            channelType = io.netty.channel.socket.oio.OioDatagramChannel.class;
         }
         else if (OS.isLinux() && NativeLibrary.isAvailable()) {
             // epoll network stack is MUCH faster (but only on linux)
-            eventLoopGroup = new EpollEventLoopGroup(1, new NamedThreadFactory(THREAD_NAME + "-DNS", threadGroup));
-            channelType = EpollDatagramChannel.class;
+            eventLoopGroup = new io.netty.channel.epoll.EpollEventLoopGroup(1, new NamedThreadFactory(THREAD_NAME + "-DNS", threadGroup));
+            channelType = io.netty.channel.epoll.EpollDatagramChannel.class;
         }
         else if (OS.isMacOsX() && NativeLibrary.isAvailable()) {
             // KQueue network stack is MUCH faster (but only on macosx)
-            eventLoopGroup = new KQueueEventLoopGroup(1, new NamedThreadFactory(THREAD_NAME + "-DNS", threadGroup));
-            channelType = KQueueDatagramChannel.class;
+            eventLoopGroup = new io.netty.channel.kqueue.KQueueEventLoopGroup(1, new NamedThreadFactory(THREAD_NAME + "-DNS", threadGroup));
+            channelType = io.netty.channel.kqueue.KQueueDatagramChannel.class;
         }
         else {
-            eventLoopGroup = new NioEventLoopGroup(1, new NamedThreadFactory(THREAD_NAME + "-DNS", threadGroup));
-            channelType = NioDatagramChannel.class;
+            eventLoopGroup = new io.netty.channel.nio.NioEventLoopGroup(1, new NamedThreadFactory(THREAD_NAME + "-DNS", threadGroup));
+            channelType = io.netty.channel.socket.nio.NioDatagramChannel.class;
         }
 
         manageForShutdown(eventLoopGroup);

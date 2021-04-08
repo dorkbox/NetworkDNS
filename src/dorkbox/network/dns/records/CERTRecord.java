@@ -3,6 +3,7 @@
 package dorkbox.network.dns.records;
 
 import java.io.IOException;
+import java.util.Base64;
 
 import dorkbox.network.dns.Compression;
 import dorkbox.network.dns.DnsInput;
@@ -12,8 +13,7 @@ import dorkbox.network.dns.Name;
 import dorkbox.network.dns.constants.DnsRecordType;
 import dorkbox.network.dns.utils.Options;
 import dorkbox.network.dns.utils.Tokenizer;
-import dorkbox.util.Base64Fast;
-import dorkbox.util.OS;
+import dorkbox.os.OS;
 
 /**
  * Certificate Record  - Stores a certificate associated with a name.  The
@@ -177,14 +177,11 @@ class CERTRecord extends DnsRecord {
 
         if (cert != null) {
             if (Options.check("multiline")) {
-                sb.append(" (");
                 sb.append(OS.LINE_SEPARATOR);
-
-                sb.append(Base64Fast.formatString(Base64Fast.encode2(cert), 64, "\t", true));
+                sb.append(Base64.getMimeEncoder().encodeToString(cert));
             }
             else {
-                sb.append(" ");
-                sb.append(Base64Fast.encode2(cert));
+                sb.append(Base64.getEncoder().encodeToString(cert));
             }
         }
     }

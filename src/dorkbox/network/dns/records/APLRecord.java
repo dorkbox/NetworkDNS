@@ -33,7 +33,7 @@ public
 class APLRecord extends DnsRecord {
 
     private static final long serialVersionUID = -1348173791712935864L;
-    private List elements;
+    private List<Element> elements;
 
 
     public static
@@ -277,20 +277,22 @@ class APLRecord extends DnsRecord {
      * @param elements The list of APL elements.
      */
     public
-    APLRecord(Name name, int dclass, long ttl, List elements) {
+    APLRecord(Name name, int dclass, long ttl, List<Element> elements) {
         super(name, DnsRecordType.APL, dclass, ttl);
-        this.elements = new ArrayList(elements.size());
-        for (Iterator it = elements.iterator(); it.hasNext(); ) {
-            Object o = it.next();
+        this.elements = new ArrayList<>(elements.size());
+
+        for (Iterator<Element> it = elements.iterator(); it.hasNext(); ) {
+            Element o = it.next();
             if (!(o instanceof Element)) {
                 throw new IllegalArgumentException("illegal element");
             }
+
             Element element = (Element) o;
             if (element.family != Address.IPv4 && element.family != Address.IPv6) {
                 throw new IllegalArgumentException("unknown family");
             }
-            this.elements.add(element);
 
+            this.elements.add(element);
         }
     }
 

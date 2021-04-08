@@ -14,7 +14,7 @@ import dorkbox.network.dns.DnsOutput;
 import dorkbox.network.dns.Name;
 import dorkbox.network.dns.constants.*;
 import dorkbox.network.dns.exceptions.WireParseException;
-import dorkbox.util.OS;
+import dorkbox.os.OS;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.*;
 

@@ -4,14 +4,14 @@ package dorkbox.network.dns.records;
 
 import java.io.IOException;
 import java.security.PublicKey;
+import java.util.Base64;
 
 import dorkbox.network.dns.Compression;
 import dorkbox.network.dns.DnsInput;
 import dorkbox.network.dns.DnsOutput;
 import dorkbox.network.dns.Name;
 import dorkbox.network.dns.utils.Options;
-import dorkbox.util.Base64Fast;
-import dorkbox.util.OS;
+import dorkbox.os.OS;
 
 /**
  * The base class for KEY/DNSKEY records, which have identical formats
@@ -74,16 +74,15 @@ class KEYBase extends DnsRecord {
 
         if (key != null) {
             if (Options.check("multiline")) {
-                sb.append(" (")
-                  .append(OS.LINE_SEPARATOR);
-
-                sb.append(Base64Fast.formatString(Base64Fast.encode2(key), 64, "\t", true));
-                sb.append(" ; key_tag = ");
+                sb.append(OS.LINE_SEPARATOR);
+                sb.append(Base64.getMimeEncoder().encodeToString(key));
+                sb.append(OS.LINE_SEPARATOR);
+                sb.append("key_tag = ");
                 sb.append(getFootprint());
             }
             else {
                 sb.append(" ");
-                sb.append(Base64Fast.encode2(key));
+                sb.append(Base64.getEncoder().encodeToString(key));
             }
         }
     }

@@ -5,6 +5,7 @@ package dorkbox.network.dns.records;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Date;
 
 import javax.crypto.Mac;
@@ -20,7 +21,6 @@ import dorkbox.network.dns.constants.DnsResponseCode;
 import dorkbox.network.dns.constants.DnsSection;
 import dorkbox.network.dns.exceptions.TextParseException;
 import dorkbox.network.dns.utils.Options;
-import dorkbox.util.Base64Fast;
 
 /**
  * Transaction signature handling.  This class generates and verifies
@@ -241,14 +241,9 @@ class TSIG {
      */
     public
     TSIG(Name algorithm, String name, String key) {
-        byte[] keyBytes;
-        try {
-            keyBytes = Base64Fast.decode2(key);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Invalid TSIG key string");
-        }
+        byte[] keyBytes = Base64.getDecoder().decode(key);
 
-        if (keyBytes == null) {
+        if (keyBytes.length == 0) {
             throw new IllegalArgumentException("Invalid TSIG key string");
         }
 
@@ -257,6 +252,7 @@ class TSIG {
         } catch (TextParseException e) {
             throw new IllegalArgumentException("Invalid TSIG key name");
         }
+
         this.alg = algorithm;
         String macAlgorithm = nameToAlgorithm(this.alg);
         init_hmac(macAlgorithm, new SecretKeySpec(keyBytes, macAlgorithm));

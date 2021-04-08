@@ -1,6 +1,7 @@
 package dorkbox.network.dns.records;
 
 import java.io.IOException;
+import java.util.Base64;
 
 import dorkbox.network.dns.Compression;
 import dorkbox.network.dns.DnsInput;
@@ -9,8 +10,7 @@ import dorkbox.network.dns.Name;
 import dorkbox.network.dns.constants.DnsRecordType;
 import dorkbox.network.dns.utils.Options;
 import dorkbox.network.dns.utils.Tokenizer;
-import dorkbox.util.Base64Fast;
-import dorkbox.util.OS;
+import dorkbox.os.OS;
 
 /**
  * OPENPGPKEY Record - Stores an OpenPGP certificate associated with a name.
@@ -50,13 +50,13 @@ class OPENPGPKEYRecord extends DnsRecord {
     void rrToString(StringBuilder sb) {
         if (cert != null) {
             if (Options.check("multiline")) {
-                sb.append("(")
+                sb.append(" ")
                   .append(OS.LINE_SEPARATOR);
-                sb.append(Base64Fast.formatString(Base64Fast.encode2(cert), 64, "\t", true));
+                sb.append(Base64.getEncoder().encodeToString(cert));
             }
             else {
                 sb.append("\t");
-                sb.append(Base64Fast.encode2(cert));
+                sb.append(Base64.getEncoder().encodeToString(cert));
             }
         }
     }

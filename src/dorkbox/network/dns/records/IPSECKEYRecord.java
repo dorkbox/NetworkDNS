@@ -5,6 +5,7 @@ package dorkbox.network.dns.records;
 import java.io.IOException;
 import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.util.Base64;
 
 import dorkbox.network.dns.Compression;
 import dorkbox.network.dns.DnsInput;
@@ -15,7 +16,6 @@ import dorkbox.network.dns.exceptions.TextParseException;
 import dorkbox.network.dns.exceptions.WireParseException;
 import dorkbox.network.dns.utils.Address;
 import dorkbox.network.dns.utils.Tokenizer;
-import dorkbox.util.Base64Fast;
 
 /**
  * IPsec Keying Material (RFC 4025)
@@ -134,7 +134,7 @@ class IPSECKEYRecord extends DnsRecord {
 
         if (key != null) {
             sb.append(" ");
-            sb.append(Base64Fast.encode2(key));
+            sb.append(Base64.getEncoder().encodeToString(key));
         }
     }
 

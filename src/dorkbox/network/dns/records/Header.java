@@ -10,9 +10,9 @@ import dorkbox.network.dns.constants.DnsOpCode;
 import dorkbox.network.dns.constants.DnsResponseCode;
 import dorkbox.network.dns.constants.DnsSection;
 import dorkbox.network.dns.constants.Flags;
+import dorkbox.os.OS;
 import dorkbox.util.FastThreadLocal;
 import dorkbox.util.MersenneTwisterFast;
-import dorkbox.util.OS;
 
 /**
  * A DNS message header

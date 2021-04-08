@@ -3,6 +3,7 @@
 package dorkbox.network.dns.records;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Date;
 
 import dorkbox.network.dns.Compression;
@@ -13,8 +14,7 @@ import dorkbox.network.dns.constants.DnsRecordType;
 import dorkbox.network.dns.utils.FormattedTime;
 import dorkbox.network.dns.utils.Options;
 import dorkbox.network.dns.utils.Tokenizer;
-import dorkbox.util.Base64Fast;
-import dorkbox.util.OS;
+import dorkbox.os.OS;
 
 /**
  * The base class for SIG/RRSIG records, which have identical formats
@@ -119,11 +119,11 @@ class SIGBase extends DnsRecord {
         sb.append(signer);
         if (Options.check("multiline")) {
             sb.append(OS.LINE_SEPARATOR);
-            sb.append(Base64Fast.formatString(Base64Fast.encode2(signature), 64, "\t", true));
+            sb.append(Base64.getEncoder().encodeToString(signature));
         }
         else {
             sb.append(" ");
-            sb.append(Base64Fast.encode2(signature));
+            sb.append(Base64.getMimeEncoder().encodeToString(signature));
         }
     }
 

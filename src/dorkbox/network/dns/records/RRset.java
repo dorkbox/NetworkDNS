@@ -30,7 +30,7 @@ class RRset implements Serializable {
      * rrs contains both normal and RRSIG records, with the RRSIG records
      * at the end.
      */
-    private List resourceRecords;
+    private List<DnsRecord> resourceRecords;
     private short nsigs;
     private short position;
 
@@ -48,7 +48,7 @@ class RRset implements Serializable {
      */
     public
     RRset() {
-        resourceRecords = new ArrayList(1);
+        resourceRecords = new ArrayList<DnsRecord>(1);
         nsigs = 0;
         position = 0;
     }

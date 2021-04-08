@@ -3,6 +3,7 @@
 package dorkbox.network.dns.records;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Date;
 
 import dorkbox.network.dns.Compression;
@@ -14,8 +15,7 @@ import dorkbox.network.dns.constants.DnsResponseCode;
 import dorkbox.network.dns.utils.FormattedTime;
 import dorkbox.network.dns.utils.Options;
 import dorkbox.network.dns.utils.Tokenizer;
-import dorkbox.util.Base64Fast;
-import dorkbox.util.OS;
+import dorkbox.os.OS;
 
 /**
  * Transaction Key - used to compute and/or securely transport a shared
@@ -143,11 +143,11 @@ class TKEYRecord extends DnsRecord {
         if (Options.check("multiline")) {
             sb.append(OS.LINE_SEPARATOR);
             if (key != null) {
-                sb.append(Base64Fast.formatString(Base64Fast.encode2(key), 64, "\t", true));
+                sb.append(Base64.getMimeEncoder().encodeToString(key));
                 sb.append(OS.LINE_SEPARATOR);
             }
             if (other != null) {
-                sb.append(Base64Fast.formatString(Base64Fast.encode2(other), 64, "\t", true));
+                sb.append(Base64.getMimeEncoder().encodeToString(other));
             }
             sb.append(" )");
         }
@@ -155,13 +155,13 @@ class TKEYRecord extends DnsRecord {
             sb.append(" ");
             if (key != null) {
                 sb.append("\t");
-                sb.append(Base64Fast.encode2(key));
+                sb.append(Base64.getEncoder().encodeToString(key));
 
                 sb.append(" ");
             }
             if (other != null) {
                 sb.append("\t");
-                sb.append(Base64Fast.encode2(other));
+                sb.append(Base64.getEncoder().encodeToString(other));
             }
         }
     }

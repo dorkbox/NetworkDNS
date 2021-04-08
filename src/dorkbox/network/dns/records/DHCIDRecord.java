@@ -3,6 +3,7 @@
 package dorkbox.network.dns.records;
 
 import java.io.IOException;
+import java.util.Base64;
 
 import dorkbox.network.dns.Compression;
 import dorkbox.network.dns.DnsInput;
@@ -10,7 +11,6 @@ import dorkbox.network.dns.DnsOutput;
 import dorkbox.network.dns.Name;
 import dorkbox.network.dns.constants.DnsRecordType;
 import dorkbox.network.dns.utils.Tokenizer;
-import dorkbox.util.Base64Fast;
 
 /**
  * DHCID - Dynamic Host Configuration Protocol (DHCP) ID (RFC 4701)
@@ -44,7 +44,7 @@ class DHCIDRecord extends DnsRecord {
 
     @Override
     void rrToString(StringBuilder sb) {
-        sb.append(Base64Fast.encode2(data));
+        sb.append(Base64.getEncoder().encodeToString(data));
     }
 
     @Override

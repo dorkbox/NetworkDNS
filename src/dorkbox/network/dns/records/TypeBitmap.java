@@ -142,7 +142,7 @@ class TypeBitmap implements Serializable {
         }
 
         int mapbase = -1;
-        TreeSet<Integer> map = new TreeSet();
+        TreeSet<Integer> map = new TreeSet<>();
 
         Keys keys = types.keys();
         while (keys.hasNext) {

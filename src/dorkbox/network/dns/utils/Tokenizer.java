@@ -30,6 +30,8 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Base64;
 
+import dorkbox.netUtil.IPv4;
+import dorkbox.netUtil.IPv6;
 import dorkbox.network.dns.Name;
 import dorkbox.network.dns.exceptions.RelativeNameException;
 import dorkbox.network.dns.exceptions.TextParseException;
@@ -134,6 +136,7 @@ class Tokenizer {
          * Converts the token to a string containing a representation useful
          * for debugging.
          */
+        @Override
         public
         String toString() {
             switch (type) {
@@ -664,11 +667,13 @@ class Tokenizer {
     public
     InetAddress getAddress(int family) throws IOException {
         String next = _getIdentifier("an address");
-        try {
-            return Address.getByAddress(next, family);
-        } catch (UnknownHostException e) {
-            throw exception(e.getMessage());
+        if (IPv4.INSTANCE.isValid(next)) {
+            return IPv4.INSTANCE.toAddress(next);
         }
+        if (IPv6.INSTANCE.isValid(next)) {
+            return IPv6.INSTANCE.toAddress(next);
+        }
+        throw new UnknownHostException("Unable to create an address from: " + next);
     }
 
     /**

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import dorkbox.netUtil.IPv4;
 import dorkbox.network.dns.Compression;
 import dorkbox.network.dns.DnsInput;
 import dorkbox.network.dns.DnsOutput;
@@ -49,7 +50,7 @@ class ARecord extends DnsRecord {
      */
     @Override
     void rrToString(StringBuilder sb) {
-        sb.append(Address.toDottedQuad(toArray(addr)));
+        IPv4.INSTANCE.toString(addr, sb);
     }
 
     private static

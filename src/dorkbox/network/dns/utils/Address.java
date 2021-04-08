@@ -245,43 +245,6 @@ class Address {
         }
     }
 
-    /**
-     * Determines if a string contains a valid IP address.
-     *
-     * @param s The string
-     *
-     * @return Whether the string contains a valid IP address
-     */
-    public static
-    boolean isDottedQuad(String s) {
-        byte[] address = Address.toByteArray(s, IPv4);
-        return (address != null);
-    }
-
-    /**
-     * Converts a byte array containing an IPv4 address into a dotted quad string.
-     *
-     * @param addr The array
-     *
-     * @return The string representation
-     */
-    public static
-    String toDottedQuad(byte[] addr) {
-        return ((addr[0] & 0xFF) + "." + (addr[1] & 0xFF) + "." + (addr[2] & 0xFF) + "." + (addr[3] & 0xFF));
-    }
-
-    /**
-     * Converts an int array containing an IPv4 address into a dotted quad string.
-     *
-     * @param addr The array
-     *
-     * @return The string representation
-     */
-    public static
-    String toDottedQuad(int[] addr) {
-        return (addr[0] + "." + addr[1] + "." + addr[2] + "." + addr[3]);
-    }
-
     private static
     List<InetAddress> lookupHostName(String name) throws UnknownHostException {
         DnsClient client = new DnsClient();
@@ -295,22 +258,26 @@ class Address {
      *
      * @param name The hostname to look up
      *
-     * @return The first matching IP address
+     * @return The first matching IP address or null
      *
      * @throws UnknownHostException The hostname does not have any addresses
      */
     public static
     InetAddress getByName(String name) throws UnknownHostException {
-        try {
-            return getByAddress(name);
-        } catch (UnknownHostException e) {
-            List<InetAddress> records = lookupHostName(name);
-            if (records == null) {
-                return null;
-            }
-
-            return records.get(0);
+        // are we ALREADY IPv 4/6
+        if (dorkbox.netUtil.IPv4.INSTANCE.isValid(name)) {
+            return dorkbox.netUtil.IPv4.INSTANCE.toAddress(name);
         }
+        if (dorkbox.netUtil.IPv6.INSTANCE.isValid(name)) {
+            return dorkbox.netUtil.IPv6.INSTANCE.toAddress(name);
+        }
+
+        List<InetAddress> records = lookupHostName(name);
+        if (records == null) {
+            return null;
+        }
+
+        return records.get(0);
     }
 
     /**
@@ -318,84 +285,39 @@ class Address {
      *
      * @param name The hostname to look up
      *
-     * @return All matching IP addresses
+     * @return All matching IP addresses or null
      *
      * @throws UnknownHostException The hostname does not have any addresses
      */
     public static
     InetAddress[] getAllByName(String name) throws UnknownHostException {
-        try {
-            InetAddress addr = getByAddress(name);
-            return new InetAddress[] {addr};
-        } catch (UnknownHostException e) {
-            List<InetAddress> combined = new ArrayList<InetAddress>();
-            DnsClient client = new DnsClient();
-            // ipv4
-            client.resolvedAddressTypes(ResolvedAddressTypes.IPV4_ONLY);
-            List<InetAddress> resolved = client.resolve(name);
-            combined.addAll(resolved);
-            client.stop();
-
-
-            client = new DnsClient();
-            client.resolvedAddressTypes(ResolvedAddressTypes.IPV6_ONLY);
-            // ipv6
-            List<InetAddress> resolved2 = client.resolve(name);
-            combined.addAll(resolved2);
-            client.stop();
-
-
-            return combined.toArray(new InetAddress[0]);
+        // are we ALREADY IPv 4/6
+        if (dorkbox.netUtil.IPv4.INSTANCE.isValid(name)) {
+            return new InetAddress[] {dorkbox.netUtil.IPv4.INSTANCE.toAddress(name)};
         }
-    }
+        if (dorkbox.netUtil.IPv6.INSTANCE.isValid(name)) {
+            return new InetAddress[] {dorkbox.netUtil.IPv6.INSTANCE.toAddress(name)};
+        }
 
-    /**
-     * Converts an address from its string representation to an IP address.
-     * The address can be either IPv4 or IPv6.
-     *
-     * @param addr The address, in string form
-     *
-     * @return The IP addresses
-     *
-     * @throws UnknownHostException The address is not a valid IP address.
-     */
-    public static
-    InetAddress getByAddress(String addr) throws UnknownHostException {
-        byte[] bytes;
-        bytes = toByteArray(addr, IPv4);
-        if (bytes != null) {
-            return InetAddress.getByAddress(addr, bytes);
+        List<InetAddress> records = lookupHostName(name);
+        if (records == null) {
+            return null;
         }
-        bytes = toByteArray(addr, IPv6);
-        if (bytes != null) {
-            return InetAddress.getByAddress(addr, bytes);
-        }
-        throw new UnknownHostException("Invalid address: " + addr);
-    }
 
-    /**
-     * Converts an address from its string representation to an IP address in
-     * a particular family.
-     *
-     * @param addr The address, in string form
-     * @param family The address family, either IPv4 or IPv6.
-     *
-     * @return The IP addresses
-     *
-     * @throws UnknownHostException The address is not a valid IP address in
-     *         the specified address family.
-     */
-    public static
-    InetAddress getByAddress(String addr, int family) throws UnknownHostException {
-        if (family != IPv4 && family != IPv6) {
-            throw new IllegalArgumentException("unknown address family");
-        }
-        byte[] bytes;
-        bytes = toByteArray(addr, family);
-        if (bytes != null) {
-            return InetAddress.getByAddress(addr, bytes);
-        }
-        throw new UnknownHostException("Invalid address: " + addr);
+        List<InetAddress> combined = new ArrayList<InetAddress>();
+        DnsClient client = new DnsClient();
+        // ipv4
+        client.resolvedAddressTypes(ResolvedAddressTypes.IPV4_ONLY);
+        List<InetAddress> resolved = client.resolve(name);
+        combined.addAll(resolved);
+
+        // ipv6
+        client.resolvedAddressTypes(ResolvedAddressTypes.IPV6_ONLY);
+        resolved = client.resolve(name);
+        combined.addAll(resolved);
+        client.stop();
+
+        return combined.toArray(new InetAddress[0]);
     }
 
     /**

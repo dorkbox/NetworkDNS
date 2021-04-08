@@ -4,8 +4,8 @@ package dorkbox.network.dns.records;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 
+import dorkbox.netUtil.IPv6;
 import dorkbox.network.dns.Compression;
 import dorkbox.network.dns.DnsInput;
 import dorkbox.network.dns.DnsOutput;
@@ -89,11 +89,7 @@ class A6Record extends DnsRecord {
         }
         else if (prefixBits < 128) {
             String s = st.getString();
-            try {
-                suffix = Address.getByAddress(s, Address.IPv6);
-            } catch (UnknownHostException e) {
-                throw st.exception("invalid IPv6 address: " + s);
-            }
+            suffix = IPv6.INSTANCE.toAddress(s);
         }
         if (prefixBits > 0) {
             prefix = st.getName(origin);

@@ -112,7 +112,7 @@ class APLRecordTest {
     class Test_init extends TestCase {
         Name m_an, m_rn;
         long m_ttl;
-        ArrayList m_elements;
+        ArrayList<Element> m_elements;
         InetAddress m_addr4;
         String m_addr4_string;
         byte[] m_addr4_bytes;
@@ -149,7 +149,7 @@ class APLRecordTest {
             m_addr6 = InetAddress.getByName(m_addr6_string);
             m_addr6_bytes = m_addr6.getAddress();
 
-            m_elements = new ArrayList(2);
+            m_elements = new ArrayList<>(2);
             Element e = new Element(true, m_addr4, 12);
             m_elements.add(e);
 
@@ -169,8 +169,8 @@ class APLRecordTest {
 
         public
         void test_4arg_empty_elements() {
-            APLRecord ar = new APLRecord(m_an, DnsClass.IN, m_ttl, new ArrayList());
-            assertEquals(new ArrayList(), ar.getElements());
+            APLRecord ar = new APLRecord(m_an, DnsClass.IN, m_ttl, new ArrayList<Element>());
+            assertEquals(new ArrayList<Element>(), ar.getElements());
         }
 
         public
@@ -178,24 +178,22 @@ class APLRecordTest {
             try {
                 new APLRecord(m_rn, DnsClass.IN, m_ttl, m_elements);
                 fail("RelativeNameException not thrown");
-            } catch (RelativeNameException e) {
+            } catch (RelativeNameException ignored) {
             }
         }
 
         public
         void test_4arg_invalid_elements() {
-            m_elements = new ArrayList();
-            m_elements.add(new Object());
+            m_elements = new ArrayList<Element>();
+            // this is on purpose!
+            //noinspection unchecked
+            ((List)m_elements).add(new Object());
             try {
                 new APLRecord(m_an, DnsClass.IN, m_ttl, m_elements);
                 fail("IllegalArgumentException not thrown");
             } catch (IllegalArgumentException e) {
             }
         }
-
-
-
-
     }
 
 
@@ -214,7 +212,7 @@ class APLRecordTest {
             APLRecord ar = new APLRecord();
             ar.rrFromWire(di);
 
-            ArrayList exp = new ArrayList();
+            ArrayList<Element> exp = new ArrayList<>();
             exp.add(new Element(true, m_addr4, 8));
             assertEquals(exp, ar.getElements());
         }
@@ -229,10 +227,12 @@ class APLRecordTest {
 
             InetAddress a = InetAddress.getByName("193.160.232.0");
 
-            ArrayList exp = new ArrayList();
+            ArrayList<Element> exp = new ArrayList<>();
             exp.add(new Element(true, a, 20));
             assertEquals(exp, ar.getElements());
-        }        @Override
+        }
+
+        @Override
         protected
         void setUp() throws TextParseException, UnknownHostException {
             m_addr4 = InetAddress.getByName("193.160.232.5");
@@ -251,7 +251,7 @@ class APLRecordTest {
             try {
                 ar.rrFromWire(di);
                 fail("WireParseException not thrown");
-            } catch (WireParseException e) {
+            } catch (WireParseException ignored) {
             }
         }
 
@@ -264,7 +264,7 @@ class APLRecordTest {
             try {
                 ar.rrFromWire(di);
                 fail("WireParseException not thrown");
-            } catch (WireParseException e) {
+            } catch (WireParseException ignored) {
             }
         }
 
@@ -277,7 +277,7 @@ class APLRecordTest {
             APLRecord ar = new APLRecord();
             ar.rrFromWire(di);
 
-            ArrayList exp = new ArrayList();
+            ArrayList<Element> exp = new ArrayList<>();
             exp.add(new Element(true, m_addr4, 8));
             exp.add(new Element(false, m_addr4, 30));
             assertEquals(exp, ar.getElements());
@@ -294,7 +294,7 @@ class APLRecordTest {
             APLRecord ar = new APLRecord();
             ar.rrFromWire(di);
 
-            ArrayList exp = new ArrayList();
+            ArrayList<Element> exp = new ArrayList<>();
             exp.add(new Element(false, m_addr6, 115));
             assertEquals(exp, ar.getElements());
         }
@@ -307,7 +307,7 @@ class APLRecordTest {
             APLRecord ar = new APLRecord();
             ar.rrFromWire(di);
 
-            List l = ar.getElements();
+            List<Element> l = ar.getElements();
             assertEquals(1, l.size());
 
             Element el = (Element) l.get(0);
@@ -316,10 +316,6 @@ class APLRecordTest {
             assertEquals(130, el.prefixLength);
             assertTrue(Arrays.equals(new byte[] {1, 2, 3, 4, 5}, (byte[]) el.address));
         }
-
-
-
-
     }
 
 
@@ -338,7 +334,7 @@ class APLRecordTest {
             APLRecord ar = new APLRecord();
             ar.rdataFromString(t, null);
 
-            ArrayList exp = new ArrayList();
+            ArrayList<Element> exp = new ArrayList<>();
             exp.add(new Element(false, m_addr4, 11));
 
             assertEquals(exp, ar.getElements());
@@ -353,12 +349,14 @@ class APLRecordTest {
             APLRecord ar = new APLRecord();
             ar.rdataFromString(t, null);
 
-            ArrayList exp = new ArrayList();
+            ArrayList<Element> exp = new ArrayList<>();
             exp.add(new Element(false, m_addr4, 11));
             exp.add(new Element(true, m_addr6, 100));
 
             assertEquals(exp, ar.getElements());
-        }        @Override
+        }
+
+        @Override
         protected
         void setUp() throws TextParseException, UnknownHostException {
             m_addr4_string = "193.160.232.5";
@@ -376,7 +374,7 @@ class APLRecordTest {
             APLRecord ar = new APLRecord();
             ar.rdataFromString(t, null);
 
-            ArrayList exp = new ArrayList();
+            ArrayList<Element> exp = new ArrayList<>();
             exp.add(new Element(true, m_addr6, 36));
 
             assertEquals(exp, ar.getElements());
@@ -392,7 +390,7 @@ class APLRecordTest {
             try {
                 ar.rdataFromString(t, null);
                 fail("TextParseException not thrown");
-            } catch (TextParseException e) {
+            } catch (TextParseException ignored) {
             }
         }
 
@@ -403,7 +401,7 @@ class APLRecordTest {
             try {
                 ar.rdataFromString(t, null);
                 fail("TextParseException not thrown");
-            } catch (TextParseException e) {
+            } catch (TextParseException ignored) {
             }
         }
 
@@ -414,7 +412,7 @@ class APLRecordTest {
             try {
                 ar.rdataFromString(t, null);
                 fail("TextParseException not thrown");
-            } catch (TextParseException e) {
+            } catch (TextParseException ignored) {
             }
         }
 
@@ -425,7 +423,7 @@ class APLRecordTest {
             try {
                 ar.rdataFromString(t, null);
                 fail("TextParseException not thrown");
-            } catch (TextParseException e) {
+            } catch (TextParseException ignored) {
             }
         }
 
@@ -436,7 +434,7 @@ class APLRecordTest {
             try {
                 ar.rdataFromString(t, null);
                 fail("TextParseException not thrown");
-            } catch (TextParseException e) {
+            } catch (TextParseException ignored) {
             }
         }
 
@@ -447,7 +445,7 @@ class APLRecordTest {
             try {
                 ar.rdataFromString(t, null);
                 fail("TextParseException not thrown");
-            } catch (TextParseException e) {
+            } catch (TextParseException ignored) {
             }
         }
 
@@ -458,7 +456,7 @@ class APLRecordTest {
             try {
                 ar.rdataFromString(t, null);
                 fail("TextParseException not thrown");
-            } catch (TextParseException e) {
+            } catch (TextParseException ignored) {
             }
         }
 
@@ -469,7 +467,7 @@ class APLRecordTest {
             try {
                 ar.rdataFromString(t, null);
                 fail("TextParseException not thrown");
-            } catch (TextParseException e) {
+            } catch (TextParseException ignored) {
             }
         }
 
@@ -480,7 +478,7 @@ class APLRecordTest {
             try {
                 ar.rdataFromString(t, null);
                 fail("TextParseException not thrown");
-            } catch (TextParseException e) {
+            } catch (TextParseException ignored) {
             }
         }
 
@@ -491,7 +489,7 @@ class APLRecordTest {
             try {
                 ar.rdataFromString(t, null);
                 fail("TextParseException not thrown");
-            } catch (TextParseException e) {
+            } catch (TextParseException ignored) {
             }
         }
 
@@ -502,13 +500,9 @@ class APLRecordTest {
             try {
                 ar.rdataFromString(t, null);
                 fail("TextParseException not thrown");
-            } catch (TextParseException e) {
+            } catch (TextParseException ignored) {
             }
         }
-
-
-
-
     }
 
 
@@ -516,7 +510,7 @@ class APLRecordTest {
     class Test_rrToString extends TestCase {
         Name m_an, m_rn;
         long m_ttl;
-        ArrayList m_elements;
+        ArrayList<Element> m_elements;
         InetAddress m_addr4;
         String m_addr4_string;
         byte[] m_addr4_bytes;
@@ -546,7 +540,7 @@ class APLRecordTest {
             m_addr6 = InetAddress.getByName(m_addr6_string);
             m_addr6_bytes = m_addr6.getAddress();
 
-            m_elements = new ArrayList(2);
+            m_elements = new ArrayList<>(2);
             Element e = new Element(true, m_addr4, 12);
             m_elements.add(e);
 
@@ -562,7 +556,7 @@ class APLRecordTest {
     class Test_rrToWire extends TestCase {
         Name m_an, m_rn;
         long m_ttl;
-        ArrayList m_elements;
+        ArrayList<Element> m_elements;
         InetAddress m_addr4;
         String m_addr4_string;
         byte[] m_addr4_bytes;
@@ -572,7 +566,7 @@ class APLRecordTest {
 
         public
         void test_empty() {
-            APLRecord ar = new APLRecord(m_an, DnsClass.IN, m_ttl, new ArrayList());
+            APLRecord ar = new APLRecord(m_an, DnsClass.IN, m_ttl, new ArrayList<>());
             DnsOutput dout = new DnsOutput();
 
             ar.rrToWire(dout, null, true);
@@ -593,7 +587,9 @@ class APLRecordTest {
 
             ar.rrToWire(dout, null, true);
             assertTrue(Arrays.equals(exp, dout.toByteArray()));
-        }        @Override
+        }
+
+        @Override
         protected
         void setUp() throws TextParseException, UnknownHostException {
             m_an = Name.fromString("My.Absolute.Name.");
@@ -607,7 +603,7 @@ class APLRecordTest {
             m_addr6 = InetAddress.getByName(m_addr6_string);
             m_addr6_bytes = m_addr6.getAddress();
 
-            m_elements = new ArrayList(2);
+            m_elements = new ArrayList<>(2);
             Element e = new Element(true, m_addr4, 12);
             m_elements.add(e);
 
@@ -632,7 +628,7 @@ class APLRecordTest {
         public
         void test_address_with_embedded_zero() throws UnknownHostException {
             InetAddress a = InetAddress.getByName("232.0.11.1");
-            ArrayList elements = new ArrayList();
+            ArrayList<Element> elements = new ArrayList<>();
             elements.add(new Element(true, a, 31));
 
             APLRecord ar = new APLRecord(m_an, DnsClass.IN, m_ttl, elements);
@@ -648,7 +644,7 @@ class APLRecordTest {
         public
         void test_short_address() throws UnknownHostException {
             InetAddress a = InetAddress.getByName("232.0.11.0");
-            ArrayList elements = new ArrayList();
+            ArrayList<Element> elements = new ArrayList<>();
             elements.add(new Element(true, a, 31));
 
             APLRecord ar = new APLRecord(m_an, DnsClass.IN, m_ttl, elements);
@@ -664,7 +660,7 @@ class APLRecordTest {
         public
         void test_wildcard_address() throws UnknownHostException {
             InetAddress a = InetAddress.getByName("0.0.0.0");
-            ArrayList elements = new ArrayList();
+            ArrayList<Element> elements = new ArrayList<>();
             elements.add(new Element(true, a, 31));
 
             APLRecord ar = new APLRecord(m_an, DnsClass.IN, m_ttl, elements);
@@ -676,10 +672,6 @@ class APLRecordTest {
             ar.rrToWire(dout, null, true);
             assertTrue(Arrays.equals(exp, dout.toByteArray()));
         }
-
-
-
-
     }
 
     public static

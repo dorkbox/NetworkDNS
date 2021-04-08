@@ -36,6 +36,7 @@ package dorkbox.network.dns.records;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Base64;
 
 import dorkbox.network.dns.DnsInput;
 import dorkbox.network.dns.DnsOutput;
@@ -45,7 +46,7 @@ import dorkbox.network.dns.constants.DnsRecordType;
 import dorkbox.network.dns.exceptions.TextParseException;
 import dorkbox.network.dns.utils.Options;
 import dorkbox.network.dns.utils.Tokenizer;
-import dorkbox.util.Base64Fast;
+import dorkbox.os.OS;
 import junit.framework.TestCase;
 
 public
@@ -139,7 +140,8 @@ class KEYBaseTest extends TestCase {
         tc.rrToString(sb);
         out = sb.toString();
 
-        assertEquals("255 15 14 " + Base64Fast.encode2(key), out);
+        assertEquals("255 15 14 " + Base64.getEncoder().encodeToString(key), out);
+
 
         Options.set("multiline");
 
@@ -147,7 +149,7 @@ class KEYBaseTest extends TestCase {
         tc.rrToString(sb);
         out = sb.toString();
 
-        assertEquals("255 15 14 (\n\t" + Base64Fast.encode2(key) + " ) ; key_tag = 18509", out);
+        assertEquals("255 15 14 (" + OS.LINE_SEPARATOR + Base64.getMimeEncoder().encodeToString(key) + OS.LINE_SEPARATOR + ") ; key_tag = 18509", out);
 
         Options.unset("multiline");
     }

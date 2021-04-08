@@ -173,8 +173,7 @@ class APLRecord extends DnsRecord {
 
     @Override
     void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        for (Iterator it = elements.iterator(); it.hasNext(); ) {
-            Element element = (Element) it.next();
+        for (Element element : elements) {
             int length = 0;
             byte[] data;
             if (element.family == Address.IPv4 || element.family == Address.IPv6) {
@@ -210,7 +209,7 @@ class APLRecord extends DnsRecord {
 
     @Override
     void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        elements = new ArrayList<Element>(1);
+        elements = new ArrayList<>(1);
         while (true) {
             Tokenizer.Token t = st.get();
             if (!t.isString()) {
@@ -261,10 +260,10 @@ class APLRecord extends DnsRecord {
 
             byte[] bytes = null;
             if (family == Address.IPv4) {
-                bytes = dorkbox.netUtil.IPv4.INSTANCE.toBytesOrNull(s);
+                bytes = dorkbox.netUtil.IPv4.INSTANCE.toBytesOrNull(addressString);
             }
             else {
-                bytes = dorkbox.netUtil.IPv6.INSTANCE.toBytesOrNull(s);
+                bytes = dorkbox.netUtil.IPv6.INSTANCE.toBytesOrNull(addressString);
             }
 
             if (bytes == null) {
@@ -297,8 +296,7 @@ class APLRecord extends DnsRecord {
         super(name, DnsRecordType.APL, dclass, ttl);
         this.elements = new ArrayList<>(elements.size());
 
-        for (Iterator<Element> it = elements.iterator(); it.hasNext(); ) {
-            Element o = it.next();
+        for (Object o : elements) {
             if (!(o instanceof Element)) {
                 throw new IllegalArgumentException("illegal element");
             }
@@ -316,8 +314,7 @@ class APLRecord extends DnsRecord {
      * Returns the list of APL elements.
      */
     public
-    List getElements() {
+    List<Element> getElements() {
         return elements;
     }
-
 }

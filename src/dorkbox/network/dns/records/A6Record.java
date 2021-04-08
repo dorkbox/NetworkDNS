@@ -11,7 +11,6 @@ import dorkbox.network.dns.DnsInput;
 import dorkbox.network.dns.DnsOutput;
 import dorkbox.network.dns.Name;
 import dorkbox.network.dns.constants.DnsRecordType;
-import dorkbox.network.dns.utils.Address;
 import dorkbox.network.dns.utils.Tokenizer;
 
 /**
@@ -107,7 +106,7 @@ class A6Record extends DnsRecord {
     A6Record(Name name, int dclass, long ttl, int prefixBits, InetAddress suffix, Name prefix) {
         super(name, DnsRecordType.A6, dclass, ttl);
         this.prefixBits = checkU8("prefixBits", prefixBits);
-        if (suffix != null && Address.familyOf(suffix) != Address.IPv6) {
+        if (suffix != null && !IPv6.INSTANCE.isFamily(suffix)) {
             throw new IllegalArgumentException("invalid IPv6 address");
         }
         this.suffix = suffix;

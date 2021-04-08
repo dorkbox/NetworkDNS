@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import dorkbox.netUtil.IPv6;
 import dorkbox.network.dns.Compression;
 import dorkbox.network.dns.DnsInput;
 import dorkbox.network.dns.DnsOutput;
@@ -83,7 +84,7 @@ class AAAARecord extends DnsRecord {
     public
     AAAARecord(Name name, int dclass, long ttl, InetAddress address) {
         super(name, DnsRecordType.AAAA, dclass, ttl);
-        if (Address.familyOf(address) != Address.IPv6) {
+        if (!IPv6.INSTANCE.isFamily(address)) {
             throw new IllegalArgumentException("invalid IPv6 address");
         }
         this.address = address.getAddress();
@@ -97,7 +98,7 @@ class AAAARecord extends DnsRecord {
     public
     AAAARecord(Name name, int dclass, long ttl, byte[] address) {
         super(name, DnsRecordType.AAAA, dclass, ttl);
-        if (address.length != Address.addressLength(Address.IPv6)) {
+        if ( address.length != IPv6.INSTANCE.getLength()) {
             throw new IllegalArgumentException("invalid IPv6 address");
         }
         this.address = address;

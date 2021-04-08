@@ -348,11 +348,14 @@ class DnsNameResolver extends InetNameResolver {
             promise.setSuccess(Collections.singletonList(loopbackAddress()));
             return;
         }
-        final byte[] bytes = IP.INSTANCE.toBytes(inetHost);
-        if (bytes.length > 0) {
-            // The unresolvedAddress was created via a String that contains an ip address.
-            promise.setSuccess(Collections.singletonList(InetAddress.getByAddress(bytes)));
-            return;
+
+        if (IP.INSTANCE.isValid(inetHost)) {
+            final byte[] bytes = IP.INSTANCE.toBytes(inetHost);
+            if (bytes.length > 0) {
+                // The unresolvedAddress was created via a String that contains an ip address.
+                promise.setSuccess(Collections.singletonList(InetAddress.getByAddress(bytes)));
+                return;
+            }
         }
 
         final String hostname = DnsQuestion.hostNameAsciiFix(inetHost);
@@ -460,8 +463,7 @@ class DnsNameResolver extends InetNameResolver {
     InetAddress resolveHostsFileEntry(String hostname) {
         InetAddress address = Dns.INSTANCE.resolveFromHosts(hostname, resolvedAddressTypes);
         if (address == null && OS.isWindows() && LOCALHOST.equalsIgnoreCase(hostname)) {
-            // If we tried to resolve localhost we need workaround that windows removed localhost from its
-            // hostfile in later versions.
+            // If we tried to resolve localhost we need workaround that windows removed localhost from its hostfile in later versions.
             // See https://github.com/netty/netty/issues/5386
             return LOCALHOST_ADDRESS;
         }

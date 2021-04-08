@@ -19,7 +19,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 
+import dorkbox.netUtil.Dns;
 import dorkbox.netUtil.dnsUtils.ResolvedAddressTypes;
 import dorkbox.network.dns.DnsQuestion;
 import dorkbox.network.dns.clientHandlers.DnsResponse;
@@ -88,30 +88,6 @@ class DnsClient extends Shutdownable {
  *
  *  TODO: add this functionality? https://en.wikipedia.org/wiki/Link-Local_Multicast_Name_Resolution
  */
-
-
-    /**
-     * This is a list of all of the public DNS servers to query, when submitting DNS queries
-     */
-    // @formatter:off
-    @Property
-    public static
-    List<InetSocketAddress> DNS_SERVER_LIST = Arrays.asList(
-        new InetSocketAddress("8.8.8.8", 53), // Google Public DNS
-        new InetSocketAddress("8.8.4.4", 53),
-        new InetSocketAddress("208.67.222.222", 53), // OpenDNS
-        new InetSocketAddress("208.67.220.220", 53),
-        new InetSocketAddress("37.235.1.174", 53), // FreeDNS
-        new InetSocketAddress("37.235.1.177", 53)
-    );
-    // @formatter:on
-
-    /**
-     * This is a list of all of the BOX default DNS servers to query, when submitting DNS queries.
-     */
-    public final static List<InetSocketAddress> DEFAULT_DNS_SERVER_LIST = DefaultDnsServerAddressStreamProvider.defaultAddressList();
-
-    public static final InetAddress[] INET_ADDRESSES = new InetAddress[0];
 
     /**
      * Gets the version number.
@@ -195,7 +171,7 @@ class DnsClient extends Shutdownable {
      */
     public
     DnsClient() {
-        this(DnsClient.DNS_SERVER_LIST);
+        this(Dns.INSTANCE.getDefaultNameServers());
     }
 
     /**
@@ -239,8 +215,6 @@ class DnsClient extends Shutdownable {
     public
     DnsClient(Collection<InetSocketAddress> nameServerAddresses) {
         super(DnsClient.class);
-
-        System.setProperty("io.netty.tryReflectionSetAccessible", "true");
 
         if (OS.isAndroid()) {
             // android ONLY supports OIO (not NIO)

@@ -5,6 +5,9 @@ package dorkbox.network.dns.records;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import dorkbox.netUtil.IP;
+import dorkbox.netUtil.IPv4;
+import dorkbox.netUtil.IPv6;
 import dorkbox.network.dns.DnsInput;
 import dorkbox.network.dns.DnsOutput;
 import dorkbox.network.dns.exceptions.WireParseException;
@@ -79,16 +82,28 @@ class ClientSubnetOption extends EDNSOption {
         this.family = Address.familyOf(address);
         this.sourceNetmask = checkMaskLength("source netmask", this.family, sourceNetmask);
         this.scopeNetmask = checkMaskLength("scope netmask", this.family, scopeNetmask);
-        this.address = Address.truncate(address, sourceNetmask);
+        this.address = IP.INSTANCE.truncate(address, sourceNetmask);
 
         if (!address.equals(this.address)) {
             throw new IllegalArgumentException("source netmask is not " + "valid for address");
         }
     }
 
+    private static int getLength(int family) {
+        int max;
+        if (family == Address.IPv4) {
+            max = IPv4.INSTANCE.getLength();
+        } else if (family == Address.IPv6) {
+            max = IPv6.INSTANCE.getLength();
+        } else {
+            throw new IllegalArgumentException("Invalid family address!");
+        }
+        return max;
+    }
+
     private static
     int checkMaskLength(String field, int family, int val) {
-        int max = Address.addressLength(family) * 8;
+        int max = getLength(family) * 8;
         if (val < 0 || val > max) {
             throw new IllegalArgumentException("\"" + field + "\" " + val + " must be in the range " + "[0.." + max + "]");
         }
@@ -135,11 +150,11 @@ class ClientSubnetOption extends EDNSOption {
             throw new WireParseException("unknown address family");
         }
         sourceNetmask = in.readU8();
-        if (sourceNetmask > Address.addressLength(family) * 8) {
+        if (sourceNetmask > getLength(family) * 8) {
             throw new WireParseException("invalid source netmask");
         }
         scopeNetmask = in.readU8();
-        if (scopeNetmask > Address.addressLength(family) * 8) {
+        if (scopeNetmask > getLength(family) * 8) {
             throw new WireParseException("invalid scope netmask");
         }
 
@@ -150,7 +165,7 @@ class ClientSubnetOption extends EDNSOption {
         }
 
         // Convert it to a full length address.
-        byte[] fulladdr = new byte[Address.addressLength(family)];
+        byte[] fulladdr = new byte[getLength(family)];
         System.arraycopy(addr, 0, fulladdr, 0, addr.length);
 
         try {
@@ -159,7 +174,7 @@ class ClientSubnetOption extends EDNSOption {
             throw new WireParseException("invalid address", e);
         }
 
-        InetAddress tmp = Address.truncate(address, sourceNetmask);
+        InetAddress tmp = IP.INSTANCE.truncate(address, sourceNetmask);
         if (!tmp.equals(address)) {
             throw new WireParseException("invalid padding");
         }

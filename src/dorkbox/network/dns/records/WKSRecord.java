@@ -16,7 +16,6 @@ import dorkbox.network.dns.DnsOutput;
 import dorkbox.network.dns.Mnemonic;
 import dorkbox.network.dns.Name;
 import dorkbox.network.dns.constants.DnsRecordType;
-import dorkbox.network.dns.utils.Address;
 import dorkbox.network.dns.utils.Tokenizer;
 
 /**
@@ -778,7 +777,7 @@ class WKSRecord extends DnsRecord {
     @Override
     void rdataFromString(Tokenizer st, Name origin) throws IOException {
         String s = st.getString();
-        address = Address.toByteArray(s, Address.IPv4);
+        address = IPv4.INSTANCE.toBytesOrNull(s);
         if (address == null) {
             throw st.exception("invalid address");
         }
@@ -818,7 +817,7 @@ class WKSRecord extends DnsRecord {
     public
     WKSRecord(Name name, int dclass, long ttl, InetAddress address, int protocol, int[] services) {
         super(name, DnsRecordType.WKS, dclass, ttl);
-        if (Address.familyOf(address) != Address.IPv4) {
+        if (!IPv4.INSTANCE.isFamily(address)) {
             throw new IllegalArgumentException("invalid IPv4 address");
         }
         this.address = address.getAddress();

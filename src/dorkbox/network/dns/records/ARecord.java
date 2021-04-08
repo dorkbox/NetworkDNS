@@ -81,7 +81,7 @@ class ARecord extends DnsRecord {
     public
     ARecord(Name name, int dclass, long ttl, InetAddress address) {
         super(name, DnsRecordType.A, dclass, ttl);
-        if (Address.familyOf(address) != Address.IPv4) {
+        if (!IPv4.INSTANCE.isFamily(address)) {
             throw new IllegalArgumentException("invalid IPv4 address");
         }
         addr = fromArray(address.getAddress());
@@ -95,7 +95,7 @@ class ARecord extends DnsRecord {
     public
     ARecord(Name name, int dclass, long ttl, byte[] address) {
         super(name, DnsRecordType.A, dclass, ttl);
-        if (address.length != Address.addressLength(Address.IPv4)) {
+        if (address.length != IPv4.INSTANCE.getLength()) {
             throw new IllegalArgumentException("invalid IPv4 address");
         }
         addr = fromArray(address);

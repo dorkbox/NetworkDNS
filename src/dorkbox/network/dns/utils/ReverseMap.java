@@ -5,6 +5,8 @@ package dorkbox.network.dns.utils;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import dorkbox.netUtil.IPv4;
+import dorkbox.netUtil.IPv6;
 import dorkbox.network.dns.Name;
 import dorkbox.network.dns.exceptions.TextParseException;
 
@@ -121,11 +123,13 @@ class ReverseMap {
      */
     public static
     Name fromAddress(String addr, int family) throws UnknownHostException {
-        byte[] array = Address.toByteArray(addr, family);
-        if (array == null) {
-            throw new UnknownHostException("Invalid IP address");
+        if (family == Address.IPv4 && IPv4.INSTANCE.isValid(addr)) {
+            return fromAddress(IPv4.INSTANCE.toBytes(addr));
         }
-        return fromAddress(array);
+        else if (family == Address.IPv6 && IPv6.INSTANCE.isValid(addr)) {
+            return fromAddress(IPv6.INSTANCE.toBytes(addr));
+        }
+        throw new UnknownHostException("Invalid IP address");
     }
 
     /**
@@ -140,10 +144,13 @@ class ReverseMap {
      */
     public static
     Name fromAddress(String addr) throws UnknownHostException {
-        byte[] array = Address.toByteArray(addr, Address.IPv4);
-        if (array == null) {
-            array = Address.toByteArray(addr, Address.IPv6);
+        byte[] array = null;
+        if (IPv4.INSTANCE.isValid(addr)) {
+            array = IPv4.INSTANCE.toBytes(addr);
+        } else if (IPv6.INSTANCE.isValid(addr)) {
+            array = IPv6.INSTANCE.toBytes(addr);
         }
+
         if (array == null) {
             throw new UnknownHostException("Invalid IP address");
         }

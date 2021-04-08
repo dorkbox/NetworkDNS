@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import dorkbox.netUtil.IPv4;
+import dorkbox.netUtil.IPv6;
 import dorkbox.network.dns.Compression;
 import dorkbox.network.dns.DnsInput;
 import dorkbox.network.dns.DnsOutput;
@@ -114,7 +116,7 @@ class APLRecord extends DnsRecord {
 
     @Override
     void rrFromWire(DnsInput in) throws IOException {
-        elements = new ArrayList<Element>(1);
+        elements = new ArrayList<>(1);
         while (in.remaining() != 0) {
             int family = in.readU16();
             int prefix = in.readU8();
@@ -129,7 +131,11 @@ class APLRecord extends DnsRecord {
             }
 
             if (family == Address.IPv4 || family == Address.IPv6) {
-                data = parseAddress(data, Address.addressLength(family));
+                if (family == Address.IPv4) {
+                    data = parseAddress(data, IPv4.INSTANCE.getLength());
+                } else {
+                    data = parseAddress(data, IPv6.INSTANCE.getLength());
+                }
                 InetAddress addr = InetAddress.getByAddress(data);
                 element = new Element(negative, addr, prefix);
             }
@@ -253,7 +259,14 @@ class APLRecord extends DnsRecord {
                 throw st.exception("invalid prefix length");
             }
 
-            byte[] bytes = Address.toByteArray(addressString, family);
+            byte[] bytes = null;
+            if (family == Address.IPv4) {
+                bytes = dorkbox.netUtil.IPv4.INSTANCE.toBytesOrNull(s);
+            }
+            else {
+                bytes = dorkbox.netUtil.IPv6.INSTANCE.toBytesOrNull(s);
+            }
+
             if (bytes == null) {
                 throw st.exception("invalid IP address " + addressString);
             }

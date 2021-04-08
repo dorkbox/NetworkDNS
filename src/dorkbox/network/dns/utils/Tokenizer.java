@@ -646,11 +646,15 @@ class Tokenizer {
     public
     byte[] getAddressBytes(int family) throws IOException {
         String next = _getIdentifier("an address");
-        byte[] bytes = Address.toByteArray(next, family);
-        if (bytes == null) {
-            throw exception("Invalid address: " + next);
+
+        if (family == Address.IPv4 && IPv4.INSTANCE.isValid(next)) {
+            return IPv4.INSTANCE.toBytes(next);
         }
-        return bytes;
+        else if (family == Address.IPv6 && IPv6.INSTANCE.isValid(next)) {
+            return IPv6.INSTANCE.toBytes(next);
+        }
+
+        throw exception("Invalid address: " + next);
     }
 
     /**

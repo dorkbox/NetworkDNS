@@ -50,8 +50,7 @@ class OPENPGPKEYRecord extends DnsRecord {
     void rrToString(StringBuilder sb) {
         if (cert != null) {
             if (Options.check("multiline")) {
-                sb.append(" ")
-                  .append(OS.LINE_SEPARATOR);
+                sb.append(OS.LINE_SEPARATOR);
                 sb.append(Base64.getEncoder().encodeToString(cert));
             }
             else {

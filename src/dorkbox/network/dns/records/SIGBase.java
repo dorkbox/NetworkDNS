@@ -108,7 +108,9 @@ class SIGBase extends DnsRecord {
         sb.append(origttl);
         sb.append(" ");
         if (Options.check("multiline")) {
-            sb.append("(\n\t");
+            sb.append("(");
+            sb.append(OS.LINE_SEPARATOR);
+            sb.append("\t");
         }
         sb.append(FormattedTime.format(expire));
         sb.append(" ");

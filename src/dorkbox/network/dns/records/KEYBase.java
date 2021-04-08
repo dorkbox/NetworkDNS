@@ -74,10 +74,11 @@ class KEYBase extends DnsRecord {
 
         if (key != null) {
             if (Options.check("multiline")) {
+                sb.append(" (");
                 sb.append(OS.LINE_SEPARATOR);
                 sb.append(Base64.getMimeEncoder().encodeToString(key));
                 sb.append(OS.LINE_SEPARATOR);
-                sb.append("key_tag = ");
+                sb.append(") ; key_tag = ");
                 sb.append(getFootprint());
             }
             else {

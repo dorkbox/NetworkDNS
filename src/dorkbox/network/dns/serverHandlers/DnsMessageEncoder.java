@@ -25,37 +25,6 @@ class DnsMessageEncoder extends MessageToByteEncoder<DnsServerResponse> {
         this.logger = logger;
     }
 
-
-    // public
-    // class ObjectEncoder extends MessageToByteEncoder<Serializable> {
-    //     private static final byte[] LENGTH_PLACEHOLDER = new byte[4];
-
-        // @Override
-        // protected
-        // void encode(ChannelHandlerContext ctx, Serializable msg, ByteBuf out) throws Exception {
-        //     int startIdx = out.writerIndex();
-        //
-        //     ByteBufOutputStream bout = new ByteBufOutputStream(out);
-        //     ObjectOutputStream oout = null;
-        //     try {
-        //         bout.write(LENGTH_PLACEHOLDER);
-        //         oout = new CompactObjectOutputStream(bout);
-        //         oout.writeObject(msg);
-        //         oout.flush();
-        //     } finally {
-        //         if (oout != null) {
-        //             oout.close();
-        //         }
-        //         else {
-        //             bout.close();
-        //         }
-        //     }
-        //
-        //     int endIdx = out.writerIndex();
-        //
-        //     out.setInt(startIdx, endIdx - startIdx - 4);
-        // }
-
     @Override
     protected
     void encode(final ChannelHandlerContext context, final DnsServerResponse message, final ByteBuf out) throws Exception {

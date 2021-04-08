@@ -20,6 +20,9 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import dorkbox.network.dns.DnsQuestion;
 import dorkbox.network.dns.clientHandlers.DnsResponse;
 import dorkbox.network.dns.constants.DnsSection;
@@ -32,13 +35,10 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.Promise;
 import io.netty.util.concurrent.ScheduledFuture;
-import io.netty.util.internal.logging.InternalLogger;
-import io.netty.util.internal.logging.InternalLoggerFactory;
 
 final
 class DnsQueryContext {
-
-    private static final InternalLogger logger = InternalLoggerFactory.getInstance(DnsQueryContext.class);
+    private static final Logger logger = LoggerFactory.getLogger(DnsQueryContext.class);
 
     private final DnsNameResolver parent;
     private final Promise<DnsResponse> promise;

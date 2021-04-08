@@ -18,12 +18,9 @@ package dorkbox.network.dns.resolver.addressProvider;
 
 import java.net.InetSocketAddress;
 
-import io.netty.util.internal.UnstableApi;
-
 /**
  * An infinite stream of DNS server addresses.
  */
-@UnstableApi
 public
 interface DnsServerAddressStream {
     /**

@@ -20,22 +20,20 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
 import java.net.InetSocketAddress;
 import java.util.List;
 
+import org.slf4j.Logger;
+
 import dorkbox.network.dns.records.DnsMessage;
 import io.netty.channel.ChannelFuture;
-import io.netty.util.internal.logging.InternalLogLevel;
-import io.netty.util.internal.logging.InternalLogger;
 
 final
 class TraceDnsQueryLifecycleObserver implements DnsQueryLifecycleObserver {
-    private final InternalLogger logger;
-    private final InternalLogLevel level;
+    private final Logger logger;
     private final DnsMessage question;
     private InetSocketAddress dnsServerAddress;
 
-    TraceDnsQueryLifecycleObserver(DnsMessage question, InternalLogger logger, InternalLogLevel level) {
+    TraceDnsQueryLifecycleObserver(DnsMessage question, Logger logger) {
         this.question = checkNotNull(question, "question");
         this.logger = checkNotNull(logger, "logger");
-        this.level = checkNotNull(level, "level");
     }
 
     @Override
@@ -48,31 +46,31 @@ class TraceDnsQueryLifecycleObserver implements DnsQueryLifecycleObserver {
     public
     void queryCancelled(int queriesRemaining) {
         if (dnsServerAddress != null) {
-            logger.log(level, "from {} : {} cancelled with {} queries remaining", dnsServerAddress, question, queriesRemaining);
+            logger.trace("from {} : {} cancelled with {} queries remaining", dnsServerAddress, question, queriesRemaining);
         }
         else {
-            logger.log(level, "{} query never written and cancelled with {} queries remaining", question, queriesRemaining);
+            logger.trace("{} query never written and cancelled with {} queries remaining", question, queriesRemaining);
         }
     }
 
     @Override
     public
     DnsQueryLifecycleObserver queryRedirected(List<InetSocketAddress> nameServers) {
-        logger.log(level, "from {} : {} redirected", dnsServerAddress, question);
+        logger.trace("from {} : {} redirected", dnsServerAddress, question);
         return this;
     }
 
     @Override
     public
     DnsQueryLifecycleObserver queryCNAMEd(DnsMessage cnameQuestion) {
-        logger.log(level, "from {} : {} CNAME question {}", dnsServerAddress, question, cnameQuestion);
+        logger.trace("from {} : {} CNAME question {}", dnsServerAddress, question, cnameQuestion);
         return this;
     }
 
     @Override
     public
     DnsQueryLifecycleObserver queryNoAnswer(int code) {
-        logger.log(level, "from {} : {} no answer {}", dnsServerAddress, question, code);
+        logger.trace("from {} : {} no answer {}", dnsServerAddress, question, code);
         return this;
     }
 
@@ -80,10 +78,10 @@ class TraceDnsQueryLifecycleObserver implements DnsQueryLifecycleObserver {
     public
     void queryFailed(Throwable cause) {
         if (dnsServerAddress != null) {
-            logger.log(level, "from {} : {} failure", dnsServerAddress, question, cause);
+            logger.trace("from {} : {} failure", dnsServerAddress, question, cause);
         }
         else {
-            logger.log(level, "{} query never written and failed", question, cause);
+            logger.trace("{} query never written and failed", question, cause);
         }
     }
 

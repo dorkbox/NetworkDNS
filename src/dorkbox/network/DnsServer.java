@@ -19,37 +19,32 @@ import java.util.ArrayList;
 
 import org.slf4j.Logger;
 
-import dorkbox.network.connection.EndPoint;
-import dorkbox.network.connection.Shutdownable;
+import dorkbox.netUtil.IP;
 import dorkbox.network.dns.DnsQuestion;
 import dorkbox.network.dns.Name;
-import dorkbox.network.dns.constants.DnsClass;
 import dorkbox.network.dns.constants.DnsRecordType;
 import dorkbox.network.dns.records.ARecord;
 import dorkbox.network.dns.serverHandlers.DnsServerHandler;
+import dorkbox.network.util.NativeLibrary;
+import dorkbox.network.util.Shutdownable;
+import dorkbox.os.OS;
+import dorkbox.propertyLoader.Property;
 import dorkbox.util.NamedThreadFactory;
-import dorkbox.util.OS;
-import dorkbox.util.Property;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.DefaultEventLoopGroup;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.epoll.EpollDatagramChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.kqueue.KQueueDatagramChannel;
 import io.netty.channel.kqueue.KQueueEventLoopGroup;
-import io.netty.channel.kqueue.KQueueServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.oio.OioDatagramChannel;
-import io.netty.channel.socket.oio.OioServerSocketChannel;
-import io.netty.util.NetUtil;
 
 /**
  * from: https://blog.cloudflare.com/how-the-consumer-product-safety-commission-is-inadvertently-behind-the-internets-largest-ddos-attacks/
@@ -87,40 +82,23 @@ class DnsServer extends Shutdownable {
 
     public static int workerThreadPoolSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 1);
 
-    private final ServerBootstrap tcpBootstrap;
+    /**
+     * This is used to enable the usage of native libraries for an OS that supports them.
+     */
+    @Property
+    public static boolean enableNativeLibrary = true;
+
+
+    // private final ServerBootstrap tcpBootstrap;
     private final Bootstrap udpBootstrap;
 
     private final int tcpPort;
     private final int udpPort;
     private final String hostName;
 
-    public static
-    void main(String[] args) {
-        DnsServer server = new DnsServer("localhost", 2053);
-
-        // MasterZone zone = new MasterZone();
-
-
-        server.aRecord("google.com", DnsClass.IN, 10, "127.0.0.1");
-
-        // server.bind(false);
-        server.bind();
-
-
-        // DnsClient client = new DnsClient("localhost", 2053);
-        // List<InetAddress> resolve = null;
-        // try {
-        //     resolve = client.resolve("google.com");
-        // } catch (UnknownHostException e) {
-        //     e.printStackTrace();
-        // }
-        // System.err.println("RESOLVED: " + resolve);
-        // client.stop();
-        // server.stop();
-    }
-
     private final DnsServerHandler dnsServerHandler;
 
+    @SuppressWarnings("deprecation")
     public
     DnsServer(String host, int port) {
         super(DnsServer.class);
@@ -138,70 +116,76 @@ class DnsServer extends Shutdownable {
         dnsServerHandler = new DnsServerHandler(logger);
         String threadName = DnsServer.class.getSimpleName();
 
+        NamedThreadFactory threadFactory = new NamedThreadFactory(threadName, threadGroup);
 
         final EventLoopGroup boss;
-        final EventLoopGroup work = newEventLoop(workerThreadPoolSize, threadName);
+        final EventLoopGroup work;
 
         if (OS.isAndroid()) {
             // android ONLY supports OIO (not NIO)
+            // android ONLY supports OIO
             boss = new OioEventLoopGroup(1, new NamedThreadFactory(threadName + "-boss", threadGroup));
+            work = new OioEventLoopGroup(workerThreadPoolSize, threadFactory);
         }
         else if (OS.isLinux() && NativeLibrary.isAvailable()) {
             // epoll network stack is MUCH faster (but only on linux)
             boss = new EpollEventLoopGroup(1, new NamedThreadFactory(threadName + "-boss", threadGroup));
+            work = new EpollEventLoopGroup(workerThreadPoolSize, threadFactory);
         }
         else if (OS.isMacOsX() && NativeLibrary.isAvailable()) {
             // KQueue network stack is MUCH faster (but only on macosx)
             boss = new KQueueEventLoopGroup(1, new NamedThreadFactory(threadName + "-boss", threadGroup));
+            work = new KQueueEventLoopGroup(workerThreadPoolSize, threadFactory);
         }
         else {
             // sometimes the native libraries cannot be loaded, so fall back to NIO
             boss = new NioEventLoopGroup(1, new NamedThreadFactory(threadName + "-boss", threadGroup));
+            work = new DefaultEventLoopGroup(workerThreadPoolSize, threadFactory);
         }
 
         manageForShutdown(boss);
         manageForShutdown(work);
 
 
-        tcpBootstrap = new ServerBootstrap();
+        // tcpBootstrap = new ServerBootstrap();
         udpBootstrap = new Bootstrap();
 
 
-        if (OS.isAndroid()) {
-            // android ONLY supports OIO (not NIO)
-            tcpBootstrap.channel(OioServerSocketChannel.class);
-        }
-        else if (OS.isLinux() && NativeLibrary.isAvailable()) {
-            // epoll network stack is MUCH faster (but only on linux)
-            tcpBootstrap.channel(EpollServerSocketChannel.class);
-        }
-        else if (OS.isMacOsX() && NativeLibrary.isAvailable()) {
-            // KQueue network stack is MUCH faster (but only on macosx)
-            tcpBootstrap.channel(KQueueServerSocketChannel.class);
-        }
-        else {
-            tcpBootstrap.channel(NioServerSocketChannel.class);
-        }
-
-        tcpBootstrap.group(boss, work)
-                    .option(ChannelOption.SO_BACKLOG, backlogConnectionCount)
-                    .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-                    .childOption(ChannelOption.SO_KEEPALIVE, true)
-                    .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(EndPoint.WRITE_BUFF_LOW, EndPoint.WRITE_BUFF_HIGH))
-                    .childHandler(dnsServerHandler);
-
-        // have to check options.host for "0.0.0.0". we don't bind to "0.0.0.0", we bind to "null" to get the "any" address!
-        if (hostName.equals("0.0.0.0")) {
-            tcpBootstrap.localAddress(tcpPort);
-        }
-        else {
-            tcpBootstrap.localAddress(hostName, tcpPort);
-        }
-
-
-        // android screws up on this!!
-        tcpBootstrap.option(ChannelOption.TCP_NODELAY, !OS.isAndroid())
-                    .childOption(ChannelOption.TCP_NODELAY, !OS.isAndroid());
+        // if (OS.isAndroid()) {
+        //     // android ONLY supports OIO (not NIO)
+        //     tcpBootstrap.channel(OioServerSocketChannel.class);
+        // }
+        // else if (OS.isLinux() && NativeLibrary.isAvailable()) {
+        //     // epoll network stack is MUCH faster (but only on linux)
+        //     tcpBootstrap.channel(EpollServerSocketChannel.class);
+        // }
+        // else if (OS.isMacOsX() && NativeLibrary.isAvailable()) {
+        //     // KQueue network stack is MUCH faster (but only on macosx)
+        //     tcpBootstrap.channel(KQueueServerSocketChannel.class);
+        // }
+        // else {
+        //     tcpBootstrap.channel(NioServerSocketChannel.class);
+        // }
+        //
+        // tcpBootstrap.group(boss, work)
+        //             .option(ChannelOption.SO_BACKLOG, backlogConnectionCount)
+        //             .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+        //             .childOption(ChannelOption.SO_KEEPALIVE, true)
+        //             .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(WRITE_BUFF_LOW, WRITE_BUFF_HIGH))
+        //             .childHandler(dnsServerHandler);
+        //
+        // // have to check options.host for "0.0.0.0". we don't bind to "0.0.0.0", we bind to "null" to get the "any" address!
+        // if (hostName.equals("0.0.0.0")) {
+        //     tcpBootstrap.localAddress(tcpPort);
+        // }
+        // else {
+        //     tcpBootstrap.localAddress(hostName, tcpPort);
+        // }
+        //
+        //
+        // // android screws up on this!!
+        // tcpBootstrap.option(ChannelOption.TCP_NODELAY, !OS.isAndroid())
+        //             .childOption(ChannelOption.TCP_NODELAY, !OS.isAndroid());
 
 
         if (OS.isAndroid()) {
@@ -222,7 +206,7 @@ class DnsServer extends Shutdownable {
 
         udpBootstrap.group(work)
                     .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-                    .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(EndPoint.WRITE_BUFF_LOW, EndPoint.WRITE_BUFF_HIGH))
+                    .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(WRITE_BUFF_LOW, WRITE_BUFF_HIGH))
 
                     // not binding to specific address, since it's driven by TCP, and that can be bound to a specific address
                     .localAddress(udpPort) // if you bind to a specific interface, Linux will be unable to receive broadcast packets!
@@ -343,7 +327,7 @@ class DnsServer extends Shutdownable {
         ArrayList<ARecord> records = new ArrayList<ARecord>(length);
 
         for (int i = 0; i < length; i++) {
-            byte[] address = NetUtil.createByteArrayFromIpAddressString(ipAddresses[i]);
+            byte[] address = IP.INSTANCE.toBytes(ipAddresses[i]);
             records.add(new ARecord(name, dClass, ttl, address));
         }
 

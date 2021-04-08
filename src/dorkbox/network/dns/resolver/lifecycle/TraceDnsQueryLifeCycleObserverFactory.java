@@ -17,30 +17,29 @@ package dorkbox.network.dns.resolver.lifecycle;
 
 import static io.netty.util.internal.ObjectUtil.checkNotNull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import dorkbox.network.dns.records.DnsMessage;
 import io.netty.util.internal.logging.InternalLogLevel;
-import io.netty.util.internal.logging.InternalLogger;
-import io.netty.util.internal.logging.InternalLoggerFactory;
 
 final
 class TraceDnsQueryLifeCycleObserverFactory implements DnsQueryLifecycleObserverFactory {
-    private static final InternalLogger DEFAULT_LOGGER = InternalLoggerFactory.getInstance(TraceDnsQueryLifeCycleObserverFactory.class);
+    private static final Logger DEFAULT_LOGGER = LoggerFactory.getLogger(TraceDnsQueryLifeCycleObserverFactory.class);
     private static final InternalLogLevel DEFAULT_LEVEL = InternalLogLevel.DEBUG;
-    private final InternalLogger logger;
-    private final InternalLogLevel level;
+    private final Logger logger;
 
     TraceDnsQueryLifeCycleObserverFactory() {
         this(DEFAULT_LOGGER, DEFAULT_LEVEL);
     }
 
-    TraceDnsQueryLifeCycleObserverFactory(InternalLogger logger, InternalLogLevel level) {
+    TraceDnsQueryLifeCycleObserverFactory(Logger logger, InternalLogLevel level) {
         this.logger = checkNotNull(logger, "logger");
-        this.level = checkNotNull(level, "level");
     }
 
     @Override
     public
     DnsQueryLifecycleObserver newDnsQueryLifecycleObserver(DnsMessage question) {
-        return new TraceDnsQueryLifecycleObserver(question, logger, level);
+        return new TraceDnsQueryLifecycleObserver(question, logger);
     }
 }

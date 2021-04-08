@@ -15,8 +15,6 @@
  */
 package dorkbox.network;
 
-import static dorkbox.network.dns.resolver.addressProvider.DnsServerAddressStreamProviders.platformDefault;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -29,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 
-import dorkbox.network.connection.Shutdownable;
+import dorkbox.netUtil.dnsUtils.ResolvedAddressTypes;
 import dorkbox.network.dns.DnsQuestion;
 import dorkbox.network.dns.clientHandlers.DnsResponse;
 import dorkbox.network.dns.constants.DnsRecordType;
@@ -44,9 +42,11 @@ import dorkbox.network.dns.resolver.addressProvider.DnsServerAddressStreamProvid
 import dorkbox.network.dns.resolver.addressProvider.SequentialDnsServerAddressStreamProvider;
 import dorkbox.network.dns.resolver.cache.DefaultDnsCache;
 import dorkbox.network.dns.resolver.cache.DnsCache;
+import dorkbox.network.util.NativeLibrary;
+import dorkbox.network.util.Shutdownable;
+import dorkbox.os.OS;
+import dorkbox.propertyLoader.Property;
 import dorkbox.util.NamedThreadFactory;
-import dorkbox.util.OS;
-import dorkbox.util.Property;
 import io.netty.channel.ChannelFactory;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ReflectiveChannelFactory;
@@ -60,8 +60,6 @@ import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.InternetProtocolFamily;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.oio.OioDatagramChannel;
-import io.netty.resolver.HostsFileEntriesResolver;
-import io.netty.resolver.ResolvedAddressTypes;
 import io.netty.util.concurrent.Future;
 
 /**
@@ -124,6 +122,12 @@ class DnsClient extends Shutdownable {
     }
 
     /**
+     * This is used to enable the usage of native libraries for an OS that supports them.
+     */
+    @Property
+    public static boolean enableNativeLibrary = true;
+
+    /**
      * Retrieve the public facing IP address of this system using DNS.
      * <p/>
      * Same command as
@@ -179,8 +183,7 @@ class DnsClient extends Shutdownable {
     private boolean traceEnabled;
     private int maxPayloadSize = 4096;
 
-    private HostsFileEntriesResolver hostsFileEntriesResolver = HostsFileEntriesResolver.DEFAULT;
-    private DnsServerAddressStreamProvider dnsServerAddressStreamProvider = platformDefault();
+    private DnsServerAddressStreamProvider dnsServerAddressStreamProvider = DefaultDnsServerAddressStreamProvider.INSTANCE;
     private DnsQueryLifecycleObserverFactory dnsQueryLifecycleObserverFactory = NoopDnsQueryLifecycleObserverFactory.INSTANCE;
 
     private String[] searchDomains;
@@ -236,6 +239,8 @@ class DnsClient extends Shutdownable {
     public
     DnsClient(Collection<InetSocketAddress> nameServerAddresses) {
         super(DnsClient.class);
+
+        System.setProperty("io.netty.tryReflectionSetAccessible", "true");
 
         if (OS.isAndroid()) {
             // android ONLY supports OIO (not NIO)
@@ -422,18 +427,6 @@ class DnsClient extends Shutdownable {
     }
 
     /**
-     * @param hostsFileEntriesResolver the {@link HostsFileEntriesResolver} used to first check
-     *         if the hostname is locally aliased.
-     *
-     * @return {@code this}
-     */
-    public
-    DnsClient hostsFileEntriesResolver(HostsFileEntriesResolver hostsFileEntriesResolver) {
-        this.hostsFileEntriesResolver = hostsFileEntriesResolver;
-        return this;
-    }
-
-    /**
      * Set the {@link DnsServerAddressStreamProvider} which is used to determine which DNS server is used to resolve
      * each hostname.
      *
@@ -582,7 +575,6 @@ class DnsClient extends Shutdownable {
                                        maxQueriesPerResolve,
                                        traceEnabled,
                                        maxPayloadSize,
-                                       hostsFileEntriesResolver,
                                        dnsServerAddressStreamProvider,
                                        searchDomains,
                                        ndots,

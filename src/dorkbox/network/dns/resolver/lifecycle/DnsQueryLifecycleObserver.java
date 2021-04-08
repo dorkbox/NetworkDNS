@@ -34,7 +34,7 @@ import io.netty.util.internal.UnstableApi;
  * <ol>
  * <li>Object creation</li>
  * <li>{@link #queryWritten(InetSocketAddress, ChannelFuture)}</li>
- * <li>{@link #queryRedirected(List)} or {@link #queryCNAMEd(DnsQuestion)} or
+ * <li>{@link #queryRedirected(List)} or {@link #queryCNAMEd(DnsMessage)} or
  * {@link #queryNoAnswer(int)} or {@link #queryCancelled(int)} or
  * {@link #queryFailed(Throwable)} or {@link #querySucceed()}</li>
  * </ol>

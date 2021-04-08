@@ -22,12 +22,10 @@ import java.util.Collection;
 import java.util.List;
 
 import dorkbox.network.dns.resolver.DnsNameResolver;
-import io.netty.util.internal.UnstableApi;
 
 /**
  * Provides an infinite sequence of DNS server addresses to {@link DnsNameResolver}.
  */
-@UnstableApi
 @SuppressWarnings("IteratorNextCanNotThrowNoSuchElementException")
 public abstract
 class DnsServerAddresses {
@@ -53,8 +51,8 @@ class DnsServerAddresses {
      *         <p>
      *         This method has the same effect with the following code:
      *         <pre>
-     *         DnsServerAddresses.sequential(DnsServerAddresses.defaultAddressList());
-     *         </pre>
+     *                 DnsServerAddresses.sequential(DnsServerAddresses.defaultAddressList());
+     *                 </pre>
      *         </p>
      */
     @Deprecated

@@ -22,10 +22,8 @@ import io.netty.util.internal.UnstableApi;
 /**
  * A {@link DnsServerAddressStreamProvider} which always uses a single DNS server for resolution.
  */
-@UnstableApi
 public final
-class SingletonDnsServerAddressStreamProvider
-        extends UniSequentialDnsServerAddressStreamProvider {
+class SingletonDnsServerAddressStreamProvider extends UniSequentialDnsServerAddressStreamProvider {
     /**
      * Create a new instance.
      *

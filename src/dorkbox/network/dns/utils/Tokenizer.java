@@ -28,12 +28,12 @@ import java.io.PushbackInputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Base64;
 
 import dorkbox.network.dns.Name;
 import dorkbox.network.dns.exceptions.RelativeNameException;
 import dorkbox.network.dns.exceptions.TextParseException;
 import dorkbox.network.dns.records.TTL;
-import dorkbox.util.Base64Fast;
 
 /**
  * Tokenizer is used to parse DNS records and zones from text format,
@@ -734,7 +734,7 @@ class Tokenizer {
             }
         }
 
-        byte[] array = Base64Fast.decode2(s);
+        byte[] array = Base64.getDecoder().decode(s);
         if (array == null) {
             throw exception("invalid base64 encoding");
         }

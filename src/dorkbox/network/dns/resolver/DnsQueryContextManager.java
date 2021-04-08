@@ -24,7 +24,8 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.netty.util.NetUtil;
+import dorkbox.netUtil.IPv4;
+import dorkbox.netUtil.IPv6;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import io.netty.util.internal.PlatformDependent;
@@ -78,7 +79,7 @@ class DnsQueryContextManager {
                 // Also add the mapping for the IPv4-compatible IPv6 address.
                 final Inet4Address a4 = (Inet4Address) a;
                 if (a4.isLoopbackAddress()) {
-                    map.put(new InetSocketAddress(NetUtil.LOCALHOST6, port), newContexts);
+                    map.put(new InetSocketAddress(IPv6.INSTANCE.getLOCALHOST(), port), newContexts);
                 }
                 else {
                     map.put(new InetSocketAddress(toCompactAddress(a4), port), newContexts);
@@ -88,7 +89,7 @@ class DnsQueryContextManager {
                 // Also add the mapping for the IPv4 address if this IPv6 address is compatible.
                 final Inet6Address a6 = (Inet6Address) a;
                 if (a6.isLoopbackAddress()) {
-                    map.put(new InetSocketAddress(NetUtil.LOCALHOST4, port), newContexts);
+                    map.put(new InetSocketAddress(IPv4.INSTANCE.getLOCALHOST(), port), newContexts);
                 }
                 else if (a6.isIPv4CompatibleAddress()) {
                     map.put(new InetSocketAddress(toIPv4Address(a6), port), newContexts);

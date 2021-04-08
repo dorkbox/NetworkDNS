@@ -15,24 +15,14 @@
  */
 package dorkbox.network.dns.resolver.addressProvider;
 
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Hashtable;
 import java.util.List;
 
-import javax.naming.Context;
-import javax.naming.NamingException;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.InitialDirContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import io.netty.util.internal.SocketUtils;
-import io.netty.util.internal.UnstableApi;
-import io.netty.util.internal.logging.InternalLogger;
-import io.netty.util.internal.logging.InternalLoggerFactory;
+import dorkbox.netUtil.Dns;
 
 /**
  * A {@link DnsServerAddressStreamProvider} which will use predefined default DNS servers to use for DNS resolution.
@@ -40,94 +30,22 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
  * <p>
  * This may use the JDK's blocking DNS resolution to bootstrap the default DNS server addresses.
  */
-@UnstableApi
 public final
 class DefaultDnsServerAddressStreamProvider implements DnsServerAddressStreamProvider {
 
-    private static final InternalLogger logger = InternalLoggerFactory.getInstance(DefaultDnsServerAddressStreamProvider.class);
     public static final DefaultDnsServerAddressStreamProvider INSTANCE = new DefaultDnsServerAddressStreamProvider();
-
+    public static final int DNS_PORT = 53;
+    private static final Logger logger = LoggerFactory.getLogger(DefaultDnsServerAddressStreamProvider.class);
     private static final List<InetSocketAddress> DEFAULT_NAME_SERVER_LIST;
     private static final InetSocketAddress[] DEFAULT_NAME_SERVER_ARRAY;
     private static final DnsServerAddresses DEFAULT_NAME_SERVERS;
 
-    public static final int DNS_PORT = 53;
-
     static {
-        final List<InetSocketAddress> defaultNameServers = new ArrayList<InetSocketAddress>(2);
-
-        // Using jndi-dns to obtain the default name servers.
-        //
-        // See:
-        // - http://docs.oracle.com/javase/8/docs/technotes/guides/jndi/jndi-dns.html
-        // - http://mail.openjdk.java.net/pipermail/net-dev/2017-March/010695.html
-        Hashtable<String, String> env = new Hashtable<String, String>();
-        env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
-        env.put("java.naming.provider.url", "dns://");
-        try {
-            DirContext ctx = new InitialDirContext(env);
-            String dnsUrls = (String) ctx.getEnvironment()
-                                         .get("java.naming.provider.url");
-            String[] servers = dnsUrls.split(" ");
-            for (String server : servers) {
-                try {
-                    defaultNameServers.add(SocketUtils.socketAddress(new URI(server).getHost(), DNS_PORT));
-                } catch (URISyntaxException e) {
-                    logger.debug("Skipping a malformed nameserver URI: {}", server, e);
-                }
-            }
-        } catch (NamingException ignore) {
-            // Will try reflection if this fails.
-        }
-
-        if (defaultNameServers.isEmpty()) {
-            try {
-                Class<?> configClass = Class.forName("sun.net.dns.ResolverConfiguration");
-                Method open = configClass.getMethod("open");
-                Method nameservers = configClass.getMethod("nameservers");
-                Object instance = open.invoke(null);
-
-                @SuppressWarnings("unchecked")
-                final List<String> list = (List<String>) nameservers.invoke(instance);
-                for (String a : list) {
-                    if (a != null) {
-                        defaultNameServers.add(new InetSocketAddress(SocketUtils.addressByName(a), DNS_PORT));
-                    }
-                }
-            } catch (Exception ignore) {
-                // Failed to get the system name server list via reflection.
-                // Will add the default name servers afterwards.
-            }
-        }
-
-        if (!defaultNameServers.isEmpty()) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Default DNS servers: {} (sun.net.dns.ResolverConfiguration)", defaultNameServers);
-            }
-        }
-        else {
-            Collections.addAll(defaultNameServers,
-                               SocketUtils.socketAddress("8.8.8.8", DNS_PORT),
-                               SocketUtils.socketAddress("8.8.4.4", DNS_PORT));
-
-            if (logger.isWarnEnabled()) {
-                logger.warn("Default DNS servers: {} (Google Public DNS as a fallback)", defaultNameServers);
-            }
-        }
+        final List<InetSocketAddress> defaultNameServers = Dns.INSTANCE.getDefaultNameServers();
 
         DEFAULT_NAME_SERVER_LIST = Collections.unmodifiableList(defaultNameServers);
-        DEFAULT_NAME_SERVER_ARRAY = defaultNameServers.toArray(new InetSocketAddress[defaultNameServers.size()]);
+        DEFAULT_NAME_SERVER_ARRAY = defaultNameServers.toArray(new InetSocketAddress[0]);
         DEFAULT_NAME_SERVERS = DnsServerAddresses.sequential(DEFAULT_NAME_SERVER_ARRAY);
-    }
-
-    private
-    DefaultDnsServerAddressStreamProvider() {
-    }
-
-    @Override
-    public
-    DnsServerAddressStream nameServerAddressStream(String hostname) {
-        return DEFAULT_NAME_SERVERS.stream();
     }
 
     /**
@@ -164,5 +82,15 @@ class DefaultDnsServerAddressStreamProvider implements DnsServerAddressStreamPro
     static
     InetSocketAddress[] defaultAddressArray() {
         return DEFAULT_NAME_SERVER_ARRAY.clone();
+    }
+
+    private
+    DefaultDnsServerAddressStreamProvider() {
+    }
+
+    @Override
+    public
+    DnsServerAddressStream nameServerAddressStream(String hostname) {
+        return DEFAULT_NAME_SERVERS.stream();
     }
 }

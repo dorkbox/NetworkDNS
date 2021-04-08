@@ -9,12 +9,12 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import dorkbox.netUtil.dnsUtils.ResolvedAddressTypes;
 import dorkbox.network.DnsClient;
 import dorkbox.network.dns.Name;
 import dorkbox.network.dns.constants.DnsRecordType;
 import dorkbox.network.dns.records.DnsRecord;
 import dorkbox.network.dns.records.PTRRecord;
-import io.netty.resolver.ResolvedAddressTypes;
 
 /**
  * Routines dealing with IP addresses.  Includes functions similar to

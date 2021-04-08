@@ -17,15 +17,11 @@ package dorkbox.network.dns.resolver.addressProvider;
 
 import java.net.InetSocketAddress;
 
-import io.netty.util.internal.UnstableApi;
-
 /**
  * A {@link DnsServerAddressStreamProvider} which is backed by a sequential list of DNS servers.
  */
-@UnstableApi
 public final
-class SequentialDnsServerAddressStreamProvider
-        extends UniSequentialDnsServerAddressStreamProvider {
+class SequentialDnsServerAddressStreamProvider extends UniSequentialDnsServerAddressStreamProvider {
     /**
      * Create a new instance.
      *

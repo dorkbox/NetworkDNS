@@ -18,7 +18,6 @@ package dorkbox.network.dns.resolver;
 import static io.netty.util.internal.ObjectUtil.checkNotNull;
 import static io.netty.util.internal.ObjectUtil.checkPositive;
 
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -28,6 +27,11 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import dorkbox.netUtil.Dns;
+import dorkbox.netUtil.IP;
+import dorkbox.netUtil.IPv4;
+import dorkbox.netUtil.IPv6;
+import dorkbox.netUtil.dnsUtils.ResolvedAddressTypes;
 import dorkbox.network.dns.DnsQuestion;
 import dorkbox.network.dns.clientHandlers.DatagramDnsQueryEncoder;
 import dorkbox.network.dns.clientHandlers.DatagramDnsResponseDecoder;
@@ -37,9 +41,9 @@ import dorkbox.network.dns.resolver.addressProvider.DefaultDnsServerAddressStrea
 import dorkbox.network.dns.resolver.addressProvider.DnsServerAddressStream;
 import dorkbox.network.dns.resolver.addressProvider.DnsServerAddressStreamProvider;
 import dorkbox.network.dns.resolver.addressProvider.DnsServerAddresses;
-import dorkbox.network.dns.resolver.addressProvider.UnixResolverDnsServerAddressStreamProvider;
 import dorkbox.network.dns.resolver.cache.DnsCache;
 import dorkbox.network.dns.resolver.cache.DnsCacheEntry;
+import dorkbox.os.OS;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFactory;
@@ -52,15 +56,10 @@ import io.netty.channel.EventLoop;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.InternetProtocolFamily;
-import io.netty.resolver.HostsFileEntriesResolver;
 import io.netty.resolver.InetNameResolver;
-import io.netty.resolver.ResolvedAddressTypes;
-import io.netty.util.NetUtil;
 import io.netty.util.concurrent.FastThreadLocal;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.Promise;
-import io.netty.util.internal.EmptyArrays;
-import io.netty.util.internal.PlatformDependent;
 import io.netty.util.internal.UnstableApi;
 
 /**
@@ -120,7 +119,6 @@ class DnsNameResolver extends InetNameResolver {
     private final boolean recursionDesired;
     private final int maxPayloadSize;
 
-    private final HostsFileEntriesResolver hostsFileEntriesResolver;
     private final DnsServerAddressStreamProvider dnsServerAddressStreamProvider;
 
     private final FastThreadLocal<DnsServerAddressStream> nameServerAddrStream = new FastThreadLocal<DnsServerAddressStream>() {
@@ -145,46 +143,28 @@ class DnsNameResolver extends InetNameResolver {
     private final DnsQueryLifecycleObserverFactory dnsQueryLifecycleObserverFactory;
 
     static {
-        if (NetUtil.isIpV4StackPreferred()) {
+        if (IPv4.INSTANCE.isPreferred()) {
             DEFAULT_RESOLVE_ADDRESS_TYPES = ResolvedAddressTypes.IPV4_ONLY;
-            LOCALHOST_ADDRESS = NetUtil.LOCALHOST4;
+            LOCALHOST_ADDRESS = IPv4.INSTANCE.getLOCALHOST();
         }
         else {
-            if (NetUtil.isIpV6AddressesPreferred()) {
+            if (IPv6.INSTANCE.isPreferred()) {
                 DEFAULT_RESOLVE_ADDRESS_TYPES = ResolvedAddressTypes.IPV6_PREFERRED;
-                LOCALHOST_ADDRESS = NetUtil.LOCALHOST6;
+                LOCALHOST_ADDRESS = IPv6.INSTANCE.getLOCALHOST();
             }
             else {
                 DEFAULT_RESOLVE_ADDRESS_TYPES = ResolvedAddressTypes.IPV4_PREFERRED;
-                LOCALHOST_ADDRESS = NetUtil.LOCALHOST4;
+                LOCALHOST_ADDRESS = IPv4.INSTANCE.getLOCALHOST();
             }
         }
-    }
 
-    static {
-        String[] searchDomains;
-        try {
-            Class<?> configClass = Class.forName("sun.net.dns.ResolverConfiguration");
-            Method open = configClass.getMethod("open");
-            Method nameservers = configClass.getMethod("searchlist");
-            Object instance = open.invoke(null);
+        List<InetSocketAddress> searchDomains = Dns.INSTANCE.getDefaultNameServers();
+        DEFAULT_SEARCH_DOMAINS = searchDomains.stream()
+                                              .map((ras)->IP.INSTANCE.toString(ras.getAddress(), false))
+                                              .toArray(String[]::new);
 
-            @SuppressWarnings("unchecked")
-            List<String> list = (List<String>) nameservers.invoke(instance);
-            searchDomains = list.toArray(new String[list.size()]);
-        } catch (Exception ignore) {
-            // Failed to get the system name search domain list.
-            searchDomains = EmptyArrays.EMPTY_STRINGS;
-        }
-        DEFAULT_SEARCH_DOMAINS = searchDomains;
 
-        int ndots;
-        try {
-            ndots = UnixResolverDnsServerAddressStreamProvider.parseEtcResolverFirstNdots();
-        } catch (Exception ignore) {
-            ndots = UnixResolverDnsServerAddressStreamProvider.DEFAULT_NDOTS;
-        }
-        DEFAULT_NDOTS = ndots;
+        DEFAULT_NDOTS = Dns.INSTANCE.getNumberDots();
     }
 
     /**
@@ -202,7 +182,6 @@ class DnsNameResolver extends InetNameResolver {
      * @param maxQueriesPerResolve the maximum allowed number of DNS queries for a given name resolution
      * @param traceEnabled if trace is enabled
      * @param maxPayloadSize the capacity of the datagram packet buffer
-     * @param hostsFileEntriesResolver the {@link HostsFileEntriesResolver} used to check for local aliases
      * @param dnsServerAddressStreamProvider The {@link DnsServerAddressStreamProvider} used to determine the name
      *         servers for each hostname lookup.
      * @param searchDomains the list of search domain
@@ -223,7 +202,6 @@ class DnsNameResolver extends InetNameResolver {
                     int maxQueriesPerResolve,
                     boolean traceEnabled,
                     int maxPayloadSize,
-                    HostsFileEntriesResolver hostsFileEntriesResolver,
                     DnsServerAddressStreamProvider dnsServerAddressStreamProvider,
                     String[] searchDomains,
                     int ndots,
@@ -235,7 +213,6 @@ class DnsNameResolver extends InetNameResolver {
         this.recursionDesired = recursionDesired;
         this.maxQueriesPerResolve = checkPositive(maxQueriesPerResolve, "maxQueriesPerResolve");
         this.maxPayloadSize = checkPositive(maxPayloadSize, "maxPayloadSize");
-        this.hostsFileEntriesResolver = checkNotNull(hostsFileEntriesResolver, "hostsFileEntriesResolver");
         this.dnsServerAddressStreamProvider = checkNotNull(dnsServerAddressStreamProvider, "dnsServerAddressStreamProvider");
         this.resolveCache = checkNotNull(resolveCache, "resolveCache");
         this.authoritativeDnsServerCache = checkNotNull(authoritativeDnsServerCache, "authoritativeDnsServerCache");
@@ -364,16 +341,15 @@ class DnsNameResolver extends InetNameResolver {
      * instead of using the global one.
      */
     protected
-    void doResolveAll(String inetHost, Promise<List<InetAddress>> promise, DnsCache resolveCache)
-            throws Exception {
+    void doResolveAll(String inetHost, Promise<List<InetAddress>> promise, DnsCache resolveCache) throws Exception {
 
         if (inetHost == null || inetHost.isEmpty()) {
             // If an empty hostname is used we should use "localhost", just like InetAddress.getAllByName(...) does.
             promise.setSuccess(Collections.singletonList(loopbackAddress()));
             return;
         }
-        final byte[] bytes = NetUtil.createByteArrayFromIpAddressString(inetHost);
-        if (bytes != null) {
+        final byte[] bytes = IP.INSTANCE.toBytes(inetHost);
+        if (bytes.length > 0) {
             // The unresolvedAddress was created via a String that contains an ip address.
             promise.setSuccess(Collections.singletonList(InetAddress.getByAddress(bytes)));
             return;
@@ -460,7 +436,7 @@ class DnsNameResolver extends InetNameResolver {
             return;
         }
 
-        final byte[] bytes = NetUtil.createByteArrayFromIpAddressString(inetHost);
+        final byte[] bytes = IP.INSTANCE.toBytes(inetHost);
         if (bytes != null) {
             // The inetHost is actually an ipaddress.
             promise.setSuccess(InetAddress.getByAddress(bytes));
@@ -482,19 +458,14 @@ class DnsNameResolver extends InetNameResolver {
 
     public
     InetAddress resolveHostsFileEntry(String hostname) {
-        if (hostsFileEntriesResolver == null) {
-            return null;
+        InetAddress address = Dns.INSTANCE.resolveFromHosts(hostname, resolvedAddressTypes);
+        if (address == null && OS.isWindows() && LOCALHOST.equalsIgnoreCase(hostname)) {
+            // If we tried to resolve localhost we need workaround that windows removed localhost from its
+            // hostfile in later versions.
+            // See https://github.com/netty/netty/issues/5386
+            return LOCALHOST_ADDRESS;
         }
-        else {
-            InetAddress address = hostsFileEntriesResolver.address(hostname, resolvedAddressTypes);
-            if (address == null && PlatformDependent.isWindows() && LOCALHOST.equalsIgnoreCase(hostname)) {
-                // If we tried to resolve localhost we need workaround that windows removed localhost from its
-                // hostfile in later versions.
-                // See https://github.com/netty/netty/issues/5386
-                return LOCALHOST_ADDRESS;
-            }
-            return address;
-        }
+        return address;
     }
 
     private
@@ -685,14 +656,12 @@ class DnsNameResolver extends InetNameResolver {
     }
 
     /**
-     * Returns the component that tries to resolve hostnames against the hosts file prior to asking to
-     * remotes DNS servers.
+     * @return resolve hostnames against the hosts file
      */
     public
-    HostsFileEntriesResolver hostsFileEntriesResolver() {
-        return hostsFileEntriesResolver;
+    InetAddress hostsFileEntriesResolver(String hostname, ResolvedAddressTypes type) {
+        return Dns.INSTANCE.resolveFromHosts(hostname, type);
     }
-
 
     /**
      * Returns {@code true} if and only if this resolver sends a DNS query with the RD (recursion desired) flag set.
@@ -764,15 +733,11 @@ class DnsNameResolver extends InetNameResolver {
      */
     public
     Future<DnsResponse> query(InetSocketAddress nameServerAddr, DnsQuestion question) {
-        return query0(nameServerAddr,
-                      question,
-                      ch.eventLoop().<DnsResponse>newPromise());
+        return query0(nameServerAddr, question, ch.eventLoop().<DnsResponse>newPromise());
     }
 
     final
-    Future<DnsResponse> query0(InetSocketAddress nameServerAddr,
-                                                                     DnsQuestion question,
-                                                                     Promise<DnsResponse> promise) {
+    Future<DnsResponse> query0(InetSocketAddress nameServerAddr, DnsQuestion question, Promise<DnsResponse> promise) {
         return query0(nameServerAddr, question, ch.newPromise(), promise);
     }
 

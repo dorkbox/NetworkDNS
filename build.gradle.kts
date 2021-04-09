@@ -41,7 +41,7 @@ object Extras {
     // set for the project
     const val description = "High-performance and event-driven/reactive DNS network stack for Java 8+"
     const val group = "com.dorkbox"
-    const val version = "1.0"
+    const val version = "1.1"
 
     // set as project.ext
     const val name = "NetworkDNS"
@@ -120,7 +120,7 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    implementation("com.dorkbox:NetworkUtils:2.3")
+    implementation("com.dorkbox:NetworkUtils:2.4")
     implementation("com.dorkbox:PropertyLoader:1.0")
     implementation("com.dorkbox:Utilities:1.9")
     implementation("com.dorkbox:Updates:1.0")

@@ -132,3 +132,27 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
 }
+
+publishToSonatype {
+    groupId = Extras.group
+    artifactId = Extras.id
+    version = Extras.version
+
+    name = Extras.name
+    description = Extras.description
+    url = Extras.url
+
+    vendor = Extras.vendor
+    vendorUrl = Extras.vendorUrl
+
+    issueManagement {
+        url = "${Extras.url}/issues"
+        nickname = "Gitea Issues"
+    }
+
+    developer {
+        id = "dorkbox"
+        name = Extras.vendor
+        email = "email@dorkbox.com"
+    }
+}

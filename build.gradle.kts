@@ -49,6 +49,7 @@ object Extras {
     const val vendor = "Dorkbox LLC"
     const val vendorUrl = "https://dorkbox.com"
     const val url = "https://git.dorkbox.com/dorkbox/NetworkDNS"
+
     val buildDate = Instant.now().toString()
 }
 

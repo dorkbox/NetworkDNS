@@ -95,6 +95,11 @@ class DnsClient extends Shutdownable {
     @Property
     public static boolean enableNativeLibrary = true;
 
+    static {
+        // Add this project to the updates system, which verifies this class + UUID + version information
+        dorkbox.updates.Updates.INSTANCE.add(DnsClient.class, "5d805c5503b64becb0e206480d07035e", getVersion());
+    }
+
     /**
      * Retrieve the public facing IP address of this system using DNS.
      * <p/>

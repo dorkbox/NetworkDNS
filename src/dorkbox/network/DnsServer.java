@@ -74,11 +74,13 @@ public
 class DnsServer extends Shutdownable {
 
     /**
-     * The maximum queue length for incoming connection indications (a request to connect). If a connection indication arrives when the
-     * queue is full, the connection is refused.
+     * Gets the version number.
      */
-    @Property
-    public static int backlogConnectionCount = 50;
+    public static
+    String getVersion() {
+        return "1.0";
+    }
+
 
     public static int workerThreadPoolSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 1);
 
@@ -87,6 +89,11 @@ class DnsServer extends Shutdownable {
      */
     @Property
     public static boolean enableNativeLibrary = true;
+
+    static {
+        // Add this project to the updates system, which verifies this class + UUID + version information
+        dorkbox.updates.Updates.INSTANCE.add(DnsServer.class, "3aaf262a500147daa340f7274a481a2b", getVersion());
+    }
 
 
     // private final ServerBootstrap tcpBootstrap;
@@ -332,13 +339,5 @@ class DnsServer extends Shutdownable {
         }
 
         dnsServerHandler.addARecord(name, records);
-    }
-
-    /**
-     * Gets the version number.
-     */
-    public static
-    String getVersion() {
-        return "1.0";
     }
 }

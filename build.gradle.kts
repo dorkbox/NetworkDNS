@@ -120,8 +120,9 @@ tasks.jar.get().apply {
 
 dependencies {
     implementation("com.dorkbox:NetworkUtils:2.3")
-    implementation("com.dorkbox:Utilities:1.9")
     implementation("com.dorkbox:PropertyLoader:1.0")
+    implementation("com.dorkbox:Utilities:1.9")
+    implementation("com.dorkbox:Updates:1.0")
 
     implementation("io.netty:netty-all:4.1.63.Final")
 

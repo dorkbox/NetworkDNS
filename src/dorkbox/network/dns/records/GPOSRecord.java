@@ -18,7 +18,7 @@ import dorkbox.network.dns.utils.Tokenizer;
  *
  * @author Brian Wellington
  */
-
+@Deprecated
 public
 class GPOSRecord extends DnsRecord {
 
@@ -92,12 +92,9 @@ class GPOSRecord extends DnsRecord {
     GPOSRecord(Name name, int dclass, long ttl, double longitude, double latitude, double altitude) {
         super(name, DnsRecordType.GPOS, dclass, ttl);
         validate(longitude, latitude);
-        this.longitude = Double.toString(longitude)
-                               .getBytes();
-        this.latitude = Double.toString(latitude)
-                              .getBytes();
-        this.altitude = Double.toString(altitude)
-                              .getBytes();
+        this.longitude = Double.toString(longitude).getBytes();
+        this.latitude = Double.toString(latitude).getBytes();
+        this.altitude = Double.toString(altitude).getBytes();
     }
 
     private

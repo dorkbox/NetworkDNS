@@ -11,7 +11,7 @@ import dorkbox.network.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  */
-
+@Deprecated
 public
 class MDRecord extends SingleNameBase {
 

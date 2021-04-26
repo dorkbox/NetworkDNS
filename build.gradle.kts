@@ -26,22 +26,19 @@ gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS   // always show th
 gradle.startParameter.warningMode = WarningMode.All
 
 plugins {
-    java
-
-    id("com.dorkbox.GradleUtils") version "1.17"
-    id("com.dorkbox.Licensing") version "2.5.5"
+    id("com.dorkbox.GradleUtils") version "2.6"
+    id("com.dorkbox.Licensing") version "2.6.1"
     id("com.dorkbox.VersionUpdate") version "2.3"
-    id("com.dorkbox.GradlePublish") version "1.10"
-//    id("com.dorkbox.GradleModuleInfo") version "1.1"
+    id("com.dorkbox.GradlePublish") version "1.11"
 
     kotlin("jvm") version "1.4.32"
 }
 
 object Extras {
     // set for the project
-    const val description = "High-performance and event-driven/reactive DNS network stack for Java 8+"
+    const val description = "High-performance and event-driven/reactive DNS stack for Java 8+"
     const val group = "com.dorkbox"
-    const val version = "1.1"
+    const val version = "1.2"
 
     // set as project.ext
     const val name = "NetworkDNS"
@@ -57,9 +54,9 @@ object Extras {
 /////  assign 'Extras'
 ///////////////////////////////
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
-GradleUtils.fixIntellijPaths()
-GradleUtils.defaultResolutionStrategy()
+GradleUtils.defaults()
 GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
+//GradleUtils.jpms(JavaVersion.VERSION_1_9)
 
 
 licensing {
@@ -76,32 +73,6 @@ licensing {
     }
 }
 
-
-sourceSets {
-    main {
-        java {
-            setSrcDirs(listOf("src"))
-
-            // want to include java files for the source. 'setSrcDirs' resets includes...
-            include("**/*.java")
-        }
-    }
-
-    test {
-        java {
-            setSrcDirs(listOf("test"))
-
-            // want to include java files for the source. 'setSrcDirs' resets includes...
-            include("**/*.java")
-        }
-    }
-}
-
-repositories {
-    mavenLocal() // this must be first!
-    jcenter()
-}
-
 tasks.jar.get().apply {
     manifest {
         // https://docs.oracle.com/javase/tutorial/deployment/jar/packageman.html
@@ -114,23 +85,20 @@ tasks.jar.get().apply {
         attributes["Implementation-Title"] = "${Extras.group}.${Extras.id}"
         attributes["Implementation-Version"] = Extras.buildDate
         attributes["Implementation-Vendor"] = Extras.vendor
-
-        attributes["Automatic-Module-Name"] = Extras.id
     }
 }
 
 dependencies {
-    implementation("com.dorkbox:NetworkUtils:2.4")
-    implementation("com.dorkbox:PropertyLoader:1.0")
-    implementation("com.dorkbox:Utilities:1.9")
-    implementation("com.dorkbox:Updates:1.0")
+    implementation("com.dorkbox:NetworkUtils:2.5")
+    implementation("com.dorkbox:Utilities:1.10")
+    implementation("com.dorkbox:Updates:1.1")
 
     implementation("io.netty:netty-all:4.1.63.Final")
 
-    implementation ("org.slf4j:slf4j-api:1.7.30")
+    implementation("org.slf4j:slf4j-api:1.8.0-beta4")
 
     testImplementation("junit:junit:4.13.2")
-    testImplementation("ch.qos.logback:logback-classic:1.2.3")
+    testImplementation("ch.qos.logback:logback-classic:1.3.0-alpha4")
 }
 
 publishToSonatype {

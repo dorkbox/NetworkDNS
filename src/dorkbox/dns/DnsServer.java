@@ -19,7 +19,6 @@ import java.util.ArrayList;
 
 import org.slf4j.Logger;
 
-import dorkbox.netUtil.IP;
 import dorkbox.dns.dns.DnsQuestion;
 import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsRecordType;
@@ -27,6 +26,7 @@ import dorkbox.dns.dns.records.ARecord;
 import dorkbox.dns.dns.serverHandlers.DnsServerHandler;
 import dorkbox.dns.util.NativeLibrary;
 import dorkbox.dns.util.Shutdownable;
+import dorkbox.netUtil.IP;
 import dorkbox.os.OS;
 import dorkbox.util.NamedThreadFactory;
 import io.netty.bootstrap.Bootstrap;
@@ -41,9 +41,7 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.kqueue.KQueueDatagramChannel;
 import io.netty.channel.kqueue.KQueueEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.channel.socket.oio.OioDatagramChannel;
 
 /**
  * from: https://blog.cloudflare.com/how-the-consumer-product-safety-commission-is-inadvertently-behind-the-internets-largest-ddos-attacks/
@@ -121,13 +119,7 @@ class DnsServer extends Shutdownable {
         final EventLoopGroup boss;
         final EventLoopGroup work;
 
-        if (OS.isAndroid()) {
-            // android ONLY supports OIO (not NIO)
-            // android ONLY supports OIO
-            boss = new OioEventLoopGroup(1, new NamedThreadFactory(threadName + "-boss", threadGroup));
-            work = new OioEventLoopGroup(workerThreadPoolSize, threadFactory);
-        }
-        else if (OS.isLinux() && NativeLibrary.isAvailable()) {
+        if (OS.isLinux() && NativeLibrary.isAvailable()) {
             // epoll network stack is MUCH faster (but only on linux)
             boss = new EpollEventLoopGroup(1, new NamedThreadFactory(threadName + "-boss", threadGroup));
             work = new EpollEventLoopGroup(workerThreadPoolSize, threadFactory);
@@ -188,11 +180,7 @@ class DnsServer extends Shutdownable {
         //             .childOption(ChannelOption.TCP_NODELAY, !OS.isAndroid());
 
 
-        if (OS.isAndroid()) {
-            // android ONLY supports OIO (not NIO)
-            udpBootstrap.channel(OioDatagramChannel.class);
-        }
-        else if (OS.isLinux() && NativeLibrary.isAvailable()) {
+        if (OS.isLinux() && NativeLibrary.isAvailable()) {
             // epoll network stack is MUCH faster (but only on linux)
             udpBootstrap.channel(EpollDatagramChannel.class);
         }

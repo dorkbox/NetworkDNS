@@ -38,7 +38,7 @@ object Extras {
     // set for the project
     const val description = "High-performance and event-driven/reactive DNS stack for Java 8+"
     const val group = "com.dorkbox"
-    const val version = "1.2"
+    const val version = "1.3"
 
     // set as project.ext
     const val name = "NetworkDNS"
@@ -56,7 +56,7 @@ object Extras {
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.defaults()
 GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
-//GradleUtils.jpms(JavaVersion.VERSION_1_9)
+GradleUtils.jpms(JavaVersion.VERSION_1_9)
 
 
 licensing {
@@ -89,8 +89,8 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    implementation("com.dorkbox:NetworkUtils:2.5")
-    implementation("com.dorkbox:Utilities:1.10")
+    implementation("com.dorkbox:NetworkUtils:2.8")
+    implementation("com.dorkbox:Utilities:1.11")
     implementation("com.dorkbox:Updates:1.1")
 
     implementation("io.netty:netty-all:4.1.63.Final")

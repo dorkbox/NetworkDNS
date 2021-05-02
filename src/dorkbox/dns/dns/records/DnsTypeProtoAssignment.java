@@ -18,6 +18,7 @@ package dorkbox.dns.dns.records;
 
 import dorkbox.dns.dns.constants.DnsRecordType;
 
+@SuppressWarnings("deprecation")
 public
 class DnsTypeProtoAssignment {
 

@@ -10,4 +10,6 @@ module dorkbox.dns {
 
     requires io.netty.all;
     requires org.slf4j;
+
+    requires java.base;
 }

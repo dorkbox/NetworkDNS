@@ -60,6 +60,7 @@ import io.netty.util.concurrent.Future;
 public
 class DnsClient extends Shutdownable {
 
+
 /*
  * TODO: verify ResolverConfiguration works as expected!
  * http://bugs.java.com/view_bug.do?bug_id=8176361

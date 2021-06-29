@@ -27,7 +27,7 @@ gradle.startParameter.warningMode = WarningMode.All
 
 plugins {
     id("com.dorkbox.GradleUtils") version "2.6"
-    id("com.dorkbox.Licensing") version "2.6.1"
+    id("com.dorkbox.Licensing") version "2.8.1"
     id("com.dorkbox.VersionUpdate") version "2.3"
     id("com.dorkbox.GradlePublish") version "1.11"
 
@@ -66,9 +66,9 @@ licensing {
         note(Extras.description)
 
         extra("XBill DNS", License.BSD_2) {
-            it.copyright(2011)
-            it.author("Brian Wellington")
-            it.url("https://github.com/dnsjava/dnsjava")
+            copyright(2011)
+            author("Brian Wellington")
+            url("https://github.com/dnsjava/dnsjava")
         }
     }
 }

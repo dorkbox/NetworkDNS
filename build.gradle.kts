@@ -23,7 +23,6 @@ import java.time.Instant
 ///////////////////////////////
 
 gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS   // always show the stacktrace!
-gradle.startParameter.warningMode = WarningMode.All
 
 plugins {
     id("com.dorkbox.GradleUtils") version "2.6"

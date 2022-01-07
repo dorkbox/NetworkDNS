@@ -25,7 +25,7 @@ import java.time.Instant
 gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS   // always show the stacktrace!
 
 plugins {
-    id("com.dorkbox.GradleUtils") version "2.6"
+    id("com.dorkbox.GradleUtils") version "2.14"
     id("com.dorkbox.Licensing") version "2.8.1"
     id("com.dorkbox.VersionUpdate") version "2.3"
     id("com.dorkbox.GradlePublish") version "1.11"
@@ -89,10 +89,10 @@ tasks.jar.get().apply {
 
 dependencies {
     implementation("com.dorkbox:NetworkUtils:2.8")
-    implementation("com.dorkbox:Utilities:1.11")
+    implementation("com.dorkbox:Utilities:1.12")
     implementation("com.dorkbox:Updates:1.1")
 
-    implementation("io.netty:netty-all:4.1.63.Final")
+    implementation("io.netty:netty-all:4.1.68.Final")
 
     implementation("org.slf4j:slf4j-api:1.8.0-beta4")
 

@@ -66,19 +66,19 @@ class Shutdownable {
     /**
      * This is used to enable the usage of native libraries for an OS that supports them.
      */
-    public static volatile boolean enableNativeLibrary = OS.getBoolean(DnsClient.class.getCanonicalName() + ".enableNativeLibrary", true);
+    public static volatile boolean enableNativeLibrary = OS.INSTANCE.getBoolean(DnsClient.class.getCanonicalName() + ".enableNativeLibrary", true);
 
     /**
      * The HIGH and LOW watermark points for connections
      */
-    public static volatile int WRITE_BUFF_HIGH = OS.getInt(Shutdownable.class.getCanonicalName() + ".WRITE_BUFF_HIGH", 32 * 1024);
+    public static volatile int WRITE_BUFF_HIGH = OS.INSTANCE.getInt(Shutdownable.class.getCanonicalName() + ".WRITE_BUFF_HIGH", 32 * 1024);
 
-    public static volatile int WRITE_BUFF_LOW = OS.getInt(Shutdownable.class.getCanonicalName() + ".WRITE_BUFF_LOW", 8 * 1024);
+    public static volatile int WRITE_BUFF_LOW = OS.INSTANCE.getInt(Shutdownable.class.getCanonicalName() + ".WRITE_BUFF_LOW", 8 * 1024);
 
     /**
      * The amount of time in milli-seconds to wait for this endpoint to close all {@link Channel}s and shutdown gracefully.
      */
-    public static volatile long maxShutdownWaitTimeInMilliSeconds = OS.getLong(Shutdownable.class.getCanonicalName() + ".maxShutdownWaitTimeInMilliSeconds", 2000L); // in milliseconds
+    public static volatile long maxShutdownWaitTimeInMilliSeconds = OS.INSTANCE.getLong(Shutdownable.class.getCanonicalName() + ".maxShutdownWaitTimeInMilliSeconds", 2000L); // in milliseconds
 
     // /**
     //  * Checks to see if we are running in the netty thread. This is (usually) to prevent potential deadlocks in code that CANNOT be run from

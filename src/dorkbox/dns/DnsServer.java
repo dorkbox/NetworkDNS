@@ -119,12 +119,12 @@ class DnsServer extends Shutdownable {
         final EventLoopGroup boss;
         final EventLoopGroup work;
 
-        if (OS.isLinux() && NativeLibrary.isAvailable()) {
+        if (OS.INSTANCE.isLinux() && NativeLibrary.isAvailable()) {
             // epoll network stack is MUCH faster (but only on linux)
             boss = new EpollEventLoopGroup(1, new NamedThreadFactory(threadName + "-boss", threadGroup));
             work = new EpollEventLoopGroup(workerThreadPoolSize, threadFactory);
         }
-        else if (OS.isMacOsX() && NativeLibrary.isAvailable()) {
+        else if (OS.INSTANCE.isMacOsX() && NativeLibrary.isAvailable()) {
             // KQueue network stack is MUCH faster (but only on macosx)
             boss = new KQueueEventLoopGroup(1, new NamedThreadFactory(threadName + "-boss", threadGroup));
             work = new KQueueEventLoopGroup(workerThreadPoolSize, threadFactory);
@@ -180,11 +180,11 @@ class DnsServer extends Shutdownable {
         //             .childOption(ChannelOption.TCP_NODELAY, !OS.isAndroid());
 
 
-        if (OS.isLinux() && NativeLibrary.isAvailable()) {
+        if (OS.INSTANCE.isLinux() && NativeLibrary.isAvailable()) {
             // epoll network stack is MUCH faster (but only on linux)
             udpBootstrap.channel(EpollDatagramChannel.class);
         }
-        else if (OS.isMacOsX() && NativeLibrary.isAvailable()) {
+        else if (OS.INSTANCE.isMacOsX() && NativeLibrary.isAvailable()) {
             // KQueue network stack is MUCH faster (but only on macosx)
             udpBootstrap.channel(KQueueDatagramChannel.class);
         }

@@ -38,7 +38,7 @@ class NativeLibrary {
      * reason, netty will fall back to it's own logic.
      */
     static {
-        if ((DnsClient.enableNativeLibrary || DnsServer.enableNativeLibrary) && (OS.isLinux() || OS.isMacOsX())) {
+        if ((DnsClient.enableNativeLibrary || DnsServer.enableNativeLibrary) && (OS.INSTANCE.isLinux() || OS.INSTANCE.isMacOsX())) {
             // try to load the native libraries for Linux/MacOsX...
             String originalLibraryPath = SystemPropertyUtil.get("java.library.path");
             File outputDirectory;
@@ -76,7 +76,7 @@ class NativeLibrary {
 
 
             String staticLibName;
-            if (OS.isLinux()) {
+            if (OS.INSTANCE.isLinux()) {
                 staticLibName = "netty_transport_native_epoll";
             }
             else {
@@ -88,7 +88,7 @@ class NativeLibrary {
 
 
             String jarLibName = "META-INF/native/" + staticLibName;
-            if (OS.isLinux()) {
+            if (OS.INSTANCE.isLinux()) {
                 jarLibName += ".so";
             }
             else {
@@ -100,11 +100,11 @@ class NativeLibrary {
                 NativeLoader.extractLibrary(jarLibName, outputDirectory.getAbsolutePath(), staticLibName, null);
 
                 // we have to try to load the native library HERE, while the java.library.path has it
-                if (OS.isLinux()) {
+                if (OS.INSTANCE.isLinux()) {
                     //noinspection ResultOfMethodCallIgnored
                     Epoll.isAvailable();
                 }
-                else if (OS.isMacOsX()) {
+                else if (OS.INSTANCE.isMacOsX()) {
                     //noinspection ResultOfMethodCallIgnored
                     KQueue.isAvailable();
                 }
@@ -136,10 +136,10 @@ class NativeLibrary {
             return false;
         }
 
-        if (OS.isLinux()) {
+        if (OS.INSTANCE.isLinux()) {
             return Epoll.isAvailable();
         }
-        else if (OS.isMacOsX()) {
+        else if (OS.INSTANCE.isMacOsX()) {
             return KQueue.isAvailable();
         }
 

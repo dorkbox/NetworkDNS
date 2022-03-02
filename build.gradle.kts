@@ -25,12 +25,12 @@ import java.time.Instant
 gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS   // always show the stacktrace!
 
 plugins {
-    id("com.dorkbox.GradleUtils") version "2.6"
-    id("com.dorkbox.Licensing") version "2.8.1"
-    id("com.dorkbox.VersionUpdate") version "2.3"
-    id("com.dorkbox.GradlePublish") version "1.11"
+    id("com.dorkbox.GradleUtils") version "2.16"
+    id("com.dorkbox.Licensing") version "2.12"
+    id("com.dorkbox.VersionUpdate") version "2.4"
+    id("com.dorkbox.GradlePublish") version "1.12"
 
-    kotlin("jvm") version "1.4.32"
+    kotlin("jvm") version "1.6.10"
 }
 
 object Extras {
@@ -88,13 +88,18 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    implementation("com.dorkbox:NetworkUtils:2.8")
-    implementation("com.dorkbox:Utilities:1.11")
-    implementation("com.dorkbox:Updates:1.1")
+    api("com.dorkbox:NetworkUtils:2.9.1")
+    api("com.dorkbox:Utilities:1.13")
+    api("com.dorkbox:Updates:1.1")
 
-    implementation("io.netty:netty-all:4.1.63.Final")
+    val nettyVer = "4.1.74.Final"
+    api("io.netty:netty-buffer:$nettyVer")
+    api("io.netty:netty-transport:$nettyVer")
+    api("io.netty:netty-transport-native-epoll:$nettyVer")
+    api("io.netty:netty-transport-classes-kqueue:$nettyVer")
+    api("io.netty:netty-codec:$nettyVer")
 
-    implementation("org.slf4j:slf4j-api:1.8.0-beta4")
+    api("org.slf4j:slf4j-api:1.8.0-beta4")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("ch.qos.logback:logback-classic:1.3.0-alpha4")

@@ -27,11 +27,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dorkbox.netUtil.Dns;
-import dorkbox.netUtil.IP;
-import dorkbox.netUtil.IPv4;
-import dorkbox.netUtil.IPv6;
-import dorkbox.netUtil.dnsUtils.ResolvedAddressTypes;
 import dorkbox.dns.dns.DnsQuestion;
 import dorkbox.dns.dns.clientHandlers.DatagramDnsQueryEncoder;
 import dorkbox.dns.dns.clientHandlers.DatagramDnsResponseDecoder;
@@ -43,6 +38,11 @@ import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStreamProvider;
 import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddresses;
 import dorkbox.dns.dns.resolver.cache.DnsCache;
 import dorkbox.dns.dns.resolver.cache.DnsCacheEntry;
+import dorkbox.netUtil.Dns;
+import dorkbox.netUtil.IP;
+import dorkbox.netUtil.IPv4;
+import dorkbox.netUtil.IPv6;
+import dorkbox.netUtil.dnsUtils.ResolvedAddressTypes;
 import dorkbox.os.OS;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -462,7 +462,7 @@ class DnsNameResolver extends InetNameResolver {
     public
     InetAddress resolveHostsFileEntry(String hostname) {
         InetAddress address = Dns.INSTANCE.resolveFromHosts(hostname, resolvedAddressTypes);
-        if (address == null && OS.isWindows() && LOCALHOST.equalsIgnoreCase(hostname)) {
+        if (address == null && OS.INSTANCE.isWindows() && LOCALHOST.equalsIgnoreCase(hostname)) {
             // If we tried to resolve localhost we need workaround that windows removed localhost from its hostfile in later versions.
             // See https://github.com/netty/netty/issues/5386
             return LOCALHOST_ADDRESS;

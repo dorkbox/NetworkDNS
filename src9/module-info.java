@@ -8,8 +8,13 @@ module dorkbox.dns {
     requires dorkbox.utilities;
     requires dorkbox.updates;
 
-    requires io.netty.all;
+    requires io.netty.codec;
     requires org.slf4j;
 
-    requires java.base;
+    requires io.netty.transport;
+    requires io.netty.transport.classes.epoll;
+    requires io.netty.transport.classes.kqueue;
+    requires io.netty.common;
+    requires io.netty.buffer;
+    requires io.netty.resolver;
 }

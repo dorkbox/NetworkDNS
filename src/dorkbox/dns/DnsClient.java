@@ -86,7 +86,7 @@ class DnsClient extends Shutdownable {
      */
     public static
     String getVersion() {
-        return "1.3.1";
+        return "1.4";
     }
 
     static {

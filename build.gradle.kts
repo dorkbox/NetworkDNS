@@ -89,7 +89,7 @@ tasks.jar.get().apply {
 
 dependencies {
     api("com.dorkbox:NetworkUtils:2.9.1")
-    api("com.dorkbox:Utilities:1.13")
+    api("com.dorkbox:Utilities:1.16")
     api("com.dorkbox:Updates:1.1")
 
     val nettyVer = "4.1.74.Final"

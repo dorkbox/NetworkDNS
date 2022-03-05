@@ -20,8 +20,6 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.Date;
 
-import dorkbox.dns.dns.utils.Options;
-import dorkbox.dns.dns.utils.Tokenizer;
 import dorkbox.dns.dns.Compression;
 import dorkbox.dns.dns.DnsInput;
 import dorkbox.dns.dns.DnsOutput;
@@ -29,6 +27,8 @@ import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.constants.DnsResponseCode;
 import dorkbox.dns.dns.utils.FormattedTime;
+import dorkbox.dns.dns.utils.Options;
+import dorkbox.dns.dns.utils.Tokenizer;
 import dorkbox.os.OS;
 
 /**
@@ -144,7 +144,7 @@ class TKEYRecord extends DnsRecord {
         sb.append(" ");
         if (Options.check("multiline")) {
             sb.append("(")
-              .append(OS.LINE_SEPARATOR)
+              .append(OS.INSTANCE.getLINE_SEPARATOR())
               .append("\t");
         }
         sb.append(FormattedTime.format(timeInception));
@@ -155,10 +155,10 @@ class TKEYRecord extends DnsRecord {
         sb.append(" ");
         sb.append(DnsResponseCode.TSIGstring(error));
         if (Options.check("multiline")) {
-            sb.append(OS.LINE_SEPARATOR);
+            sb.append(OS.INSTANCE.getLINE_SEPARATOR());
             if (key != null) {
                 sb.append(Base64.getMimeEncoder().encodeToString(key));
-                sb.append(OS.LINE_SEPARATOR);
+                sb.append(OS.INSTANCE.getLINE_SEPARATOR());
             }
             if (other != null) {
                 sb.append(Base64.getMimeEncoder().encodeToString(other));

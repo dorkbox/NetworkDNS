@@ -880,7 +880,7 @@ class DnsMessage extends AbstractReferenceCounted implements Cloneable, Referenc
     @Override
     public
     String toString() {
-        String NL = OS.LINE_SEPARATOR;
+        String NL = OS.INSTANCE.getLINE_SEPARATOR();
 
         StringBuilder sb = new StringBuilder(NL);
         OPTRecord opt = getOPT();
@@ -998,7 +998,7 @@ class DnsMessage extends AbstractReferenceCounted implements Cloneable, Referenc
                 sb.append(rec);
             }
 
-            sb.append(OS.LINE_SEPARATOR);
+            sb.append(OS.INSTANCE.getLINE_SEPARATOR());
         }
         return sb.toString();
     }

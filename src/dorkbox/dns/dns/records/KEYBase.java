@@ -20,11 +20,11 @@ import java.io.IOException;
 import java.security.PublicKey;
 import java.util.Base64;
 
-import dorkbox.dns.dns.utils.Options;
 import dorkbox.dns.dns.Compression;
 import dorkbox.dns.dns.DnsInput;
 import dorkbox.dns.dns.DnsOutput;
 import dorkbox.dns.dns.Name;
+import dorkbox.dns.dns.utils.Options;
 import dorkbox.os.OS;
 
 /**
@@ -89,9 +89,9 @@ class KEYBase extends DnsRecord {
         if (key != null) {
             if (Options.check("multiline")) {
                 sb.append(" (");
-                sb.append(OS.LINE_SEPARATOR);
+                sb.append(OS.INSTANCE.getLINE_SEPARATOR());
                 sb.append(Base64.getMimeEncoder().encodeToString(key));
-                sb.append(OS.LINE_SEPARATOR);
+                sb.append(OS.INSTANCE.getLINE_SEPARATOR());
                 sb.append(") ; key_tag = ");
                 sb.append(getFootprint());
             }

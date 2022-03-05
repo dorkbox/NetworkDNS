@@ -19,13 +19,13 @@ package dorkbox.dns.dns.records;
 import java.io.IOException;
 import java.util.Base64;
 
-import dorkbox.dns.dns.utils.Options;
-import dorkbox.dns.dns.utils.Tokenizer;
 import dorkbox.dns.dns.Compression;
 import dorkbox.dns.dns.DnsInput;
 import dorkbox.dns.dns.DnsOutput;
 import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.utils.Options;
+import dorkbox.dns.dns.utils.Tokenizer;
 import dorkbox.os.OS;
 
 /**
@@ -66,7 +66,7 @@ class OPENPGPKEYRecord extends DnsRecord {
     void rrToString(StringBuilder sb) {
         if (cert != null) {
             if (Options.check("multiline")) {
-                sb.append(OS.LINE_SEPARATOR);
+                sb.append(OS.INSTANCE.getLINE_SEPARATOR());
                 sb.append(Base64.getEncoder().encodeToString(cert));
             }
             else {

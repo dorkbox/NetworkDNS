@@ -25,9 +25,6 @@ import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DNSSEC;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.KEYBase;
 import dorkbox.dns.dns.utils.Options;
 import dorkbox.dns.dns.utils.Tokenizer;
 import dorkbox.os.OS;
@@ -133,7 +130,7 @@ class KEYBaseTest extends TestCase {
         tc.rrToString(sb);
         out = sb.toString();
 
-        assertEquals("255 15 14 (" + OS.LINE_SEPARATOR + Base64.getMimeEncoder().encodeToString(key) + OS.LINE_SEPARATOR + ") ; key_tag = 18509", out);
+        assertEquals("255 15 14 (" + OS.INSTANCE.getLINE_SEPARATOR() + Base64.getMimeEncoder().encodeToString(key) + OS.INSTANCE.getLINE_SEPARATOR() + ") ; key_tag = 18509", out);
 
         Options.unset("multiline");
     }

@@ -309,7 +309,7 @@ class Header implements Cloneable {
         sb.append("opcode: " + DnsOpCode.string(getOpcode()));
         sb.append(", status: " + DnsResponseCode.string(newrcode));
         sb.append(", id: " + getID());
-        sb.append(OS.LINE_SEPARATOR);
+        sb.append(OS.INSTANCE.getLINE_SEPARATOR());
 
         sb.append(";; flags: ")
           .append(printFlags());

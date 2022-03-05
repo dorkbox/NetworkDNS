@@ -24,10 +24,10 @@ import dorkbox.dns.dns.Compression;
 import dorkbox.dns.dns.DnsInput;
 import dorkbox.dns.dns.DnsOutput;
 import dorkbox.dns.dns.Name;
+import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.constants.DnsResponseCode;
 import dorkbox.dns.dns.utils.Options;
 import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.os.OS;
 
 /**
@@ -119,7 +119,7 @@ class TSIGRecord extends DnsRecord {
         sb.append(" ");
         if (Options.check("multiline")) {
             sb.append("(")
-              .append(OS.LINE_SEPARATOR)
+              .append(OS.INSTANCE.getLINE_SEPARATOR())
               .append("\t");
         }
 
@@ -129,7 +129,7 @@ class TSIGRecord extends DnsRecord {
         sb.append(" ");
         sb.append(signature.length);
         if (Options.check("multiline")) {
-            sb.append(OS.LINE_SEPARATOR);
+            sb.append(OS.INSTANCE.getLINE_SEPARATOR());
             sb.append(Base64.getMimeEncoder().encodeToString(signature));
         }
         else {
@@ -145,9 +145,9 @@ class TSIGRecord extends DnsRecord {
         else {
             sb.append(other.length);
             if (Options.check("multiline")) {
-                sb.append(OS.LINE_SEPARATOR)
-                  .append(OS.LINE_SEPARATOR)
-                  .append(OS.LINE_SEPARATOR)
+                sb.append(OS.INSTANCE.getLINE_SEPARATOR())
+                  .append(OS.INSTANCE.getLINE_SEPARATOR())
+                  .append(OS.INSTANCE.getLINE_SEPARATOR())
                   .append("\t");
             }
             else {

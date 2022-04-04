@@ -32,8 +32,8 @@ import dorkbox.dns.dns.DnsInput;
 import dorkbox.dns.dns.DnsOutput;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.WireParseException;
-import dorkbox.util.collections.IntMap;
-import dorkbox.util.collections.IntMap.Keys;
+import dorkbox.collections.IntMap;
+import dorkbox.collections.IntMap.Keys;
 
 final
 class TypeBitmap implements Serializable {

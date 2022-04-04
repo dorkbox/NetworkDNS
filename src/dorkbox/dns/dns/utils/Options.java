@@ -18,7 +18,7 @@ package dorkbox.dns.dns.utils;
 
 import java.util.StringTokenizer;
 
-import dorkbox.util.collections.ObjectMap;
+import dorkbox.collections.ObjectMap;
 
 /**
  * Boolean options:<BR>

@@ -16,8 +16,8 @@
 
 package dorkbox.dns.dns;
 
-import dorkbox.util.collections.IntMap;
-import dorkbox.util.collections.ObjectIntMap;
+import dorkbox.collections.IntMap;
+import dorkbox.collections.ObjectIntMap;
 
 /**
  * A utility class for converting between numeric codes and mnemonics

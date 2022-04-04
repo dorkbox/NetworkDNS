@@ -20,7 +20,7 @@ import dorkbox.dns.dns.Mnemonic;
 import dorkbox.dns.dns.exceptions.InvalidTypeException;
 import dorkbox.dns.dns.records.DnsRecord;
 import dorkbox.dns.dns.records.DnsTypeProtoAssignment;
-import dorkbox.util.collections.IntMap;
+import dorkbox.collections.IntMap;
 import io.netty.util.internal.StringUtil;
 
 /**

@@ -6,7 +6,9 @@ module dorkbox.dns {
 
     requires dorkbox.netutil;
     requires dorkbox.utilities;
+    requires dorkbox.collections;
     requires dorkbox.updates;
+    requires dorkbox.os;
 
     requires io.netty.codec;
     requires org.slf4j;

@@ -37,7 +37,7 @@ import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.constants.DnsSection;
 import dorkbox.dns.dns.constants.Flags;
 import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.util.collections.LockFreeHashMap;
+import dorkbox.collections.LockFreeHashMap;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.concurrent.Future;

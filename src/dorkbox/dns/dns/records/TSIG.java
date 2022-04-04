@@ -32,7 +32,7 @@ import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsResponseCode;
 import dorkbox.dns.dns.constants.DnsSection;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.util.collections.ObjectMap;
+import dorkbox.collections.ObjectMap;
 
 /**
  * Transaction signature handling.  This class generates and verifies

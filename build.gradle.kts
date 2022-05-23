@@ -88,12 +88,12 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    api("com.dorkbox:NetworkUtils:2.9.1")
+    api("com.dorkbox:NetworkUtils:2.13")
     api("com.dorkbox:OS:1.0")
-    api("com.dorkbox:Utilities:1.22")
+    api("com.dorkbox:Utilities:1.25")
     api("com.dorkbox:Updates:1.1")
 
-    val nettyVer = "4.1.74.Final"
+    val nettyVer = "4.1.77.Final"
     api("io.netty:netty-buffer:$nettyVer")
     api("io.netty:netty-transport:$nettyVer")
     api("io.netty:netty-transport-native-epoll:$nettyVer")

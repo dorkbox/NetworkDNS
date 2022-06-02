@@ -24,11 +24,6 @@ import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.ARecord;
-import dorkbox.dns.dns.records.CNAMERecord;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.RRSIGRecord;
-import dorkbox.dns.dns.records.RRset;
 import junit.framework.TestCase;
 
 public
@@ -43,8 +38,8 @@ class RRsetTest extends TestCase {
     public
     void setUp() throws TextParseException, UnknownHostException {
         m_rs = new RRset();
-        m_name = Name.fromString("this.is.a.test.");
-        m_name2 = Name.fromString("this.is.another.test.");
+        m_name = Name.Companion.fromString("this.is.a.test.");
+        m_name2 = Name.Companion.fromString("this.is.another.test.");
         m_ttl = 0xABCDL;
         m_a1 = new ARecord(m_name, DnsClass.IN, m_ttl, InetAddress.getByName("192.169.232.11"));
         m_a2 = new ARecord(m_name, DnsClass.IN, m_ttl + 1, InetAddress.getByName("192.169.232.12"));
@@ -241,7 +236,7 @@ class RRsetTest extends TestCase {
     void test_addRR_invalidType() throws TextParseException {
         m_rs.addRR(m_a1);
 
-        CNAMERecord c = new CNAMERecord(m_name, DnsClass.IN, m_ttl, Name.fromString("an.alias."));
+        CNAMERecord c = new CNAMERecord(m_name, DnsClass.IN, m_ttl, Name.Companion.fromString("an.alias."));
 
         try {
             m_rs.addRR(c);
@@ -279,14 +274,14 @@ class RRsetTest extends TestCase {
     public
     void test_TTLcalculation() {
         m_rs.addRR(m_a2);
-        assertEquals(m_a2.getTTL(), m_rs.getTTL());
+        assertEquals(m_a2.getTtl(), m_rs.getTTL());
         m_rs.addRR(m_a1);
-        assertEquals(m_a1.getTTL(), m_rs.getTTL());
+        assertEquals(m_a1.getTtl(), m_rs.getTTL());
 
         Iterator itr = m_rs.rrs();
         while (itr.hasNext()) {
             DnsRecord r = (DnsRecord) itr.next();
-            assertEquals(m_a1.getTTL(), r.getTTL());
+            assertEquals(m_a1.getTtl(), r.getTtl());
         }
     }
 

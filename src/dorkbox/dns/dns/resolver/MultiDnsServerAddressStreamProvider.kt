@@ -13,31 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver;
+package dorkbox.dns.dns.resolver
 
-import java.util.List;
-
-import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStream;
-import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStreamProvider;
-import io.netty.util.internal.UnstableApi;
+import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStream
+import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStreamProvider
+import io.netty.util.internal.UnstableApi
 
 /**
- * A {@link DnsServerAddressStreamProvider} which iterates through a collection of
- * {@link DnsServerAddressStreamProvider} until the first non-{@code null} result is found.
+ * A [DnsServerAddressStreamProvider] which iterates through a collection of
+ * [DnsServerAddressStreamProvider] until the first non-`null` result is found.
  */
 @UnstableApi
-public final
-class MultiDnsServerAddressStreamProvider implements DnsServerAddressStreamProvider {
-    private final DnsServerAddressStreamProvider[] providers;
+class MultiDnsServerAddressStreamProvider : DnsServerAddressStreamProvider {
+    private val providers: Array<DnsServerAddressStreamProvider>
 
     /**
      * Create a new instance.
      *
      * @param providers The providers to use for DNS resolution. They will be queried in order.
      */
-    public
-    MultiDnsServerAddressStreamProvider(List<DnsServerAddressStreamProvider> providers) {
-        this.providers = providers.toArray(new DnsServerAddressStreamProvider[0]);
+    constructor(providers: List<DnsServerAddressStreamProvider>) {
+        this.providers = providers.toTypedArray()
     }
 
     /**
@@ -45,20 +41,15 @@ class MultiDnsServerAddressStreamProvider implements DnsServerAddressStreamProvi
      *
      * @param providers The providers to use for DNS resolution. They will be queried in order.
      */
-    public
-    MultiDnsServerAddressStreamProvider(DnsServerAddressStreamProvider... providers) {
-        this.providers = providers.clone();
+    constructor(vararg providers: DnsServerAddressStreamProvider) {
+        this.providers = providers.clone() as Array<DnsServerAddressStreamProvider>
     }
 
-    @Override
-    public
-    DnsServerAddressStream nameServerAddressStream(String hostname) {
-        for (DnsServerAddressStreamProvider provider : providers) {
-            DnsServerAddressStream stream = provider.nameServerAddressStream(hostname);
-            if (stream != null) {
-                return stream;
-            }
+    override fun nameServerAddressStream(hostname: String): DnsServerAddressStream {
+        for (provider in providers) {
+            return provider.nameServerAddressStream(hostname)
         }
-        return null;
+
+        throw IllegalStateException("No name servers provided.")
     }
 }

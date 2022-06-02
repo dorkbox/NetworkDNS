@@ -13,31 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver;
+package dorkbox.dns.dns.resolver
 
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
+import dorkbox.dns.dns.records.DnsMessage
+import io.netty.util.internal.ObjectUtil
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+internal class TraceDnsQueryLifeCycleObserverFactory @JvmOverloads constructor(logger: Logger = DEFAULT_LOGGER) :
+    DnsQueryLifecycleObserverFactory {
+    private val logger: Logger
 
-import dorkbox.dns.dns.records.DnsMessage;
-
-final
-class TraceDnsQueryLifeCycleObserverFactory implements DnsQueryLifecycleObserverFactory {
-    private static final Logger DEFAULT_LOGGER = LoggerFactory.getLogger(TraceDnsQueryLifeCycleObserverFactory.class);
-    private final Logger logger;
-
-    TraceDnsQueryLifeCycleObserverFactory() {
-        this(DEFAULT_LOGGER);
+    init {
+        this.logger = ObjectUtil.checkNotNull(logger, "logger")
     }
 
-    TraceDnsQueryLifeCycleObserverFactory(Logger logger) {
-        this.logger = checkNotNull(logger, "logger");
+    override fun newDnsQueryLifecycleObserver(question: DnsMessage): DnsQueryLifecycleObserver {
+        return TraceDnsQueryLifecycleObserver(question, logger)
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver newDnsQueryLifecycleObserver(DnsMessage question) {
-        return new TraceDnsQueryLifecycleObserver(question, logger);
+    companion object {
+        private val DEFAULT_LOGGER = LoggerFactory.getLogger(TraceDnsQueryLifeCycleObserverFactory::class.java)
     }
 }

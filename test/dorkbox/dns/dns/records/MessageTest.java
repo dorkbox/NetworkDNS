@@ -25,10 +25,6 @@ import dorkbox.dns.dns.constants.DnsOpCode;
 import dorkbox.dns.dns.constants.DnsSection;
 import dorkbox.dns.dns.constants.Flags;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.ARecord;
-import dorkbox.dns.dns.records.DnsMessage;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.Header;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -80,7 +76,7 @@ class MessageTest {
 
         public
         void test_newQuery() throws TextParseException, UnknownHostException {
-            Name n = Name.fromString("The.Name.");
+            Name n = Name.Companion.fromString("The.Name.");
             ARecord ar = new ARecord(n, DnsClass.IN, 1, InetAddress.getByName("192.168.101.110"));
 
             DnsMessage m = DnsMessage.newQuery(ar);

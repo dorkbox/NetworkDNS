@@ -13,84 +13,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver.addressProvider;
+package dorkbox.dns.dns.resolver.addressProvider
 
-import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import dorkbox.netUtil.Dns;
+import dorkbox.netUtil.Dns.defaultNameServers
+import java.net.InetSocketAddress
 
 /**
- * A {@link DnsServerAddressStreamProvider} which will use predefined default DNS servers to use for DNS resolution.
+ * A [DnsServerAddressStreamProvider] which will use predefined default DNS servers to use for DNS resolution.
  * These defaults do not respect your host's machines defaults.
- * <p>
+ *
+ *
  * This may use the JDK's blocking DNS resolution to bootstrap the default DNS server addresses.
  */
-public final
-class DefaultDnsServerAddressStreamProvider implements DnsServerAddressStreamProvider {
-
-    public static final DefaultDnsServerAddressStreamProvider INSTANCE = new DefaultDnsServerAddressStreamProvider();
-    public static final int DNS_PORT = 53;
-    private static final Logger logger = LoggerFactory.getLogger(DefaultDnsServerAddressStreamProvider.class);
-    private static final List<InetSocketAddress> DEFAULT_NAME_SERVER_LIST;
-    private static final InetSocketAddress[] DEFAULT_NAME_SERVER_ARRAY;
-    private static final DnsServerAddresses DEFAULT_NAME_SERVERS;
-
-    static {
-        final List<InetSocketAddress> defaultNameServers = Dns.INSTANCE.getDefaultNameServers();
-
-        DEFAULT_NAME_SERVER_LIST = Collections.unmodifiableList(defaultNameServers);
-        DEFAULT_NAME_SERVER_ARRAY = defaultNameServers.toArray(new InetSocketAddress[0]);
-        DEFAULT_NAME_SERVERS = DnsServerAddresses.sequential(DEFAULT_NAME_SERVER_ARRAY);
+class DefaultDnsServerAddressStreamProvider private constructor() : DnsServerAddressStreamProvider {
+    override fun nameServerAddressStream(hostname: String): DnsServerAddressStream {
+        return DEFAULT_NAME_SERVERS.stream()
     }
 
-    /**
-     * Returns the list of the system DNS server addresses. If it failed to retrieve the list of the system DNS server
-     * addresses from the environment, it will return {@code "8.8.8.8"} and {@code "8.8.4.4"}, the addresses of the
-     * Google public DNS servers.
-     */
-    public static
-    List<InetSocketAddress> defaultAddressList() {
-        return DEFAULT_NAME_SERVER_LIST;
-    }
+    companion object {
+        val INSTANCE = DefaultDnsServerAddressStreamProvider()
+        const val DNS_PORT = 53
 
-    /**
-     * Returns the {@link DnsServerAddresses} that yields the system DNS server addresses sequentially. If it failed to
-     * retrieve the list of the system DNS server addresses from the environment, it will use {@code "8.8.8.8"} and
-     * {@code "8.8.4.4"}, the addresses of the Google public DNS servers.
-     * <p>
-     * This method has the same effect with the following code:
-     * <pre>
-     * DnsServerAddresses.sequential(DnsServerAddresses.defaultAddressList());
-     * </pre>
-     * </p>
-     */
-    public static
-    DnsServerAddresses defaultAddresses() {
-        return DEFAULT_NAME_SERVERS;
-    }
+        private val DEFAULT_NAME_SERVER_LIST: List<InetSocketAddress>
+        private val DEFAULT_NAME_SERVER_ARRAY: Array<InetSocketAddress>
+        private val DEFAULT_NAME_SERVERS: DnsServerAddresses
 
-    /**
-     * Get the array form of {@link #defaultAddressList()}.
-     *
-     * @return The array form of {@link #defaultAddressList()}.
-     */
-    static
-    InetSocketAddress[] defaultAddressArray() {
-        return DEFAULT_NAME_SERVER_ARRAY.clone();
-    }
+        init {
+            val defaultNameServers = defaultNameServers
+            DEFAULT_NAME_SERVER_LIST = defaultNameServers
+            DEFAULT_NAME_SERVER_ARRAY = defaultNameServers.toTypedArray()
+            DEFAULT_NAME_SERVERS = DnsServerAddresses.sequential(*DEFAULT_NAME_SERVER_ARRAY)
+        }
 
-    private
-    DefaultDnsServerAddressStreamProvider() {
-    }
+        /**
+         * Returns the list of the system DNS server addresses. If it failed to retrieve the list of the system DNS server
+         * addresses from the environment, it will return `"8.8.8.8"` and `"8.8.4.4"`, the addresses of the
+         * Google public DNS servers.
+         */
+        @JvmStatic
+        fun defaultAddressList(): List<InetSocketAddress> {
+            return DEFAULT_NAME_SERVER_LIST
+        }
 
-    @Override
-    public
-    DnsServerAddressStream nameServerAddressStream(String hostname) {
-        return DEFAULT_NAME_SERVERS.stream();
+        /**
+         * Returns the [DnsServerAddresses] that yields the system DNS server addresses sequentially. If it failed to
+         * retrieve the list of the system DNS server addresses from the environment, it will use `"8.8.8.8"` and
+         * `"8.8.4.4"`, the addresses of the Google public DNS servers.
+         *
+         *
+         * This method has the same effect with the following code:
+         * <pre>
+         * DnsServerAddresses.sequential(DnsServerAddresses.defaultAddressList());
+        </pre> *
+         *
+         */
+        @JvmStatic
+        fun defaultAddresses(): DnsServerAddresses {
+            return DEFAULT_NAME_SERVERS
+        }
+
+        /**
+         * Get the array form of [.defaultAddressList].
+         *
+         * @return The array form of [.defaultAddressList].
+         */
+        @JvmStatic
+        fun defaultAddressArray(): Array<InetSocketAddress> {
+            return DEFAULT_NAME_SERVER_ARRAY.clone()
+        }
     }
 }

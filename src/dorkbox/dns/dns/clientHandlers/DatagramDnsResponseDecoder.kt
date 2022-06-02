@@ -13,47 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.clientHandlers;
+package dorkbox.dns.dns.clientHandlers
 
-import java.util.List;
-
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.records.Header;
-import dorkbox.dns.dns.exceptions.WireParseException;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.socket.DatagramPacket;
-import io.netty.handler.codec.MessageToMessageDecoder;
-import io.netty.util.internal.UnstableApi;
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.exceptions.WireParseException
+import dorkbox.dns.dns.records.Header
+import io.netty.channel.ChannelHandler.Sharable
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.socket.DatagramPacket
+import io.netty.handler.codec.MessageToMessageDecoder
+import io.netty.util.internal.UnstableApi
 
 /**
- * Decodes a {@link DatagramPacket} into a {@link DnsResponse}.
+ * Decodes a [DatagramPacket] into a [DnsResponse].
  */
 @UnstableApi
-@ChannelHandler.Sharable
-public
-class DatagramDnsResponseDecoder extends MessageToMessageDecoder<DatagramPacket> {
-
-    /**
-     * Creates a new DNS Response decoder
-     */
-    public
-    DatagramDnsResponseDecoder() {
-    }
-
-    @Override
-    protected
-    void decode(ChannelHandlerContext ctx, DatagramPacket packet, List<Object> out) throws Exception {
-        final ByteBuf buf = packet.content();
+@Sharable
+class DatagramDnsResponseDecoder
+/**
+ * Creates a new DNS Response decoder
+ */
+    : MessageToMessageDecoder<DatagramPacket>() {
+    @Throws(Exception::class)
+    override fun decode(ctx: ChannelHandlerContext, packet: DatagramPacket, out: MutableList<Any>) {
+        val buf = packet.content()
 
         // Check that the response is long enough.
         if (buf.readableBytes() < Header.LENGTH) {
-            throw new WireParseException("invalid DNS header - " + "too short");
+            throw WireParseException("invalid DNS header - " + "too short")
         }
-
-        DnsInput dnsInput = new DnsInput(buf);
-        DnsResponse dnsMessage = new DnsResponse(dnsInput, packet.sender(), packet.recipient());
-        out.add(dnsMessage);
+        val dnsInput = DnsInput(buf)
+        val dnsMessage = DnsResponse(dnsInput, packet.sender(), packet.recipient())
+        out.add(dnsMessage)
     }
 }

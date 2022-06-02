@@ -13,66 +13,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.clientHandlers;
+package dorkbox.dns.dns.clientHandlers
 
-import java.net.InetSocketAddress;
-import java.util.List;
-
-import dorkbox.dns.dns.records.DnsMessage;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.DnsQuestion;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.AddressedEnvelope;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.socket.DatagramPacket;
-import io.netty.handler.codec.MessageToMessageEncoder;
-import io.netty.util.internal.UnstableApi;
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.DnsQuestion
+import dorkbox.dns.dns.records.DnsMessage
+import io.netty.channel.AddressedEnvelope
+import io.netty.channel.ChannelHandler.Sharable
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.socket.DatagramPacket
+import io.netty.handler.codec.MessageToMessageEncoder
+import io.netty.util.internal.UnstableApi
+import java.net.InetSocketAddress
 
 /**
- * Encodes an {@link AddressedEnvelope} of {@link DnsQuestion}} into a {@link DatagramPacket}.
+ * Encodes an [AddressedEnvelope] of [DnsQuestion]} into a [DatagramPacket].
  */
 @UnstableApi
-@ChannelHandler.Sharable
-public
-class DatagramDnsQueryEncoder extends MessageToMessageEncoder<AddressedEnvelope<DnsQuestion, InetSocketAddress>> {
+@Sharable
+class DatagramDnsQueryEncoder(private val maxPayloadSize: Int) : MessageToMessageEncoder<AddressedEnvelope<DnsQuestion, InetSocketAddress?>>() {
+    @Throws(Exception::class)
+    override fun encode(ctx: ChannelHandlerContext, `in`: AddressedEnvelope<DnsQuestion, InetSocketAddress?>, out: MutableList<Any>) {
+        val recipient = `in`.recipient()
+        val query: DnsMessage = `in`.content()
+        val buf = ctx.alloc().ioBuffer(maxPayloadSize)
 
-    private final int maxPayloadSize;
-
-    /**
-     * Creates a new encoder
-     */
-    public
-    DatagramDnsQueryEncoder(int maxPayloadSize) {
-        this.maxPayloadSize = maxPayloadSize;
-    }
-
-    @Override
-    protected
-    void encode(ChannelHandlerContext ctx, AddressedEnvelope<DnsQuestion, InetSocketAddress> in, List<Object> out) throws Exception {
-
-        final InetSocketAddress recipient = in.recipient();
-        final DnsMessage query = in.content();
-        final ByteBuf buf = ctx.alloc()
-                               .ioBuffer(maxPayloadSize);
-
-        boolean success = false;
-        try {
-            DnsOutput dnsOutput = new DnsOutput(buf);
-            query.toWire(dnsOutput);
-            success = true;
+        var success = false
+        success = try {
+            val dnsOutput = DnsOutput(buf)
+            query.toWire(dnsOutput)
+            true
         } finally {
             if (!success) {
-                buf.release();
+                buf.release()
             }
         }
-
-        out.add(new DatagramPacket(buf, recipient, null));
+        out.add(DatagramPacket(buf, recipient, null))
     }
 
-    @Override
-    public
-    void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) throws Exception {
-        cause.printStackTrace();
+    @Throws(Exception::class)
+    override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
+        cause.printStackTrace()
     }
 }

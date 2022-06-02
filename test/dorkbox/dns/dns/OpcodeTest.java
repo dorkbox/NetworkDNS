@@ -23,21 +23,21 @@ class OpcodeTest extends TestCase {
     public
     void test_string() {
         // a regular one
-        assertEquals("IQUERY", DnsOpCode.string(DnsOpCode.IQUERY));
+        assertEquals("IQUERY", DnsOpCode.INSTANCE.string(DnsOpCode.IQUERY));
 
         // one that doesn't exist
-        assertTrue(DnsOpCode.string(6)
+        assertTrue(DnsOpCode.INSTANCE.string(6)
                             .startsWith("RESERVED"));
 
         try {
-            DnsOpCode.string(-1);
+            DnsOpCode.INSTANCE.string(-1);
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
 
         //  (max is 0xF)
         try {
-            DnsOpCode.string(0x10);
+            DnsOpCode.INSTANCE.string(0x10);
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
@@ -46,18 +46,18 @@ class OpcodeTest extends TestCase {
     public
     void test_value() {
         // regular one
-        assertEquals(DnsOpCode.STATUS, DnsOpCode.value("STATUS"));
+        assertEquals(DnsOpCode.STATUS, DnsOpCode.INSTANCE.value("STATUS"));
 
         // one thats undefined but within range
-        assertEquals(6, DnsOpCode.value("RESERVED6"));
+        assertEquals(6, DnsOpCode.INSTANCE.value("RESERVED6"));
 
         // one thats undefined but out of range
-        assertEquals(-1, DnsOpCode.value("RESERVED" + 0x10));
+        assertEquals(-1, DnsOpCode.INSTANCE.value("RESERVED" + 0x10));
 
         // something that unknown
-        assertEquals(-1, DnsOpCode.value("THIS IS DEFINITELY UNKNOWN"));
+        assertEquals(-1, DnsOpCode.INSTANCE.value("THIS IS DEFINITELY UNKNOWN"));
 
         // empty string
-        assertEquals(-1, DnsOpCode.value(""));
+        assertEquals(-1, DnsOpCode.INSTANCE.value(""));
     }
 }

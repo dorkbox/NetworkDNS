@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * Mailbox information Record - lists the address responsible for a mailing
@@ -32,81 +30,67 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  */
+class MINFORecord : DnsRecord {
+    /**
+     * Gets the address responsible for the mailing list/mailbox.
+     */
+    var responsibleAddress: Name? = null
+        private set
 
-public
-class MINFORecord extends DnsRecord {
+    /**
+     * Gets the address to receive error messages relating to the mailing
+     * list/mailbox.
+     */
+    var errorAddress: Name? = null
+        private set
 
-    private static final long serialVersionUID = -3962147172340353796L;
+    internal constructor() {}
 
-    private Name responsibleAddress;
-    private Name errorAddress;
+    override val `object`: DnsRecord
+        get() = MINFORecord()
 
-    MINFORecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new MINFORecord();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        responsibleAddress = Name(`in`)
+        errorAddress = Name(`in`)
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        responsibleAddress = new Name(in);
-        errorAddress = new Name(in);
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        responsibleAddress.toWire(out, null, canonical);
-        errorAddress.toWire(out, null, canonical);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        responsibleAddress!!.toWire(out, null, canonical)
+        errorAddress!!.toWire(out, null, canonical)
     }
 
     /**
      * Converts the MINFO Record to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(responsibleAddress);
-        sb.append(" ");
-        sb.append(errorAddress);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(responsibleAddress)
+        sb.append(" ")
+        sb.append(errorAddress)
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        responsibleAddress = st.getName(origin);
-        errorAddress = st.getName(origin);
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        responsibleAddress = st.getName(origin)
+        errorAddress = st.getName(origin)
     }
 
     /**
      * Creates an MINFO Record from the given data
      *
      * @param responsibleAddress The address responsible for the
-     *         mailing list/mailbox.
+     * mailing list/mailbox.
      * @param errorAddress The address to receive error messages relating to the
-     *         mailing list/mailbox.
+     * mailing list/mailbox.
      */
-    public
-    MINFORecord(Name name, int dclass, long ttl, Name responsibleAddress, Name errorAddress) {
-        super(name, DnsRecordType.MINFO, dclass, ttl);
-
-        this.responsibleAddress = checkName("responsibleAddress", responsibleAddress);
-        this.errorAddress = checkName("errorAddress", errorAddress);
+    constructor(name: Name?, dclass: Int, ttl: Long, responsibleAddress: Name?, errorAddress: Name?) : super(
+        name!!, DnsRecordType.MINFO, dclass, ttl
+    ) {
+        this.responsibleAddress = checkName("responsibleAddress", responsibleAddress!!)
+        this.errorAddress = checkName("errorAddress", errorAddress!!)
     }
 
-    /**
-     * Gets the address responsible for the mailing list/mailbox.
-     */
-    public
-    Name getResponsibleAddress() {
-        return responsibleAddress;
+    companion object {
+        private const val serialVersionUID = -3962147172340353796L
     }
-
-    /**
-     * Gets the address to receive error messages relating to the mailing
-     * list/mailbox.
-     */
-    public
-    Name getErrorAddress() {
-        return errorAddress;
-    }
-
 }

@@ -13,23 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.util.Base64;
-import java.util.Date;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.constants.DnsResponseCode;
-import dorkbox.dns.dns.utils.FormattedTime;
-import dorkbox.dns.dns.utils.Options;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.os.OS;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.constants.DnsResponseCode.TSIGstring
+import dorkbox.dns.dns.utils.FormattedTime.format
+import dorkbox.dns.dns.utils.Options.check
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.os.OS.LINE_SEPARATOR
+import java.io.IOException
+import java.util.*
 
 /**
  * Transaction Key - used to compute and/or securely transport a shared
@@ -38,168 +35,150 @@ import dorkbox.os.OS;
  * @author Brian Wellington
  * @see TSIG
  */
-
-public
-class TKEYRecord extends DnsRecord {
-
-    private static final long serialVersionUID = 8828458121926391756L;
-
-    private Name alg;
-    private Date timeInception;
-    private Date timeExpire;
-    private int mode, error;
-    private byte[] key;
-    private byte[] other;
+class TKEYRecord : DnsRecord {
+    /**
+     * Returns the shared key's algorithm
+     */
+    var algorithm: Name? = null
+        private set
 
     /**
-     * The key is assigned by the server (unimplemented)
+     * Returns the beginning of the validity period of the shared secret or
+     * keying material
      */
-    public static final int SERVERASSIGNED = 1;
+    var timeInception: Date? = null
+        private set
 
     /**
-     * The key is computed using a Diffie-Hellman key exchange
+     * Returns the end of the validity period of the shared secret or
+     * keying material
      */
-    public static final int DIFFIEHELLMAN = 2;
+    var timeExpire: Date? = null
+        private set
 
     /**
-     * The key is computed using GSS_API (unimplemented)
+     * Returns the key agreement mode
      */
-    public static final int GSSAPI = 3;
+    var mode = 0
+        private set
 
     /**
-     * The key is assigned by the resolver (unimplemented)
+     * Returns the extended error
      */
-    public static final int RESOLVERASSIGNED = 4;
+    var error = 0
+        private set
 
     /**
-     * The key should be deleted
+     * Returns the shared secret or keying material
      */
-    public static final int DELETE = 5;
+    var key: ByteArray? = null
+        private set
 
-    TKEYRecord() {}
+    /**
+     * Returns the other data
+     */
+    var other: ByteArray? = null
+        private set
 
-    @Override
-    DnsRecord getObject() {
-        return new TKEYRecord();
+    internal constructor() {}
+
+    override val `object`: DnsRecord
+        get() = TKEYRecord()
+
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        algorithm = Name(`in`)
+        timeInception = Date(1000 * `in`.readU32())
+        timeExpire = Date(1000 * `in`.readU32())
+        mode = `in`.readU16()
+        error = `in`.readU16()
+        val keylen = `in`.readU16()
+        key = if (keylen > 0) {
+            `in`.readByteArray(keylen)
+        } else {
+            null
+        }
+        val otherlen = `in`.readU16()
+        other = if (otherlen > 0) {
+            `in`.readByteArray(otherlen)
+        } else {
+            null
+        }
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        alg = new Name(in);
-        timeInception = new Date(1000 * in.readU32());
-        timeExpire = new Date(1000 * in.readU32());
-        mode = in.readU16();
-        error = in.readU16();
-
-        int keylen = in.readU16();
-        if (keylen > 0) {
-            key = in.readByteArray(keylen);
-        }
-        else {
-            key = null;
-        }
-
-        int otherlen = in.readU16();
-        if (otherlen > 0) {
-            other = in.readByteArray(otherlen);
-        }
-        else {
-            other = null;
-        }
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        alg.toWire(out, null, canonical);
-
-        out.writeU32(timeInception.getTime() / 1000);
-        out.writeU32(timeExpire.getTime() / 1000);
-
-        out.writeU16(mode);
-        out.writeU16(error);
-
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        algorithm!!.toWire(out, null, canonical)
+        out.writeU32(timeInception!!.time / 1000)
+        out.writeU32(timeExpire!!.time / 1000)
+        out.writeU16(mode)
+        out.writeU16(error)
         if (key != null) {
-            out.writeU16(key.length);
-            out.writeByteArray(key);
+            out.writeU16(key!!.size)
+            out.writeByteArray(key!!)
+        } else {
+            out.writeU16(0)
         }
-        else {
-            out.writeU16(0);
-        }
-
         if (other != null) {
-            out.writeU16(other.length);
-            out.writeByteArray(other);
-        }
-        else {
-            out.writeU16(0);
+            out.writeU16(other!!.size)
+            out.writeByteArray(other!!)
+        } else {
+            out.writeU16(0)
         }
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(alg);
-        sb.append(" ");
-        if (Options.check("multiline")) {
-            sb.append("(")
-              .append(OS.INSTANCE.getLINE_SEPARATOR())
-              .append("\t");
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(algorithm)
+        sb.append(" ")
+        if (check("multiline")) {
+            sb.append("(").append(LINE_SEPARATOR).append("\t")
         }
-        sb.append(FormattedTime.format(timeInception));
-        sb.append(" ");
-        sb.append(FormattedTime.format(timeExpire));
-        sb.append(" ");
-        sb.append(modeString());
-        sb.append(" ");
-        sb.append(DnsResponseCode.TSIGstring(error));
-        if (Options.check("multiline")) {
-            sb.append(OS.INSTANCE.getLINE_SEPARATOR());
+        sb.append(format(timeInception))
+        sb.append(" ")
+        sb.append(format(timeExpire))
+        sb.append(" ")
+        sb.append(modeString())
+        sb.append(" ")
+        sb.append(TSIGstring(error))
+        if (check("multiline")) {
+            sb.append(LINE_SEPARATOR)
             if (key != null) {
-                sb.append(Base64.getMimeEncoder().encodeToString(key));
-                sb.append(OS.INSTANCE.getLINE_SEPARATOR());
+                sb.append(Base64.getMimeEncoder().encodeToString(key))
+                sb.append(LINE_SEPARATOR)
             }
             if (other != null) {
-                sb.append(Base64.getMimeEncoder().encodeToString(other));
+                sb.append(Base64.getMimeEncoder().encodeToString(other))
             }
-            sb.append(" )");
-        }
-        else {
-            sb.append(" ");
+            sb.append(" )")
+        } else {
+            sb.append(" ")
             if (key != null) {
-                sb.append("\t");
-                sb.append(Base64.getEncoder().encodeToString(key));
-
-                sb.append(" ");
+                sb.append("\t")
+                sb.append(Base64.getEncoder().encodeToString(key))
+                sb.append(" ")
             }
             if (other != null) {
-                sb.append("\t");
-                sb.append(Base64.getEncoder().encodeToString(other));
+                sb.append("\t")
+                sb.append(Base64.getEncoder().encodeToString(other))
             }
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        throw st.exception("no text format defined for TKEY");
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        throw st.exception("no text format defined for TKEY")
     }
 
-    protected
-    String modeString() {
-        switch (mode) {
-            case SERVERASSIGNED:
-                return "SERVERASSIGNED";
-            case DIFFIEHELLMAN:
-                return "DIFFIEHELLMAN";
-            case GSSAPI:
-                return "GSSAPI";
-            case RESOLVERASSIGNED:
-                return "RESOLVERASSIGNED";
-            case DELETE:
-                return "DELETE";
-            default:
-                return Integer.toString(mode);
+    protected fun modeString(): String {
+        return when (mode) {
+            SERVERASSIGNED -> "SERVERASSIGNED"
+            DIFFIEHELLMAN -> "DIFFIEHELLMAN"
+            GSSAPI -> "GSSAPI"
+            RESOLVERASSIGNED -> "RESOLVERASSIGNED"
+            DELETE -> "DELETE"
+            else -> Integer.toString(mode)
         }
     }
 
@@ -208,92 +187,62 @@ class TKEYRecord extends DnsRecord {
      *
      * @param alg The shared key's algorithm
      * @param timeInception The beginning of the validity period of the shared
-     *         secret or keying material
+     * secret or keying material
      * @param timeExpire The end of the validity period of the shared
-     *         secret or keying material
+     * secret or keying material
      * @param mode The mode of key agreement
      * @param error The extended error field.  Should be 0 in queries
      * @param key The shared secret
      * @param other The other data field.  Currently unused
-     *         responses.
+     * responses.
      */
-    public
-    TKEYRecord(Name name,
-               int dclass,
-               long ttl,
-               Name alg,
-               Date timeInception,
-               Date timeExpire,
-               int mode,
-               int error,
-               byte[] key,
-               byte other[]) {
-        super(name, DnsRecordType.TKEY, dclass, ttl);
-        this.alg = checkName("alg", alg);
-        this.timeInception = timeInception;
-        this.timeExpire = timeExpire;
-        this.mode = checkU16("mode", mode);
-        this.error = checkU16("error", error);
-        this.key = key;
-        this.other = other;
+    constructor(
+        name: Name?,
+        dclass: Int,
+        ttl: Long,
+        alg: Name?,
+        timeInception: Date?,
+        timeExpire: Date?,
+        mode: Int,
+        error: Int,
+        key: ByteArray?,
+        other: ByteArray?
+    ) : super(name!!, DnsRecordType.TKEY, dclass, ttl) {
+        algorithm = checkName("alg", alg!!)
+        this.timeInception = timeInception
+        this.timeExpire = timeExpire
+        this.mode = checkU16("mode", mode)
+        this.error = checkU16("error", error)
+        this.key = key
+        this.other = other
     }
 
-    /**
-     * Returns the shared key's algorithm
-     */
-    public
-    Name getAlgorithm() {
-        return alg;
-    }
+    companion object {
+        private const val serialVersionUID = 8828458121926391756L
 
-    /**
-     * Returns the beginning of the validity period of the shared secret or
-     * keying material
-     */
-    public
-    Date getTimeInception() {
-        return timeInception;
-    }
+        /**
+         * The key is assigned by the server (unimplemented)
+         */
+        const val SERVERASSIGNED = 1
 
-    /**
-     * Returns the end of the validity period of the shared secret or
-     * keying material
-     */
-    public
-    Date getTimeExpire() {
-        return timeExpire;
-    }
+        /**
+         * The key is computed using a Diffie-Hellman key exchange
+         */
+        const val DIFFIEHELLMAN = 2
 
-    /**
-     * Returns the key agreement mode
-     */
-    public
-    int getMode() {
-        return mode;
-    }
+        /**
+         * The key is computed using GSS_API (unimplemented)
+         */
+        const val GSSAPI = 3
 
-    /**
-     * Returns the extended error
-     */
-    public
-    int getError() {
-        return error;
-    }
+        /**
+         * The key is assigned by the resolver (unimplemented)
+         */
+        const val RESOLVERASSIGNED = 4
 
-    /**
-     * Returns the shared secret or keying material
-     */
-    public
-    byte[] getKey() {
-        return key;
+        /**
+         * The key should be deleted
+         */
+        const val DELETE = 5
     }
-
-    /**
-     * Returns the other data
-     */
-    public
-    byte[] getOther() {
-        return other;
-    }
-
 }

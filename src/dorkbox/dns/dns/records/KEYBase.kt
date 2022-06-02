@@ -13,177 +13,153 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.security.PublicKey;
-import java.util.Base64;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.utils.Options;
-import dorkbox.os.OS;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.records.DNSSEC.toPublicKey
+import dorkbox.dns.dns.utils.Options.check
+import dorkbox.os.OS.LINE_SEPARATOR
+import java.io.IOException
+import java.security.PublicKey
+import java.util.*
 
 /**
  * The base class for KEY/DNSKEY records, which have identical formats
  *
  * @author Brian Wellington
  */
+abstract class KEYBase : DnsRecord {
+    /**
+     * Returns the flags describing the key's properties
+     */
+    var flags = 0
+        protected set
 
-abstract
-class KEYBase extends DnsRecord {
+    /**
+     * Returns the protocol that the key was created for
+     */
+    var protocol = 0
+        protected set
 
-    private static final long serialVersionUID = 3469321722693285454L;
+    /**
+     * Returns the key's algorithm
+     */
+    var algorithm = 0
+        protected set
 
-    protected int flags, proto, alg;
-    protected byte[] key;
-    protected int footprint = -1;
-    protected PublicKey publicKey = null;
+    /**
+     * Returns the binary data representing the key
+     */
+    var key: ByteArray = byteArrayOf()
+        protected set
 
-    protected
-    KEYBase() {}
+    /**
+     * Returns the key's footprint (after computing it)
+     */
+    var footprint: Int = -1
+        get() {
+            if (field < 0) {
+                var foot = 0
 
-    public
-    KEYBase(Name name, int type, int dclass, long ttl, int flags, int proto, int alg, byte[] key) {
-        super(name, type, dclass, ttl);
-        this.flags = checkU16("flags", flags);
-        this.proto = checkU8("proto", proto);
-        this.alg = checkU8("alg", alg);
-        this.key = key;
+                val out = DnsOutput()
+                rrToWire(out, null, false)
+
+                val rdata = out.toByteArray()
+                if (algorithm == DNSSEC.Algorithm.RSAMD5) {
+                    val d1 = rdata[rdata.size - 3].toInt() and 0xFF
+                    val d2 = rdata[rdata.size - 2].toInt() and 0xFF
+                    foot = (d1 shl 8) + d2
+                } else {
+                    var i: Int
+                    i = 0
+                    while (i < rdata.size - 1) {
+                        val d1 = rdata[i].toInt() and 0xFF
+                        val d2 = rdata[i + 1].toInt() and 0xFF
+                        foot += (d1 shl 8) + d2
+                        i += 2
+                    }
+                    if (i < rdata.size) {
+                        val d1 = rdata[i].toInt() and 0xFF
+                        foot += d1 shl 8
+                    }
+                    foot += foot shr 16 and 0xFFFF
+                }
+
+                field = foot and 0xFFFF
+            }
+            return field
+        }
+        private set
+
+    /**
+     * a PublicKey corresponding to the data in this key.
+     *
+     * @throws DNSSEC.DNSSECException The key could not be converted.
+     */
+    val publicKey: PublicKey by lazy {
+        val toPublicKey = toPublicKey(this@KEYBase)
+        toPublicKey
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        flags = in.readU16();
-        proto = in.readU8();
-        alg = in.readU8();
-        if (in.remaining() > 0) {
-            key = in.readByteArray();
+    protected constructor() {}
+    constructor(name: Name, type: Int, dclass: Int, ttl: Long, flags: Int, proto: Int, alg: Int, key: ByteArray) : super(
+        name, type, dclass, ttl
+    ) {
+        this.flags = checkU16("flags", flags)
+        protocol = checkU8("proto", proto)
+        algorithm = checkU8("alg", alg)
+        this.key = key
+    }
+
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        flags = `in`.readU16()
+        protocol = `in`.readU8()
+        algorithm = `in`.readU8()
+
+        if (`in`.remaining() > 0) {
+            key = `in`.readByteArray()
         }
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU16(flags);
-        out.writeU8(proto);
-        out.writeU8(alg);
-        if (key != null) {
-            out.writeByteArray(key);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU16(flags)
+        out.writeU8(protocol)
+        out.writeU8(algorithm)
+
+        if (key.isNotEmpty()) {
+            out.writeByteArray(key)
         }
     }
 
     /**
      * Converts the DNSKEY/KEY Record to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(flags);
-        sb.append(" ");
-        sb.append(proto);
-        sb.append(" ");
-        sb.append(alg);
-
-        if (key != null) {
-            if (Options.check("multiline")) {
-                sb.append(" (");
-                sb.append(OS.INSTANCE.getLINE_SEPARATOR());
-                sb.append(Base64.getMimeEncoder().encodeToString(key));
-                sb.append(OS.INSTANCE.getLINE_SEPARATOR());
-                sb.append(") ; key_tag = ");
-                sb.append(getFootprint());
-            }
-            else {
-                sb.append(" ");
-                sb.append(Base64.getEncoder().encodeToString(key));
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(flags)
+        sb.append(" ")
+        sb.append(protocol)
+        sb.append(" ")
+        sb.append(algorithm)
+        if (key.isNotEmpty()) {
+            if (check("multiline")) {
+                sb.append(" (")
+                sb.append(LINE_SEPARATOR)
+                sb.append(Base64.getMimeEncoder().encodeToString(key))
+                sb.append(LINE_SEPARATOR)
+                sb.append(") ; key_tag = ")
+                sb.append(footprint)
+            } else {
+                sb.append(" ")
+                sb.append(Base64.getEncoder().encodeToString(key))
             }
         }
     }
 
-    /**
-     * Returns the key's footprint (after computing it)
-     */
-    public
-    int getFootprint() {
-        if (footprint >= 0) {
-            return footprint;
-        }
-
-        int foot = 0;
-
-        DnsOutput out = new DnsOutput();
-        rrToWire(out, null, false);
-        byte[] rdata = out.toByteArray();
-
-        if (alg == DNSSEC.Algorithm.RSAMD5) {
-            int d1 = rdata[rdata.length - 3] & 0xFF;
-            int d2 = rdata[rdata.length - 2] & 0xFF;
-            foot = (d1 << 8) + d2;
-        }
-        else {
-            int i;
-            for (i = 0; i < rdata.length - 1; i += 2) {
-                int d1 = rdata[i] & 0xFF;
-                int d2 = rdata[i + 1] & 0xFF;
-                foot += ((d1 << 8) + d2);
-            }
-            if (i < rdata.length) {
-                int d1 = rdata[i] & 0xFF;
-                foot += (d1 << 8);
-            }
-            foot += ((foot >> 16) & 0xFFFF);
-        }
-        footprint = (foot & 0xFFFF);
-        return footprint;
+    companion object {
+        private const val serialVersionUID = 3469321722693285454L
     }
-
-    /**
-     * Returns the flags describing the key's properties
-     */
-    public
-    int getFlags() {
-        return flags;
-    }
-
-    /**
-     * Returns the protocol that the key was created for
-     */
-    public
-    int getProtocol() {
-        return proto;
-    }
-
-    /**
-     * Returns the key's algorithm
-     */
-    public
-    int getAlgorithm() {
-        return alg;
-    }
-
-    /**
-     * Returns the binary data representing the key
-     */
-    public
-    byte[] getKey() {
-        return key;
-    }
-
-    /**
-     * Returns a PublicKey corresponding to the data in this key.
-     *
-     * @throws DNSSEC.DNSSECException The key could not be converted.
-     */
-    public
-    PublicKey getPublicKey() throws DNSSEC.DNSSECException {
-        if (publicKey != null) {
-            return publicKey;
-        }
-
-        publicKey = DNSSEC.toPublicKey(this);
-        return publicKey;
-    }
-
 }

@@ -13,81 +13,65 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.resolver.addressProvider
 
-package dorkbox.dns.dns.resolver.addressProvider;
+import dorkbox.dns.dns.resolver.addressProvider.SequentialDnsServerAddressStream.Companion.toString
+import io.netty.util.internal.PlatformDependent
+import java.net.InetSocketAddress
 
-import java.net.InetSocketAddress;
-import java.util.Random;
-
-import io.netty.util.internal.PlatformDependent;
-
-final
-class ShuffledDnsServerAddressStream implements DnsServerAddressStream {
-
-    private final InetSocketAddress[] addresses;
-    private int i;
+internal class ShuffledDnsServerAddressStream : DnsServerAddressStream {
+    private val addresses: Array<InetSocketAddress>
+    private var i = 0
 
     /**
      * Create a new instance.
      *
      * @param addresses The addresses are not cloned. It is assumed the caller has cloned this array or otherwise will
-     *         not modify the contents.
+     * not modify the contents.
      */
-    ShuffledDnsServerAddressStream(InetSocketAddress[] addresses) {
-        this.addresses = addresses;
-
-        shuffle();
+    constructor(addresses: Array<InetSocketAddress>) {
+        this.addresses = addresses
+        shuffle()
     }
 
-    private
-    void shuffle() {
-        final InetSocketAddress[] addresses = this.addresses;
-        final Random r = PlatformDependent.threadLocalRandom();
+    private fun shuffle() {
+        val addresses = addresses
+        val r = PlatformDependent.threadLocalRandom()
 
-        for (int i = addresses.length - 1; i >= 0; i--) {
-            InetSocketAddress tmp = addresses[i];
-            int j = r.nextInt(i + 1);
-            addresses[i] = addresses[j];
-            addresses[j] = tmp;
+        for (i in addresses.indices.reversed()) {
+            val tmp = addresses[i]
+            val j = r.nextInt(i + 1)
+            addresses[i] = addresses[j]
+            addresses[j] = tmp
         }
     }
 
-    private
-    ShuffledDnsServerAddressStream(InetSocketAddress[] addresses, int startIdx) {
-        this.addresses = addresses;
-        i = startIdx;
+    private constructor(addresses: Array<InetSocketAddress>, startIdx: Int) {
+        this.addresses = addresses
+        i = startIdx
     }
 
-    @Override
-    public
-    InetSocketAddress next() {
-        int i = this.i;
-        InetSocketAddress next = addresses[i];
-        if (++i < addresses.length) {
-            this.i = i;
+    override fun next(): InetSocketAddress {
+        var i = i
+        val next = addresses[i]
+        if (++i < addresses.size) {
+            this.i = i
+        } else {
+            this.i = 0
+            shuffle()
         }
-        else {
-            this.i = 0;
-            shuffle();
-        }
-        return next;
+        return next
     }
 
-    @Override
-    public
-    int size() {
-        return addresses.length;
+    override fun size(): Int {
+        return addresses.size
     }
 
-    @Override
-    public
-    ShuffledDnsServerAddressStream duplicate() {
-        return new ShuffledDnsServerAddressStream(addresses, i);
+    override fun duplicate(): ShuffledDnsServerAddressStream {
+        return ShuffledDnsServerAddressStream(addresses, i)
     }
 
-    @Override
-    public
-    String toString() {
-        return SequentialDnsServerAddressStream.toString("shuffled", i, addresses);
+    override fun toString(): String {
+        return toString("shuffled", i, addresses)
     }
 }

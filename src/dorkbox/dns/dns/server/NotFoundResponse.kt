@@ -13,30 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.server;
+package dorkbox.dns.dns.server
 
-import dorkbox.dns.dns.constants.DnsSection;
-import dorkbox.dns.dns.records.DnsMessage;
-import dorkbox.dns.dns.records.SOARecord;
+import dorkbox.dns.dns.constants.DnsSection
+import dorkbox.dns.dns.records.DnsMessage
+import dorkbox.dns.dns.records.SOARecord
 
 /**
  *
  */
-public
-class NotFoundResponse extends  DefaultResponse {
-
-    final SOARecord soaRecord;
-
-    public
-    NotFoundResponse(int rcode, SOARecord soaRecord) {
-        super(rcode);
-        this.soaRecord = soaRecord;
-    }
-
-    @Override
-    public
-    void postProcess(DnsMessage message) {
-        message.getHeader().setRcode(this.responseCode());
-        message.addRecord(this.soaRecord, DnsSection.AUTHORITY);
+class NotFoundResponse(rcode: Int, val soaRecord: SOARecord) : DefaultResponse(rcode) {
+    override fun postProcess(message: DnsMessage) {
+        message.header.rcode = responseCode()
+        message.addRecord(soaRecord, DnsSection.AUTHORITY)
     }
 }

@@ -13,36 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
 
 /**
- * Implements common functionality for the many record types whose format
- * is a single compressed name.
+ * Implements common functionality for the many record types whose format is a single compressed name.
  *
  * @author Brian Wellington
  */
+abstract class SingleCompressedNameBase : SingleNameBase {
+    protected constructor()
+    protected constructor(name: Name, type: Int, dclass: Int, ttl: Long, singleName: Name, description: String) : super(
+        name, type, dclass, ttl, singleName, description)
 
-abstract
-class SingleCompressedNameBase extends SingleNameBase {
-
-    private static final long serialVersionUID = -236435396815460677L;
-
-    protected
-    SingleCompressedNameBase() {}
-
-    protected
-    SingleCompressedNameBase(Name name, int type, int dclass, long ttl, Name singleName, String description) {
-        super(name, type, dclass, ttl, singleName, description);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        singleName.toWire(out, c, canonical)
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        singleName.toWire(out, c, canonical);
+    companion object {
+        private const val serialVersionUID = -236435396815460677L
     }
-
 }

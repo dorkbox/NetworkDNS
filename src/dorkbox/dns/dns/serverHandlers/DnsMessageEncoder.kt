@@ -13,54 +13,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.serverHandlers
 
-package dorkbox.dns.dns.serverHandlers;
-
-import java.io.IOException;
-
-import org.slf4j.Logger;
-
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.DnsServerResponse;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.socket.DatagramPacket;
-import io.netty.handler.codec.MessageToByteEncoder;
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.DnsServerResponse
+import io.netty.buffer.ByteBuf
+import io.netty.channel.ChannelHandler.Sharable
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.socket.DatagramPacket
+import io.netty.handler.codec.MessageToByteEncoder
+import org.slf4j.Logger
+import java.io.IOException
 
 /**
  *
  */
-@ChannelHandler.Sharable
-public
-class DnsMessageEncoder extends MessageToByteEncoder<DnsServerResponse> {
-    private final Logger logger;
-
-    public
-    DnsMessageEncoder(final Logger logger) {
-        this.logger = logger;
-    }
-
-    @Override
-    protected
-    void encode(final ChannelHandlerContext context, final DnsServerResponse message, final ByteBuf out) throws Exception {
+@Sharable
+class DnsMessageEncoder(private val logger: Logger) : MessageToByteEncoder<DnsServerResponse>() {
+    @Throws(Exception::class)
+    override fun encode(context: ChannelHandlerContext, message: DnsServerResponse, out: ByteBuf) {
         try {
-            DnsOutput dnsOutput = new DnsOutput(out);
-            out.retain();
-            message.toWire(dnsOutput);
-
-            DatagramPacket packet = new DatagramPacket(out, message.recipient(), message.sender());
-            context.channel()
-                   .writeAndFlush(packet);
-        } catch (Exception e) {
-            context.fireExceptionCaught(new IOException("Unable to write dns message: " + message, e));
+            val dnsOutput = DnsOutput(out)
+            out.retain()
+            message.toWire(dnsOutput)
+            val packet = DatagramPacket(out, message.recipient(), message.sender())
+            context.channel().writeAndFlush(packet)
+        } catch (e: Exception) {
+            context.fireExceptionCaught(IOException("Unable to write dns message: $message", e))
         }
     }
 
-    @Override
-    public
-    void exceptionCaught(final ChannelHandlerContext context, final Throwable cause) throws Exception {
-        logger.error("DnsMessageEncoder#exceptionCaught", cause);
-        super.exceptionCaught(context, cause);
+    @Throws(Exception::class)
+    override fun exceptionCaught(context: ChannelHandlerContext, cause: Throwable) {
+        logger.error("DnsMessageEncoder#exceptionCaught", cause)
+        super.exceptionCaught(context, cause)
     }
 }

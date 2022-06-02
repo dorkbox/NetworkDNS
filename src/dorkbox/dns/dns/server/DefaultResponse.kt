@@ -13,23 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.server;
+package dorkbox.dns.dns.server
 
 /**
  *
  */
-public abstract
-class DefaultResponse implements Response {
-    private final int responseCode;
-
-    public
-    DefaultResponse(int responseCode) {
-        this.responseCode = responseCode;
-    }
-
-    @Override
-    public
-    int responseCode() {
-        return responseCode;
+abstract class DefaultResponse(private val responseCode: Int) : Response {
+    override fun responseCode(): Int {
+        return responseCode
     }
 }

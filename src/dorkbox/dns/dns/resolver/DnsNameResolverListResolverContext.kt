@@ -13,58 +13,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver;
+package dorkbox.dns.dns.resolver
 
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
-
-import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStream;
-import dorkbox.dns.dns.resolver.cache.DnsCache;
-import dorkbox.dns.dns.resolver.cache.DnsCacheEntry;
-import io.netty.util.concurrent.Promise;
+import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStream
+import dorkbox.dns.dns.resolver.cache.DnsCache
+import dorkbox.dns.dns.resolver.cache.DnsCacheEntry
+import io.netty.util.concurrent.Promise
+import java.net.InetAddress
 
 /**
  *
  */
-final
-class DnsNameResolverListResolverContext extends DnsNameResolverContext<List<InetAddress>> {
-    DnsNameResolverListResolverContext(DnsNameResolver parent,
-                                       String hostname,
-                                       DnsCache resolveCache,
-                                       DnsServerAddressStream nameServerAddrs) {
-        super(parent, hostname, resolveCache, nameServerAddrs);
+internal class DnsNameResolverListResolverContext(parent: DnsNameResolver, hostname: String, resolveCache: DnsCache, nameServerAddrs: DnsServerAddressStream) : DnsNameResolverContext<List<InetAddress>>(
+    parent, hostname, resolveCache, nameServerAddrs
+) {
+    override fun newResolverContext(parent: DnsNameResolver, hostname: String, resolveCache: DnsCache, nameServerAddrs: DnsServerAddressStream): DnsNameResolverContext<List<InetAddress>> {
+        return DnsNameResolverListResolverContext(parent, hostname, resolveCache, nameServerAddrs)
     }
 
-    @Override
-    DnsNameResolverContext<List<InetAddress>> newResolverContext(DnsNameResolver parent,
-                                                                 String hostname,
-                                                                 DnsCache resolveCache,
-                                                                 DnsServerAddressStream nameServerAddrs) {
-        return new DnsNameResolverListResolverContext(parent, hostname, resolveCache, nameServerAddrs);
-    }
+    override fun finishResolve(addressType: Class<out InetAddress>, resolvedEntries: List<DnsCacheEntry>, promise: Promise<List<InetAddress>>): Boolean {
+        var result: MutableList<InetAddress>? = null
+        val numEntries = resolvedEntries.size
 
-    @Override
-    boolean finishResolve(Class<? extends InetAddress> addressType,
-                          List<DnsCacheEntry> resolvedEntries,
-                          Promise<List<InetAddress>> promise) {
-
-        List<InetAddress> result = null;
-        final int numEntries = resolvedEntries.size();
-        for (int i = 0; i < numEntries; i++) {
-            final InetAddress a = resolvedEntries.get(i).address();
+        for (i in 0 until numEntries) {
+            val a = resolvedEntries[i].address()
             if (addressType.isInstance(a)) {
                 if (result == null) {
-                    result = new ArrayList<InetAddress>(numEntries);
+                    result = ArrayList(numEntries)
                 }
-                result.add(a);
+                result.add(a!!)
             }
         }
-
         if (result != null) {
-            promise.trySuccess(result);
-            return true;
+            promise.trySuccess(result)
+            return true
         }
-        return false;
+        return false
     }
 }

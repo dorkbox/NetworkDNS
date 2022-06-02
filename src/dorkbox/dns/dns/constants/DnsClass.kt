@@ -13,111 +13,85 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.constants
 
-package dorkbox.dns.dns.constants;
-
-import dorkbox.dns.dns.Mnemonic;
-import dorkbox.dns.dns.exceptions.InvalidDClassException;
+import dorkbox.dns.dns.Mnemonic
+import dorkbox.dns.dns.exceptions.InvalidDClassException
 
 /**
  * Constants and functions relating to DNS classes.  This is called DnsClass to avoid confusion with Class.
  *
  * @author Brian Wellington
  */
-public final
-class DnsClass {
-
+object DnsClass {
     /**
-     * Internet DNS resource record class: {@code IN}
+     * Internet DNS resource record class: `IN`
      */
-    public static final int IN = 1;
+    const val IN = 1
 
     /**
-     * Computer Science Network network DNS resource record class: {@code CSNET}. It was never installed as a top-level domain
+     * Computer Science Network network DNS resource record class: `CSNET`. It was never installed as a top-level domain
      * in the Domain Name System, but parsed in the message routing logic of mail transport agents (MTA). It was introduced in 1985.
      */
-    public static final int CS = 2;
+    const val CS = 2
 
     /**
-     * Computer Science Network network DNS resource record class: {@code CSNET}. It was never installed as a top-level domain
+     * Computer Science Network network DNS resource record class: `CSNET`. It was never installed as a top-level domain
      * in the Domain Name System, but parsed in the message routing logic of mail transport agents (MTA). It was introduced in 1985.
      */
-    public static final int CSNET = 2;
+    const val CSNET = 2
 
     /**
-     * Chaos network DNS resource record class: {@code CH} (MIT)
+     * Chaos network DNS resource record class: `CH` (MIT)
      */
-    public static final int CH = 3;
+    const val CH = 3
 
     /**
-     * Chaos network DNS resource record class: {@code CHAOS} (MIT, alternate name)
+     * Chaos network DNS resource record class: `CHAOS` (MIT, alternate name)
      */
-    public static final int CHAOS = 3;
+    const val CHAOS = 3
 
     /**
-     * Hesiod DNS resource record class: {@code HS} (MIT)
+     * Hesiod DNS resource record class: `HS` (MIT)
      */
-    public static final int HS = 4;
+    const val HS = 4
 
     /**
-     * Hesiod DNS resource record class: {@code HESIOD} (MIT, alternate name)
+     * Hesiod DNS resource record class: `HESIOD` (MIT, alternate name)
      */
-    public static final int HESIOD = 4;
+    const val HESIOD = 4
 
     /**
      * Special value used in dynamic update messages
      */
-    public static final int NONE = 254;
+    const val NONE = 254
 
     /**
      * Matches any class
      */
-    public static final int ANY = 255;
+    const val ANY = 255
+    private val classes: Mnemonic = DClassMnemonic()
 
-
-
-    private static Mnemonic classes = new DClassMnemonic();
-
-
-    private static
-    class DClassMnemonic extends Mnemonic {
-        DClassMnemonic() {
-            super("DnsClass", CASE_UPPER);
-            setPrefix("CLASS");
-        }
-
-        @Override
-        public
-        void check(int val) {
-            DnsClass.check(val);
-        }
+    init {
+        classes.add(IN, "IN")
+        classes.add(CS, "CS")
+        classes.addAlias(CSNET, "CSNET")
+        classes.add(CH, "CH")
+        classes.addAlias(CH, "CHAOS")
+        classes.add(HS, "HS")
+        classes.addAlias(HS, "HESIOD")
+        classes.add(NONE, "NONE")
+        classes.add(ANY, "ANY")
     }
-
-
-    static {
-        classes.add(IN, "IN");
-        classes.add(CS, "CS");
-        classes.addAlias(CSNET, "CSNET");
-        classes.add(CH, "CH");
-        classes.addAlias(CH, "CHAOS");
-        classes.add(HS, "HS");
-        classes.addAlias(HS, "HESIOD");
-        classes.add(NONE, "NONE");
-        classes.add(ANY, "ANY");
-    }
-
-    private
-    DnsClass() {}
 
     /**
      * Checks that a numeric DnsClass is valid.
      *
      * @throws InvalidDClassException The class is out of range.
      */
-    public static
-    void check(int i) {
+    fun check(i: Int) {
         if (i < 0 || i > 0xFFFF) {
-            throw new InvalidDClassException(i);
+            throw InvalidDClassException(i)
         }
     }
 
@@ -128,9 +102,8 @@ class DnsClass {
      *
      * @throws InvalidDClassException The class is out of range.
      */
-    public static
-    String string(int i) {
-        return classes.getText(i);
+    fun string(i: Int): String {
+        return classes.getText(i)
     }
 
     /**
@@ -138,9 +111,17 @@ class DnsClass {
      *
      * @return The class code, or -1 on error.
      */
-    public static
-    int value(String s) {
-        return classes.getValue(s);
+    fun value(s: String): Int {
+        return classes.getValue(s)
     }
 
+    private class DClassMnemonic internal constructor() : Mnemonic("DnsClass", CASE_UPPER) {
+        init {
+            setPrefix("CLASS")
+        }
+
+        override fun check(`val`: Int) {
+            DnsClass.check(`val`)
+        }
+    }
 }

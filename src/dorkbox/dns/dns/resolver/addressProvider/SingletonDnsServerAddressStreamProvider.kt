@@ -13,22 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver.addressProvider;
+package dorkbox.dns.dns.resolver.addressProvider
 
-import java.net.InetSocketAddress;
+import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddresses.Companion.singleton
+import java.net.InetSocketAddress
 
 /**
- * A {@link DnsServerAddressStreamProvider} which always uses a single DNS server for resolution.
+ * A [DnsServerAddressStreamProvider] which always uses a single DNS server for resolution.
  */
-public final
-class SingletonDnsServerAddressStreamProvider extends UniSequentialDnsServerAddressStreamProvider {
+class SingletonDnsServerAddressStreamProvider(
     /**
      * Create a new instance.
      *
      * @param address The singleton address to use for every DNS resolution.
      */
-    public
-    SingletonDnsServerAddressStreamProvider(final InetSocketAddress address) {
-        super(DnsServerAddresses.singleton(address));
-    }
-}
+    address: InetSocketAddress) : UniSequentialDnsServerAddressStreamProvider(singleton(address))

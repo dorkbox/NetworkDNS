@@ -13,37 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver;
+package dorkbox.dns.dns.resolver
 
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
-
-import dorkbox.dns.dns.records.DnsMessage;
-import io.netty.util.internal.UnstableApi;
+import dorkbox.dns.dns.records.DnsMessage
+import io.netty.util.internal.ObjectUtil
+import io.netty.util.internal.UnstableApi
 
 /**
- * Combines two {@link DnsQueryLifecycleObserverFactory} into a single {@link DnsQueryLifecycleObserverFactory}.
+ * Combines two [DnsQueryLifecycleObserverFactory] into a single [DnsQueryLifecycleObserverFactory].
  */
 @UnstableApi
-public final
-class BiDnsQueryLifecycleObserverFactory implements DnsQueryLifecycleObserverFactory {
-    private final DnsQueryLifecycleObserverFactory a;
-    private final DnsQueryLifecycleObserverFactory b;
+class BiDnsQueryLifecycleObserverFactory(a: DnsQueryLifecycleObserverFactory, b: DnsQueryLifecycleObserverFactory) :
+    DnsQueryLifecycleObserverFactory {
+    private val a: DnsQueryLifecycleObserverFactory
+    private val b: DnsQueryLifecycleObserverFactory
 
     /**
      * Create a new instance.
      *
-     * @param a The {@link DnsQueryLifecycleObserverFactory} that will receive events first.
-     * @param b The {@link DnsQueryLifecycleObserverFactory} that will receive events second.
+     * @param a The [DnsQueryLifecycleObserverFactory] that will receive events first.
+     * @param b The [DnsQueryLifecycleObserverFactory] that will receive events second.
      */
-    public
-    BiDnsQueryLifecycleObserverFactory(DnsQueryLifecycleObserverFactory a, DnsQueryLifecycleObserverFactory b) {
-        this.a = checkNotNull(a, "a");
-        this.b = checkNotNull(b, "b");
+    init {
+        this.a = ObjectUtil.checkNotNull(a, "a")
+        this.b = ObjectUtil.checkNotNull(b, "b")
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver newDnsQueryLifecycleObserver(DnsMessage question) {
-        return new BiDnsQueryLifecycleObserver(a.newDnsQueryLifecycleObserver(question), b.newDnsQueryLifecycleObserver(question));
+    override fun newDnsQueryLifecycleObserver(question: DnsMessage): DnsQueryLifecycleObserver {
+        return BiDnsQueryLifecycleObserver(a.newDnsQueryLifecycleObserver(question), b.newDnsQueryLifecycleObserver(question))
     }
 }

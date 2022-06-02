@@ -13,90 +13,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.resolver
 
-package dorkbox.dns.dns.resolver;
+import io.netty.resolver.AbstractAddressResolver
+import io.netty.resolver.NameResolver
+import io.netty.util.concurrent.EventExecutor
+import io.netty.util.concurrent.Future
+import io.netty.util.concurrent.FutureListener
+import io.netty.util.concurrent.Promise
+import java.net.InetAddress
+import java.net.InetSocketAddress
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-
-import io.netty.resolver.AbstractAddressResolver;
-import io.netty.resolver.NameResolver;
-import io.netty.util.concurrent.EventExecutor;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.FutureListener;
-import io.netty.util.concurrent.Promise;
-
-public class InetSocketAddressGroupResolver extends AbstractAddressResolver<InetSocketAddress> {
-
-    final NameResolver<List<InetAddress>> nameResolver;
-
-    /**
-     * @param executor the {@link EventExecutor} which is used to notify the listeners of the {@link Future} returned
-     *                 by {@link #resolve(java.net.SocketAddress)}
-     * @param nameResolver the {@link NameResolver} used for name resolution
-     */
-    public
-    InetSocketAddressGroupResolver(EventExecutor executor, NameResolver<List<InetAddress>> nameResolver) {
-        super(executor, InetSocketAddress.class);
-        this.nameResolver = nameResolver;
+class InetSocketAddressGroupResolver
+/**
+ * @param executor the [EventExecutor] which is used to notify the listeners of the [Future] returned
+ * by [.resolve]
+ * @param nameResolver the [NameResolver] used for name resolution
+ */(executor: EventExecutor?, val nameResolver: NameResolver<List<InetAddress>>) :
+    AbstractAddressResolver<InetSocketAddress>(executor, InetSocketAddress::class.java) {
+    override fun doIsResolved(address: InetSocketAddress): Boolean {
+        return !address.isUnresolved
     }
 
-    @Override
-    protected boolean doIsResolved(InetSocketAddress address) {
-        return !address.isUnresolved();
-    }
-
-    @Override
-    protected void doResolve(final InetSocketAddress unresolvedAddress, final Promise<InetSocketAddress> promise) throws Exception {
+    @Throws(Exception::class)
+    override fun doResolve(unresolvedAddress: InetSocketAddress, promise: Promise<InetSocketAddress>) {
         // Note that InetSocketAddress.getHostName() will never incur a reverse lookup here,
         // because an unresolved address always has a host name.
-        nameResolver.resolve(unresolvedAddress.getHostName())
-                .addListener(new FutureListener<List<InetAddress>>() {
-                    @Override
-                    public void operationComplete(Future<List<InetAddress>> future) throws Exception {
-                        if (future.isSuccess()) {
-                            ArrayList<InetSocketAddress> arrayList = new ArrayList<InetSocketAddress>();
-                            List<InetAddress> now = future.getNow();
-                            for (InetAddress inetAddress : now) {
-                                arrayList.add(new InetSocketAddress(inetAddress, unresolvedAddress.getPort()));
-                            }
-                            // promise.setSuccess(arrayList);
-                        } else {
-                            promise.setFailure(future.cause());
+        nameResolver.resolve(unresolvedAddress.hostName).addListener(object : FutureListener<List<InetAddress>> {
+                @Throws(Exception::class)
+                override fun operationComplete(future: Future<List<InetAddress>>) {
+                    if (future.isSuccess) {
+                        val arrayList = ArrayList<InetSocketAddress>()
+                        val now = future.now
+                        for (inetAddress in now) {
+                            arrayList.add(InetSocketAddress(inetAddress, unresolvedAddress.port))
                         }
+                        // promise.setSuccess(arrayList);
+                    } else {
+                        promise.setFailure(future.cause())
                     }
-                });
+                }
+            })
     }
 
-    @Override
-    protected void doResolveAll(final InetSocketAddress unresolvedAddress, final Promise<List<InetSocketAddress>> promise) throws Exception {
+    @Throws(Exception::class)
+    override fun doResolveAll(unresolvedAddress: InetSocketAddress, promise: Promise<List<InetSocketAddress>>) {
         // Note that InetSocketAddress.getHostName() will never incur a reverse lookup here,
         // because an unresolved address always has a host name.
-        nameResolver.resolveAll(unresolvedAddress.getHostName())
-                .addListener(new FutureListener<List<List<InetAddress>>>() {
-                    @Override
-                    public void operationComplete(Future<List<List<InetAddress>>> future) throws Exception {
-                        if (future.isSuccess()) {
-                            List<List<InetAddress>> inetAddresseses = future.getNow();
-                            List<InetSocketAddress> socketAddresses = new ArrayList<InetSocketAddress>(inetAddresseses.size());
-                            for (List<InetAddress> inetAddresses : inetAddresseses) {
-                                for (InetAddress inetAddress : inetAddresses) {
-                                    socketAddresses.add(new InetSocketAddress(inetAddress, unresolvedAddress.getPort()));
-                                }
+        nameResolver.resolveAll(unresolvedAddress.hostName).addListener(object : FutureListener<List<List<InetAddress>>> {
+                @Throws(Exception::class)
+                override fun operationComplete(future: Future<List<List<InetAddress>>>) {
+                    if (future.isSuccess) {
+                        val inetAddresseses = future.now
+                        val socketAddresses: MutableList<InetSocketAddress> = ArrayList(inetAddresseses.size)
+                        for (inetAddresses in inetAddresseses) {
+                            for (inetAddress in inetAddresses) {
+                                socketAddresses.add(InetSocketAddress(inetAddress, unresolvedAddress.port))
                             }
-
-                            promise.setSuccess(socketAddresses);
-                        } else {
-                            promise.setFailure(future.cause());
                         }
+                        promise.setSuccess(socketAddresses)
+                    } else {
+                        promise.setFailure(future.cause())
                     }
-                });
+                }
+            })
     }
 
-    @Override
-    public void close() {
-        nameResolver.close();
+    override fun close() {
+        nameResolver.close()
     }
 }

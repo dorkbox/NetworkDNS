@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.exceptions.InvalidTTLException;
+import dorkbox.dns.dns.exceptions.InvalidTTLException
 
 /**
  * Routines for parsing BIND-style TTL values.  These values consist of
@@ -25,14 +24,8 @@ import dorkbox.dns.dns.exceptions.InvalidTTLException;
  *
  * @author Brian Wellington
  */
-
-public final
-class TTL {
-
-    public static final long MAX_VALUE = 0x7FFFFFFFL;
-
-    private
-    TTL() {}
+object TTL {
+    const val MAX_VALUE = 0x7FFFFFFFL
 
     /**
      * Parses a TTL, which can either be expressed as a number or a BIND-style
@@ -44,9 +37,8 @@ class TTL {
      *
      * @throws NumberFormatException The string was not in a valid TTL format.
      */
-    public static
-    long parseTTL(String s) {
-        return parse(s, true);
+    fun parseTTL(s: String): Long {
+        return parse(s, true)
     }
 
     /**
@@ -55,106 +47,105 @@ class TTL {
      *
      * @param s The string representing the numeric value.
      * @param clamp Whether to clamp values in the range [MAX_VALUE + 1, 2^32 -1]
-     *         to MAX_VALUE.  This should be donw for TTLs, but not other values which
-     *         can be expressed in this format.
+     * to MAX_VALUE.  This should be donw for TTLs, but not other values which
+     * can be expressed in this format.
      *
      * @return The value as a number of seconds
      *
      * @throws NumberFormatException The string was not in a valid TTL format.
      */
-    public static
-    long parse(String s, boolean clamp) {
-        if (s == null || s.length() == 0 || !Character.isDigit(s.charAt(0))) {
-            throw new NumberFormatException();
+    fun parse(s: String, clamp: Boolean): Long {
+        if (s.length == 0 || !Character.isDigit(s[0])) {
+            throw NumberFormatException()
         }
-        long value = 0;
-        long ttl = 0;
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            long oldvalue = value;
+        var value: Long = 0
+        var ttl: Long = 0
+        for (i in 0 until s.length) {
+            val c = s[i]
+            val oldvalue = value
             if (Character.isDigit(c)) {
-                value = (value * 10) + Character.getNumericValue(c);
+                value = value * 10 + Character.getNumericValue(c)
                 if (value < oldvalue) {
-                    throw new NumberFormatException();
+                    throw NumberFormatException()
                 }
-            }
-            else {
-                switch (Character.toUpperCase(c)) {
-                    case 'W':
-                        value *= 7;
-                    case 'D':
-                        value *= 24;
-                    case 'H':
-                        value *= 60;
-                    case 'M':
-                        value *= 60;
-                    case 'S':
-                        break;
-                    default:
-                        throw new NumberFormatException();
+            } else {
+                when (c.uppercaseChar()) {
+                    'W' -> {
+                        value *= 7
+                        value *= 24
+                        value *= 60
+                        value *= 60
+                    }
+                    'D' -> {
+                        value *= 24
+                        value *= 60
+                        value *= 60
+                    }
+                    'H' -> {
+                        value *= 60
+                        value *= 60
+                    }
+                    'M' -> value *= 60
+                    'S' -> {}
+                    else -> throw NumberFormatException()
                 }
-                ttl += value;
-                value = 0;
+                ttl += value
+                value = 0
                 if (ttl > 0xFFFFFFFFL) {
-                    throw new NumberFormatException();
+                    throw NumberFormatException()
                 }
             }
         }
-        if (ttl == 0) {
-            ttl = value;
+        if (ttl == 0L) {
+            ttl = value
         }
-
         if (ttl > 0xFFFFFFFFL) {
-            throw new NumberFormatException();
+            throw NumberFormatException()
+        } else if (ttl > MAX_VALUE && clamp) {
+            ttl = MAX_VALUE
         }
-        else if (ttl > MAX_VALUE && clamp) {
-            ttl = MAX_VALUE;
-        }
-        return ttl;
+        return ttl
     }
 
-    public static
-    String format(long ttl) {
-        TTL.check(ttl);
-        StringBuilder sb = new StringBuilder();
-        long secs, mins, hours, days, weeks;
-        secs = ttl % 60;
-        ttl /= 60;
-        mins = ttl % 60;
-        ttl /= 60;
-        hours = ttl % 24;
-        ttl /= 24;
-        days = ttl % 7;
-        ttl /= 7;
-        weeks = ttl;
+    fun format(ttl: Long): String {
+        var ttl = ttl
+        check(ttl)
+        val sb = StringBuilder()
+        val secs: Long
+        val mins: Long
+        val hours: Long
+        val days: Long
+        val weeks: Long
+        secs = ttl % 60
+        ttl /= 60
+        mins = ttl % 60
+        ttl /= 60
+        hours = ttl % 24
+        ttl /= 24
+        days = ttl % 7
+        ttl /= 7
+        weeks = ttl
         if (weeks > 0) {
-            sb.append(weeks)
-              .append("W");
+            sb.append(weeks).append("W")
         }
         if (days > 0) {
-            sb.append(days)
-              .append("D");
+            sb.append(days).append("D")
         }
         if (hours > 0) {
-            sb.append(hours)
-              .append("H");
+            sb.append(hours).append("H")
         }
         if (mins > 0) {
-            sb.append(mins)
-              .append("M");
+            sb.append(mins).append("M")
         }
-        if (secs > 0 || (weeks == 0 && days == 0 && hours == 0 && mins == 0)) {
-            sb.append(secs)
-              .append("S");
+        if (secs > 0 || weeks == 0L && days == 0L && hours == 0L && mins == 0L) {
+            sb.append(secs).append("S")
         }
-        return sb.toString();
+        return sb.toString()
     }
 
-    static
-    void check(long i) {
+    fun check(i: Long) {
         if (i < 0 || i > MAX_VALUE) {
-            throw new InvalidTTLException(i);
+            throw InvalidTTLException(i)
         }
     }
-
 }

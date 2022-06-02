@@ -16,7 +16,6 @@
 package dorkbox.dns.dns.records;
 
 import dorkbox.dns.dns.exceptions.InvalidTTLException;
-import dorkbox.dns.dns.records.TTL;
 import junit.framework.TestCase;
 
 public
@@ -29,63 +28,63 @@ class TTLTest extends TestCase {
 
     public
     void test_parseTTL() {
-        assertEquals(9876, TTL.parseTTL("9876"));
+        assertEquals(9876, TTL.INSTANCE.parseTTL("9876"));
 
-        assertEquals(0, TTL.parseTTL("0S"));
-        assertEquals(0, TTL.parseTTL("0M"));
-        assertEquals(0, TTL.parseTTL("0H"));
-        assertEquals(0, TTL.parseTTL("0D"));
-        assertEquals(0, TTL.parseTTL("0W"));
+        assertEquals(0, TTL.INSTANCE.parseTTL("0S"));
+        assertEquals(0, TTL.INSTANCE.parseTTL("0M"));
+        assertEquals(0, TTL.INSTANCE.parseTTL("0H"));
+        assertEquals(0, TTL.INSTANCE.parseTTL("0D"));
+        assertEquals(0, TTL.INSTANCE.parseTTL("0W"));
 
-        assertEquals(S, TTL.parseTTL("1s"));
-        assertEquals(M, TTL.parseTTL("1m"));
-        assertEquals(H, TTL.parseTTL("1h"));
-        assertEquals(D, TTL.parseTTL("1d"));
-        assertEquals(W, TTL.parseTTL("1w"));
+        assertEquals(S, TTL.INSTANCE.parseTTL("1s"));
+        assertEquals(M, TTL.INSTANCE.parseTTL("1m"));
+        assertEquals(H, TTL.INSTANCE.parseTTL("1h"));
+        assertEquals(D, TTL.INSTANCE.parseTTL("1d"));
+        assertEquals(W, TTL.INSTANCE.parseTTL("1w"));
 
-        assertEquals(98 * S, TTL.parseTTL("98S"));
-        assertEquals(76 * M, TTL.parseTTL("76M"));
-        assertEquals(54 * H, TTL.parseTTL("54H"));
-        assertEquals(32 * D, TTL.parseTTL("32D"));
-        assertEquals(10 * W, TTL.parseTTL("10W"));
+        assertEquals(98 * S, TTL.INSTANCE.parseTTL("98S"));
+        assertEquals(76 * M, TTL.INSTANCE.parseTTL("76M"));
+        assertEquals(54 * H, TTL.INSTANCE.parseTTL("54H"));
+        assertEquals(32 * D, TTL.INSTANCE.parseTTL("32D"));
+        assertEquals(10 * W, TTL.INSTANCE.parseTTL("10W"));
 
-        assertEquals(98 * S + 11 * M + 1234 * H + 2 * D + W, TTL.parseTTL("98S11M1234H2D01W"));
+        assertEquals(98 * S + 11 * M + 1234 * H + 2 * D + W, TTL.INSTANCE.parseTTL("98S11M1234H2D01W"));
     }
 
     public
     void test_parseTTL_invalid() {
         try {
-            TTL.parseTTL(null);
+            TTL.INSTANCE.parseTTL(null);
             fail("NumberFormatException not throw");
         } catch (NumberFormatException ignored) {
         }
 
         try {
-            TTL.parseTTL("");
+            TTL.INSTANCE.parseTTL("");
             fail("NumberFormatException not throw");
         } catch (NumberFormatException ignored) {
         }
 
         try {
-            TTL.parseTTL("S");
+            TTL.INSTANCE.parseTTL("S");
             fail("NumberFormatException not throw");
         } catch (NumberFormatException ignored) {
         }
 
         try {
-            TTL.parseTTL("10S4B");
+            TTL.INSTANCE.parseTTL("10S4B");
             fail("NumberFormatException not throw");
         } catch (NumberFormatException ignored) {
         }
 
         try {
-            TTL.parseTTL("1S" + 0xFFFFFFFFL + "S");
+            TTL.INSTANCE.parseTTL("1S" + 0xFFFFFFFFL + "S");
             fail("NumberFormatException not throw");
         } catch (NumberFormatException ignored) {
         }
 
         try {
-            TTL.parseTTL("" + 0x100000000L);
+            TTL.INSTANCE.parseTTL("" + 0x100000000L);
             fail("NumberFormatException not throw");
         } catch (NumberFormatException ignored) {
         }
@@ -93,34 +92,34 @@ class TTLTest extends TestCase {
 
     public
     void test_format() {
-        assertEquals("0S", TTL.format(0));
-        assertEquals("1S", TTL.format(1));
-        assertEquals("59S", TTL.format(59));
-        assertEquals("1M", TTL.format(60));
-        assertEquals("59M", TTL.format(59 * M));
-        assertEquals("1M33S", TTL.format(M + 33));
-        assertEquals("59M59S", TTL.format(59 * M + 59 * S));
-        assertEquals("1H", TTL.format(H));
-        assertEquals("10H1M21S", TTL.format(10 * H + M + 21));
-        assertEquals("23H59M59S", TTL.format(23 * H + 59 * M + 59));
-        assertEquals("1D", TTL.format(D));
-        assertEquals("4D18H45M30S", TTL.format(4 * D + 18 * H + 45 * M + 30));
-        assertEquals("6D23H59M59S", TTL.format(6 * D + 23 * H + 59 * M + 59));
-        assertEquals("1W", TTL.format(W));
-        assertEquals("10W4D1H21M29S", TTL.format(10 * W + 4 * D + H + 21 * M + 29));
-        assertEquals("3550W5D3H14M7S", TTL.format(0x7FFFFFFFL));
+        assertEquals("0S", TTL.INSTANCE.format(0));
+        assertEquals("1S", TTL.INSTANCE.format(1));
+        assertEquals("59S", TTL.INSTANCE.format(59));
+        assertEquals("1M", TTL.INSTANCE.format(60));
+        assertEquals("59M", TTL.INSTANCE.format(59 * M));
+        assertEquals("1M33S", TTL.INSTANCE.format(M + 33));
+        assertEquals("59M59S", TTL.INSTANCE.format(59 * M + 59 * S));
+        assertEquals("1H", TTL.INSTANCE.format(H));
+        assertEquals("10H1M21S", TTL.INSTANCE.format(10 * H + M + 21));
+        assertEquals("23H59M59S", TTL.INSTANCE.format(23 * H + 59 * M + 59));
+        assertEquals("1D", TTL.INSTANCE.format(D));
+        assertEquals("4D18H45M30S", TTL.INSTANCE.format(4 * D + 18 * H + 45 * M + 30));
+        assertEquals("6D23H59M59S", TTL.INSTANCE.format(6 * D + 23 * H + 59 * M + 59));
+        assertEquals("1W", TTL.INSTANCE.format(W));
+        assertEquals("10W4D1H21M29S", TTL.INSTANCE.format(10 * W + 4 * D + H + 21 * M + 29));
+        assertEquals("3550W5D3H14M7S", TTL.INSTANCE.format(0x7FFFFFFFL));
     }
 
     public
     void test_format_invalid() {
         try {
-            TTL.format(-1);
+            TTL.INSTANCE.format(-1);
             fail("InvalidTTLException not thrown");
         } catch (InvalidTTLException ignored) {
         }
 
         try {
-            TTL.format(0x100000000L);
+            TTL.INSTANCE.format(0x100000000L);
             fail("InvalidTTLException not thrown");
         } catch (InvalidTTLException ignored) {
         }

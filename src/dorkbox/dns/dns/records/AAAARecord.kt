@@ -13,81 +13,70 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.utils.Address;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.netUtil.IPv6;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Address
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.netUtil.IP
+import dorkbox.netUtil.IPv6.isFamily
+import dorkbox.netUtil.IPv6.length
+import java.io.IOException
+import java.net.InetAddress
+import java.net.UnknownHostException
 
 /**
  * IPv6 Address Record - maps a domain name to an IPv6 address
  *
  * @author Brian Wellington
  */
+class AAAARecord : DnsRecord {
+    private lateinit var address: ByteArray
 
-public
-class AAAARecord extends DnsRecord {
+    internal constructor() {}
 
-    private static final long serialVersionUID = -4588601512069748050L;
+    override val `object`: DnsRecord
+        get() = AAAARecord()
 
-    private byte[] address;
-
-    AAAARecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new AAAARecord();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        address = `in`.readByteArray(16)
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        address = in.readByteArray(16);
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeByteArray(address);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeByteArray(address)
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        InetAddress addr;
-        try {
-            addr = InetAddress.getByAddress(null, address);
-        } catch (UnknownHostException e) {
-            return;
+    override fun rrToString(sb: StringBuilder) {
+        val addr: InetAddress = try {
+            InetAddress.getByAddress(null, address)
+        } catch (ignored: UnknownHostException) {
+            return
         }
-        if (addr.getAddress().length == 4) {
+
+        if (addr.address.size == 4) {
             // Deal with Java's broken handling of mapped IPv4 addresses.
-            sb.append("0:0:0:0:0:ffff:");
-            int high = ((address[12] & 0xFF) << 8) + (address[13] & 0xFF);
-            int low = ((address[14] & 0xFF) << 8) + (address[15] & 0xFF);
-            sb.append(Integer.toHexString(high));
-            sb.append(':');
-            sb.append(Integer.toHexString(low));
-
-            return;
+            sb.append("0:0:0:0:0:ffff:")
+            val high = (address[12].toInt() and 0xFF shl 8) + (address[13].toInt() and 0xFF)
+            val low = (address[14].toInt() and 0xFF shl 8) + (address[15].toInt() and 0xFF)
+            sb.append(Integer.toHexString(high))
+            sb.append(':')
+            sb.append(Integer.toHexString(low))
+            return
         }
-
-        sb.append(addr.getHostAddress());
+        sb.append(addr.hostAddress)
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        address = st.getAddressBytes(Address.IPv6);
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        address = st.getAddressBytes(Address.IPv6)
     }
 
     /**
@@ -95,13 +84,9 @@ class AAAARecord extends DnsRecord {
      *
      * @param address The address that the name refers
      */
-    public
-    AAAARecord(Name name, int dclass, long ttl, InetAddress address) {
-        super(name, DnsRecordType.AAAA, dclass, ttl);
-        if (!IPv6.INSTANCE.isFamily(address)) {
-            throw new IllegalArgumentException("invalid IPv6 address");
-        }
-        this.address = address.getAddress();
+    constructor(name: Name?, dclass: Int, ttl: Long, address: InetAddress) : super(name ?: Name(IP.toString(address), null), DnsRecordType.AAAA, dclass, ttl) {
+        require(isFamily(address)) { "invalid IPv6 address" }
+        this.address = address.address
     }
 
     /**
@@ -109,29 +94,23 @@ class AAAARecord extends DnsRecord {
      *
      * @param address The address that the name refers to as a byte array. This value is NOT COPIED.
      */
-    public
-    AAAARecord(Name name, int dclass, long ttl, byte[] address) {
-        super(name, DnsRecordType.AAAA, dclass, ttl);
-        if ( address.length != IPv6.INSTANCE.getLength()) {
-            throw new IllegalArgumentException("invalid IPv6 address");
-        }
-        this.address = address;
+    constructor(name: Name?, dclass: Int, ttl: Long, address: ByteArray) : super(name ?: Name(IP.toString(address), null), DnsRecordType.AAAA, dclass, ttl) {
+        require(address.size == length) { "invalid IPv6 address" }
+        this.address = address
     }
 
     /**
      * Returns the address
      */
-    public
-    InetAddress getAddress() {
-        try {
-            if (name == null) {
-                return InetAddress.getByAddress(address);
-            }
-            else {
-                return InetAddress.getByAddress(name.toString(true), address);
-            }
-        } catch (UnknownHostException e) {
-            return null;
+    fun getAddress(): InetAddress? {
+        return try {
+            InetAddress.getByAddress(name.toString(true), address)
+        } catch (e: UnknownHostException) {
+            null
         }
+    }
+
+    companion object {
+        private const val serialVersionUID = -4588601512069748050L
     }
 }

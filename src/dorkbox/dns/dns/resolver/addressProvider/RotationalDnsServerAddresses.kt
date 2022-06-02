@@ -13,38 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.resolver.addressProvider
 
-package dorkbox.dns.dns.resolver.addressProvider;
+import java.net.InetSocketAddress
+import java.util.concurrent.atomic.*
 
-import java.net.InetSocketAddress;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+internal class RotationalDnsServerAddresses(addresses: Array<InetSocketAddress>) : DefaultDnsServerAddresses("rotational", addresses) {
 
-final
-class RotationalDnsServerAddresses extends DefaultDnsServerAddresses {
+    @Volatile
+    private var startIdx = 0
 
-    private static final AtomicIntegerFieldUpdater<RotationalDnsServerAddresses> startIdxUpdater = AtomicIntegerFieldUpdater.newUpdater(
-            RotationalDnsServerAddresses.class,
-            "startIdx");
-
-    @SuppressWarnings("UnusedDeclaration")
-    private volatile int startIdx;
-
-    RotationalDnsServerAddresses(InetSocketAddress[] addresses) {
-        super("rotational", addresses);
-    }
-
-    @Override
-    public
-    DnsServerAddressStream stream() {
-        for (; ; ) {
-            int curStartIdx = startIdx;
-            int nextStartIdx = curStartIdx + 1;
-            if (nextStartIdx >= addresses.length) {
-                nextStartIdx = 0;
+    override fun stream(): DnsServerAddressStream {
+        while (true) {
+            val curStartIdx = startIdx
+            var nextStartIdx = curStartIdx + 1
+            if (nextStartIdx >= addresses.size) {
+                nextStartIdx = 0
             }
             if (startIdxUpdater.compareAndSet(this, curStartIdx, nextStartIdx)) {
-                return new SequentialDnsServerAddressStream(addresses, curStartIdx);
+                return SequentialDnsServerAddressStream(addresses, curStartIdx)
             }
         }
+    }
+
+    companion object {
+        private val startIdxUpdater = AtomicIntegerFieldUpdater.newUpdater(
+            RotationalDnsServerAddresses::class.java, "startIdx"
+        )
     }
 }

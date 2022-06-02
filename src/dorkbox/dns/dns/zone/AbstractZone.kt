@@ -13,40 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.zone;
+package dorkbox.dns.dns.zone
 
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsClass;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsClass
 
-public abstract class AbstractZone implements Zone {
+abstract class AbstractZone(protected var type: ZoneType, protected var dnsClass: Int, protected var name: Name) : Zone {
+    constructor(type: ZoneType, name: Name) : this(type, DnsClass.IN, name) {}
 
-	protected ZoneType type;
-	protected int dnsClass;
-	protected Name name;
+    override fun type(): ZoneType {
+        return type
+    }
 
-	public AbstractZone(ZoneType type, Name name) {
-		this(type, DnsClass.IN, name);
-	}
+    override fun dnsClass(): Int {
+        return dnsClass
+    }
 
-	public AbstractZone(ZoneType type, int dnsClass, Name name) {
-		this.type = type;
-		this.dnsClass = dnsClass;
-		this.name = name;
-	}
-
-	@Override
-	public ZoneType type() {
-		return this.type;
-	}
-
-	@Override
-	public int dnsClass() {
-		return this.dnsClass;
-	}
-
-	@Override
-	public Name name() {
-		return this.name;
-	}
-
+    override fun name(): Name {
+        return name
+    }
 }

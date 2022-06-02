@@ -13,13 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.util.Date;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import java.util.*
 
 /**
  * Signature - A SIG provides the digital signature of an RRset, so that
@@ -28,28 +26,23 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  * @see RRset
+ *
  * @see DNSSEC
+ *
  * @see KEYRecord
  */
+class SIGRecord : SIGBase {
+    internal constructor() {}
 
-public
-class SIGRecord extends SIGBase {
-
-    private static final long serialVersionUID = 4963556060953589058L;
-
-    SIGRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new SIGRecord();
-    }
+    override val `object`: DnsRecord
+        get() = SIGRecord()
 
     /**
      * Creates an SIG Record from the given data
      *
      * @param covered The RRset type covered by this signature
      * @param alg The cryptographic algorithm of the key that generated the
-     *         signature
+     * signature
      * @param origttl The original TTL of the RRset
      * @param expire The time at which the signature expires
      * @param timeSigned The time at which this signature was generated
@@ -57,19 +50,22 @@ class SIGRecord extends SIGBase {
      * @param signer The owner of the signing key
      * @param signature Binary data representing the signature
      */
-    public
-    SIGRecord(Name name,
-              int dclass,
-              long ttl,
-              int covered,
-              int alg,
-              long origttl,
-              Date expire,
-              Date timeSigned,
-              int footprint,
-              Name signer,
-              byte[] signature) {
-        super(name, DnsRecordType.SIG, dclass, ttl, covered, alg, origttl, expire, timeSigned, footprint, signer, signature);
+    constructor(
+        name: Name,
+        dclass: Int,
+        ttl: Long,
+        covered: Int,
+        alg: Int,
+        origttl: Long,
+        expire: Date,
+        timeSigned: Date,
+        footprint: Int,
+        signer: Name,
+        signature: ByteArray
+    ) : super(name, DnsRecordType.SIG, dclass, ttl, covered, alg, origttl, expire, timeSigned, footprint, signer, signature) {
     }
 
+    companion object {
+        private const val serialVersionUID = 4963556060953589058L
+    }
 }

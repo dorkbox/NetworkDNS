@@ -36,8 +36,8 @@ class DSRecordTest extends TestCase {
         DSRecord dr = new DSRecord();
         assertNull(dr.getName());
         assertEquals(0, dr.getType());
-        assertEquals(0, dr.getDClass());
-        assertEquals(0, dr.getTTL());
+        assertEquals(0, dr.getDclass());
+        assertEquals(0, dr.getTtl());
         assertEquals(0, dr.getAlgorithm());
         assertEquals(0, dr.getDigestID());
         assertNull(dr.getDigest());
@@ -63,7 +63,7 @@ class DSRecordTest extends TestCase {
         @Override
         protected
         void setUp() throws TextParseException {
-            m_n = Name.fromString("The.Name.");
+            m_n = Name.Companion.fromString("The.Name.");
             m_ttl = 0xABCDL;
             m_footprint = 0xEF01;
             m_algorithm = 0x23;
@@ -75,9 +75,9 @@ class DSRecordTest extends TestCase {
         void test_basic() throws TextParseException {
             DSRecord dr = new DSRecord(m_n, DnsClass.IN, m_ttl, m_footprint, m_algorithm, m_digestid, m_digest);
             assertEquals(m_n, dr.getName());
-            assertEquals(DnsClass.IN, dr.getDClass());
+            assertEquals(DnsClass.IN, dr.getDclass());
             assertEquals(DnsRecordType.DS, dr.getType());
-            assertEquals(m_ttl, dr.getTTL());
+            assertEquals(m_ttl, dr.getTtl());
             assertEquals(m_footprint, dr.getFootprint());
             assertEquals(m_algorithm, dr.getAlgorithm());
             assertEquals(m_digestid, dr.getDigestID());
@@ -142,9 +142,9 @@ class DSRecordTest extends TestCase {
         void test_null_digest() {
             DSRecord dr = new DSRecord(m_n, DnsClass.IN, m_ttl, m_footprint, m_algorithm, m_digestid, null);
             assertEquals(m_n, dr.getName());
-            assertEquals(DnsClass.IN, dr.getDClass());
+            assertEquals(DnsClass.IN, dr.getDclass());
             assertEquals(DnsRecordType.DS, dr.getType());
-            assertEquals(m_ttl, dr.getTTL());
+            assertEquals(m_ttl, dr.getTtl());
             assertEquals(m_footprint, dr.getFootprint());
             assertEquals(m_algorithm, dr.getAlgorithm());
             assertEquals(m_digestid, dr.getDigestID());
@@ -182,7 +182,7 @@ class DSRecordTest extends TestCase {
     void test_rrToString() throws TextParseException {
         String exp = 0xABCD + " " + 0xEF + " " + 0x01 + " 23456789AB";
 
-        DSRecord dr = new DSRecord(Name.fromString("The.Name."),
+        DSRecord dr = new DSRecord(Name.Companion.fromString("The.Name."),
                                    DnsClass.IN,
                                    0x123,
                                    0xABCD,
@@ -197,7 +197,7 @@ class DSRecordTest extends TestCase {
 
     public
     void test_rrToWire() throws TextParseException {
-        DSRecord dr = new DSRecord(Name.fromString("The.Name."),
+        DSRecord dr = new DSRecord(Name.Companion.fromString("The.Name."),
                                    DnsClass.IN,
                                    0x123,
                                    0xABCD,

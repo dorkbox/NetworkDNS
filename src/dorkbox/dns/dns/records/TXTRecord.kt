@@ -13,31 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.util.List;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * Text - stores text strings
  *
  * @author Brian Wellington
  */
+class TXTRecord : TXTBase {
+    internal constructor()
 
-public
-class TXTRecord extends TXTBase {
-
-    private static final long serialVersionUID = -5780785764284221342L;
-
-    TXTRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new TXTRecord();
-    }
+    override val `object`: DnsRecord
+        get() = TXTRecord()
 
     /**
      * Creates a TXT Record from the given data
@@ -46,10 +36,7 @@ class TXTRecord extends TXTBase {
      *
      * @throws IllegalArgumentException One of the strings has invalid escapes
      */
-    public
-    TXTRecord(Name name, int dclass, long ttl, List<String> strings) {
-        super(name, DnsRecordType.TXT, dclass, ttl, strings);
-    }
+    constructor(name: Name, dclass: Int, ttl: Long, strings: List<String>) : super(name, DnsRecordType.TXT, dclass, ttl, strings)
 
     /**
      * Creates a TXT Record from the given data
@@ -58,9 +45,9 @@ class TXTRecord extends TXTBase {
      *
      * @throws IllegalArgumentException The string has invalid escapes
      */
-    public
-    TXTRecord(Name name, int dclass, long ttl, String string) {
-        super(name, DnsRecordType.TXT, dclass, ttl, string);
-    }
+    constructor(name: Name, dclass: Int, ttl: Long, string: String) : super(name, DnsRecordType.TXT, dclass, ttl, string) {}
 
+    companion object {
+        private const val serialVersionUID = -5780785764284221342L
+    }
 }

@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.utils.Tokenizer;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * Implements common functionality for the many record types whose format
@@ -30,63 +28,52 @@ import dorkbox.dns.dns.utils.Tokenizer;
  *
  * @author Brian Wellington
  */
+abstract class U16NameBase : DnsRecord {
+    protected var u16Field = 0
+    protected var nameField: Name = Name.empty
 
-abstract
-class U16NameBase extends DnsRecord {
+    protected constructor()
 
-    private static final long serialVersionUID = -8315884183112502995L;
+    protected constructor(name: Name, type: Int, dclass: Int, ttl: Long) : super(name, type, dclass, ttl)
 
-    protected int u16Field;
-    protected Name nameField;
-
-    protected
-    U16NameBase() {}
-
-    protected
-    U16NameBase(Name name, int type, int dclass, long ttl) {
-        super(name, type, dclass, ttl);
+    protected constructor(
+        name: Name,
+        type: Int,
+        dclass: Int,
+        ttl: Long,
+        u16Field: Int,
+        u16Description: String,
+        nameField: Name,
+        nameDescription: String
+    ) : super(name, type, dclass, ttl) {
+        this.u16Field = checkU16(u16Description, u16Field)
+        this.nameField = checkName(nameDescription, nameField)
     }
 
-    protected
-    U16NameBase(Name name, int type, int dclass, long ttl, int u16Field, String u16Description, Name nameField, String nameDescription) {
-        super(name, type, dclass, ttl);
-        this.u16Field = checkU16(u16Description, u16Field);
-        this.nameField = checkName(nameDescription, nameField);
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        u16Field = `in`.readU16()
+        nameField = Name(`in`)
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        u16Field = in.readU16();
-        nameField = new Name(in);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU16(u16Field)
+        nameField.toWire(out, null, canonical)
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU16(u16Field);
-        nameField.toWire(out, null, canonical);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(u16Field)
+        sb.append(" ")
+        sb.append(nameField)
     }
 
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(u16Field);
-        sb.append(" ");
-        sb.append(nameField);
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        u16Field = st.getUInt16()
+        nameField = st.getName(origin)
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        u16Field = st.getUInt16();
-        nameField = st.getName(origin);
+    companion object {
+        private const val serialVersionUID = -8315884183112502995L
     }
-
-    protected
-    int getU16Field() {
-        return u16Field;
-    }
-
-    protected
-    Name getNameField() {
-        return nameField;
-    }
-
 }

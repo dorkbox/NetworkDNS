@@ -13,75 +13,75 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.exceptions.TextParseException
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * Uniform Resource Identifier (URI) DNS Resource Record
  *
  * @author Anthony Kirby
- * @see <a href="http://tools.ietf.org/html/draft-faltstrom-uri">http://tools.ietf.org/html/draft-faltstrom-uri</a>
+ * @see [http://tools.ietf.org/html/draft-faltstrom-uri](http://tools.ietf.org/html/draft-faltstrom-uri)
  */
+class URIRecord : DnsRecord {
+    /**
+     * Returns the priority
+     */
+    var priority = 0
+        private set
 
-public
-class URIRecord extends DnsRecord {
+    /**
+     * Returns the weight
+     */
+    var weight = 0
+        private set
 
-    private static final long serialVersionUID = 7955422413971804232L;
+    private var target: ByteArray
 
-    private int priority, weight;
-    private byte[] target;
-
-    URIRecord() {
-        target = new byte[] {};
+    internal constructor() {
+        target = byteArrayOf()
     }
 
-    @Override
-    DnsRecord getObject() {
-        return new URIRecord();
+    override val `object`: DnsRecord
+        get() = URIRecord()
+
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        priority = `in`.readU16()
+        weight = `in`.readU16()
+        target = `in`.readByteArray()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        priority = in.readU16();
-        weight = in.readU16();
-        target = in.readByteArray();
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU16(priority);
-        out.writeU16(weight);
-        out.writeByteArray(target);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU16(priority)
+        out.writeU16(weight)
+        out.writeByteArray(target)
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(priority + " ");
-        sb.append(weight + " ");
-        sb.append(byteArrayToString(target, true));
+    override fun rrToString(sb: StringBuilder) {
+        sb.append("$priority ")
+        sb.append("$weight ")
+        sb.append(byteArrayToString(target, true))
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        priority = st.getUInt16();
-        weight = st.getUInt16();
-        try {
-            target = byteArrayFromString(st.getString());
-        } catch (TextParseException e) {
-            throw st.exception(e.getMessage());
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        priority = st.getUInt16()
+        weight = st.getUInt16()
+        target = try {
+            byteArrayFromString(st.getString())
+        } catch (e: TextParseException) {
+            throw st.exception(e.message ?: "")
         }
     }
 
@@ -89,45 +89,31 @@ class URIRecord extends DnsRecord {
      * Creates a URI Record from the given data
      *
      * @param priority The priority of this URI.  Records with lower priority
-     *         are preferred.
+     * are preferred.
      * @param weight The weight, used to select between records at the same
-     *         priority.
+     * priority.
      * @param target The host/port running the service
      */
-    public
-    URIRecord(Name name, int dclass, long ttl, int priority, int weight, String target) {
-        super(name, DnsRecordType.URI, dclass, ttl);
-        this.priority = checkU16("priority", priority);
-        this.weight = checkU16("weight", weight);
+    constructor(name: Name?, dclass: Int, ttl: Long, priority: Int, weight: Int, target: String?) : super(
+        name!!, DnsRecordType.URI, dclass, ttl
+    ) {
+        this.priority = checkU16("priority", priority)
+        this.weight = checkU16("weight", weight)
         try {
-            this.target = byteArrayFromString(target);
-        } catch (TextParseException e) {
-            throw new IllegalArgumentException(e.getMessage());
+            this.target = byteArrayFromString(target!!)
+        } catch (e: TextParseException) {
+            throw IllegalArgumentException(e.message)
         }
-    }
-
-    /**
-     * Returns the priority
-     */
-    public
-    int getPriority() {
-        return priority;
-    }
-
-    /**
-     * Returns the weight
-     */
-    public
-    int getWeight() {
-        return weight;
     }
 
     /**
      * Returns the target URI
      */
-    public
-    String getTarget() {
-        return byteArrayToString(target, false);
+    fun getTarget(): String {
+        return byteArrayToString(target, false)
     }
 
+    companion object {
+        private const val serialVersionUID = 7955422413971804232L
+    }
 }

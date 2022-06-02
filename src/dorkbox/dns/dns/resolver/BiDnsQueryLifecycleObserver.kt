@@ -13,108 +13,89 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver;
+package dorkbox.dns.dns.resolver
 
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
-
-import java.net.InetSocketAddress;
-import java.util.List;
-
-import dorkbox.dns.dns.records.DnsMessage;
-import io.netty.channel.ChannelFuture;
-import io.netty.util.internal.UnstableApi;
+import dorkbox.dns.dns.records.DnsMessage
+import io.netty.channel.ChannelFuture
+import io.netty.util.internal.ObjectUtil
+import io.netty.util.internal.UnstableApi
+import java.net.InetSocketAddress
 
 /**
- * Combines two {@link DnsQueryLifecycleObserver} into a single {@link DnsQueryLifecycleObserver}.
+ * Combines two [DnsQueryLifecycleObserver] into a single [DnsQueryLifecycleObserver].
  */
 @UnstableApi
-public final
-class BiDnsQueryLifecycleObserver implements DnsQueryLifecycleObserver {
-    private final DnsQueryLifecycleObserver a;
-    private final DnsQueryLifecycleObserver b;
+class BiDnsQueryLifecycleObserver(a: DnsQueryLifecycleObserver, b: DnsQueryLifecycleObserver) : DnsQueryLifecycleObserver {
+    private val a: DnsQueryLifecycleObserver
+    private val b: DnsQueryLifecycleObserver
 
     /**
      * Create a new instance.
      *
-     * @param a The {@link DnsQueryLifecycleObserver} that will receive events first.
-     * @param b The {@link DnsQueryLifecycleObserver} that will receive events second.
+     * @param a The [DnsQueryLifecycleObserver] that will receive events first.
+     * @param b The [DnsQueryLifecycleObserver] that will receive events second.
      */
-    public
-    BiDnsQueryLifecycleObserver(DnsQueryLifecycleObserver a, DnsQueryLifecycleObserver b) {
-        this.a = checkNotNull(a, "a");
-        this.b = checkNotNull(b, "b");
+    init {
+        this.a = ObjectUtil.checkNotNull(a, "a")
+        this.b = ObjectUtil.checkNotNull(b, "b")
     }
 
-    @Override
-    public
-    void queryWritten(InetSocketAddress dnsServerAddress, ChannelFuture future) {
+    override fun queryWritten(dnsServerAddress: InetSocketAddress, future: ChannelFuture) {
         try {
-            a.queryWritten(dnsServerAddress, future);
+            a.queryWritten(dnsServerAddress, future)
         } finally {
-            b.queryWritten(dnsServerAddress, future);
+            b.queryWritten(dnsServerAddress, future)
         }
     }
 
-    @Override
-    public
-    void queryCancelled(int queriesRemaining) {
+    override fun queryCancelled(queriesRemaining: Int) {
         try {
-            a.queryCancelled(queriesRemaining);
+            a.queryCancelled(queriesRemaining)
         } finally {
-            b.queryCancelled(queriesRemaining);
+            b.queryCancelled(queriesRemaining)
         }
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver queryRedirected(List<InetSocketAddress> nameServers) {
+    override fun queryRedirected(nameServers: List<InetSocketAddress>): DnsQueryLifecycleObserver {
         try {
-            a.queryRedirected(nameServers);
+            a.queryRedirected(nameServers)
         } finally {
-            b.queryRedirected(nameServers);
+            b.queryRedirected(nameServers)
         }
-        return this;
+        return this
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver queryCNAMEd(DnsMessage cnameQuestion) {
+    override fun queryCNAMEd(cnameQuestion: DnsMessage): DnsQueryLifecycleObserver {
         try {
-            a.queryCNAMEd(cnameQuestion);
+            a.queryCNAMEd(cnameQuestion)
         } finally {
-            b.queryCNAMEd(cnameQuestion);
+            b.queryCNAMEd(cnameQuestion)
         }
-        return this;
+        return this
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver queryNoAnswer(int code) {
+    override fun queryNoAnswer(code: Int): DnsQueryLifecycleObserver {
         try {
-            a.queryNoAnswer(code);
+            a.queryNoAnswer(code)
         } finally {
-            b.queryNoAnswer(code);
+            b.queryNoAnswer(code)
         }
-        return this;
+        return this
     }
 
-    @Override
-    public
-    void queryFailed(Throwable cause) {
+    override fun queryFailed(cause: Throwable) {
         try {
-            a.queryFailed(cause);
+            a.queryFailed(cause)
         } finally {
-            b.queryFailed(cause);
+            b.queryFailed(cause)
         }
     }
 
-    @Override
-    public
-    void querySucceed() {
+    override fun querySucceed() {
         try {
-            a.querySucceed();
+            a.querySucceed()
         } finally {
-            b.querySucceed();
+            b.querySucceed()
         }
     }
 }

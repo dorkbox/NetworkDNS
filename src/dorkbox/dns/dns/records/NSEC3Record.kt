@@ -13,168 +13,156 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.utils.base16;
-import dorkbox.dns.dns.utils.base32;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.dns.dns.utils.base16.toString
+import dorkbox.dns.dns.utils.base32
+import java.io.IOException
+import java.security.MessageDigest
+import java.security.NoSuchAlgorithmException
 
 /**
  * Next SECure name 3 - this record contains the next hashed name in an
  * ordered list of hashed names in the zone, and a set of types for which
  * records exist for this name. The presence of this record in a response
  * signifies a negative response from a DNSSEC-signed zone.
- * <p>
+ *
+ *
  * This replaces the NSEC and NXT records, when used.
  *
  * @author Brian Wellington
  * @author David Blacka
  */
+class NSEC3Record : DnsRecord {
+    /**
+     * Returns the hash algorithm
+     */
+    var hashAlgorithm = 0
+        private set
 
-public
-class NSEC3Record extends DnsRecord {
+    /**
+     * Returns the flags
+     */
+    var flags = 0
+        private set
 
-    public static final int SHA1_DIGEST_ID = Digest.SHA1;
-    private static final long serialVersionUID = -7123504635968932855L;
-    private int hashAlg;
-    private int flags;
-    private int iterations;
-    private byte[] salt;
-    private byte[] next;
-    private TypeBitmap types;
-    private static final base32 b32 = new base32(base32.Alphabet.BASE32HEX, false, false);
+    /**
+     * Returns the number of iterations
+     */
+    var iterations = 0
+        private set
+
+    /**
+     * Returns the salt
+     */
+    var salt: ByteArray? = null
+        private set
+
+    /**
+     * Returns the next hash
+     */
+    lateinit var next: ByteArray
+        private set
 
 
-    public static
-    class Flags {
+    private var types: TypeBitmap? = null
+
+    object Flags {
         /**
          * Unsigned delegation are not included in the NSEC3 chain.
          */
-        public static final int OPT_OUT = 0x01;
-
-        /**
-         * NSEC3 flags identifiers.
-         */
-
-        private
-        Flags() {}
+        const val OPT_OUT = 0x01
     }
 
-
-    public static
-    class Digest {
+    object Digest {
         /**
          * SHA-1
          */
-        public static final int SHA1 = 1;
-
-        private
-        Digest() {}
+        const val SHA1 = 1
     }
 
-    NSEC3Record() {}
+    internal constructor() {}
 
-    @Override
-    DnsRecord getObject() {
-        return new NSEC3Record();
-    }
+    override val `object`: DnsRecord
+        get() = NSEC3Record()
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        hashAlg = in.readU8();
-        flags = in.readU8();
-        iterations = in.readU16();
-
-        int salt_length = in.readU8();
-        if (salt_length > 0) {
-            salt = in.readByteArray(salt_length);
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        hashAlgorithm = `in`.readU8()
+        flags = `in`.readU8()
+        iterations = `in`.readU16()
+        val salt_length = `in`.readU8()
+        salt = if (salt_length > 0) {
+            `in`.readByteArray(salt_length)
+        } else {
+            null
         }
-        else {
-            salt = null;
-        }
-
-        int next_length = in.readU8();
-        next = in.readByteArray(next_length);
-        types = new TypeBitmap(in);
+        val next_length = `in`.readU8()
+        next = `in`.readByteArray(next_length)
+        types = TypeBitmap(`in`)
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU8(hashAlg);
-        out.writeU8(flags);
-        out.writeU16(iterations);
-
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU8(hashAlgorithm)
+        out.writeU8(flags)
+        out.writeU16(iterations)
         if (salt != null) {
-            out.writeU8(salt.length);
-            out.writeByteArray(salt);
+            out.writeU8(salt!!.size)
+            out.writeByteArray(salt!!)
+        } else {
+            out.writeU8(0)
         }
-        else {
-            out.writeU8(0);
-        }
-
-        out.writeU8(next.length);
-        out.writeByteArray(next);
-        types.toWire(out);
+        out.writeU8(next.size)
+        out.writeByteArray(next)
+        types!!.toWire(out)
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(hashAlg);
-        sb.append(' ');
-        sb.append(flags);
-        sb.append(' ');
-        sb.append(iterations);
-        sb.append(' ');
-
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(hashAlgorithm)
+        sb.append(' ')
+        sb.append(flags)
+        sb.append(' ')
+        sb.append(iterations)
+        sb.append(' ')
         if (salt == null) {
-            sb.append('-');
+            sb.append('-')
+        } else {
+            sb.append(toString(salt!!))
         }
-        else {
-            sb.append(base16.toString(salt));
-        }
-
-        sb.append(' ');
-        sb.append(b32.toString(next));
-
-        if (!types.empty()) {
-            sb.append(' ');
-            sb.append(types.toString());
+        sb.append(' ')
+        sb.append(b32.toString(next))
+        if (!types!!.empty()) {
+            sb.append(' ')
+            sb.append(types.toString())
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        hashAlg = st.getUInt8();
-        flags = st.getUInt8();
-        iterations = st.getUInt16();
-
-        String s = st.getString();
-        if (s.equals("-")) {
-            salt = null;
-        }
-        else {
-            st.unget();
-            salt = st.getHexString();
-            if (salt.length > 255) {
-                throw st.exception("salt value too long");
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        hashAlgorithm = st.getUInt8()
+        flags = st.getUInt8()
+        iterations = st.getUInt16()
+        val s = st.getString()
+        if (s == "-") {
+            salt = null
+        } else {
+            st.unget()
+            salt = st.hexString
+            if (salt!!.size > 255) {
+                throw st.exception("salt value too long")
             }
         }
-
-        next = st.getBase32String(b32);
-        types = new TypeBitmap(st);
+        next = st.getBase32String(b32)
+        types = TypeBitmap(st)
     }
 
     /**
@@ -190,85 +178,49 @@ class NSEC3Record extends DnsRecord {
      * @param next The next hash (may not be null).
      * @param types The types present at the original ownername.
      */
-    public
-    NSEC3Record(Name name, int dclass, long ttl, int hashAlg, int flags, int iterations, byte[] salt, byte[] next, int[] types) {
-        super(name, DnsRecordType.NSEC3, dclass, ttl);
-        this.hashAlg = checkU8("hashAlg", hashAlg);
-        this.flags = checkU8("flags", flags);
-        this.iterations = checkU16("iterations", iterations);
+    constructor(
+        name: Name?,
+        dclass: Int,
+        ttl: Long,
+        hashAlg: Int,
+        flags: Int,
+        iterations: Int,
+        salt: ByteArray?,
+        next: ByteArray,
+        types: IntArray
+    ) : super(
+        name!!, DnsRecordType.NSEC3, dclass, ttl
+    ) {
+        hashAlgorithm = checkU8("hashAlg", hashAlg)
+        this.flags = checkU8("flags", flags)
+        this.iterations = checkU16("iterations", iterations)
 
         if (salt != null) {
-            if (salt.length > 255) {
-                throw new IllegalArgumentException("Invalid salt");
-            }
-            if (salt.length > 0) {
-                this.salt = new byte[salt.length];
-                System.arraycopy(salt, 0, this.salt, 0, salt.length);
+            require(salt.size <= 255) { "Invalid salt" }
+            if (salt.size > 0) {
+                this.salt = ByteArray(salt.size)
+                System.arraycopy(salt, 0, this.salt, 0, salt.size)
             }
         }
+        require(next.size <= 255) { "Invalid next hash" }
 
-        if (next.length > 255) {
-            throw new IllegalArgumentException("Invalid next hash");
-        }
-        this.next = new byte[next.length];
-        System.arraycopy(next, 0, this.next, 0, next.length);
-        this.types = new TypeBitmap(types);
-    }
-
-    /**
-     * Returns the hash algorithm
-     */
-    public
-    int getHashAlgorithm() {
-        return hashAlg;
-    }
-
-    /**
-     * Returns the flags
-     */
-    public
-    int getFlags() {
-        return flags;
-    }
-
-    /**
-     * Returns the number of iterations
-     */
-    public
-    int getIterations() {
-        return iterations;
-    }
-
-    /**
-     * Returns the salt
-     */
-    public
-    byte[] getSalt() {
-        return salt;
-    }
-
-    /**
-     * Returns the next hash
-     */
-    public
-    byte[] getNext() {
-        return next;
+        this.next = ByteArray(next.size)
+        System.arraycopy(next, 0, this.next, 0, next.size)
+        this.types = TypeBitmap(types)
     }
 
     /**
      * Returns the set of types defined for this name
      */
-    public
-    int[] getTypes() {
-        return types.toArray();
+    fun getTypes(): IntArray {
+        return types!!.toArray()
     }
 
     /**
      * Returns whether a specific type is in the set of types.
      */
-    public
-    boolean hasType(int type) {
-        return types.contains(type);
+    fun hasType(type: Int): Boolean {
+        return types!!.contains(type)
     }
 
     /**
@@ -280,36 +232,36 @@ class NSEC3Record extends DnsRecord {
      *
      * @throws NoSuchAlgorithmException The hash algorithm is unknown.
      */
-    public
-    byte[] hashName(Name name) throws NoSuchAlgorithmException {
-        return hashName(name, hashAlg, iterations, salt);
+    @Throws(NoSuchAlgorithmException::class)
+    fun hashName(name: Name): ByteArray? {
+        return hashName(name, hashAlgorithm, iterations, salt)
     }
 
-    static
-    byte[] hashName(Name name, int hashAlg, int iterations, byte[] salt) throws NoSuchAlgorithmException {
-        MessageDigest digest;
-        switch (hashAlg) {
-            case Digest.SHA1:
-                digest = MessageDigest.getInstance("sha-1");
-                break;
-            default:
-                throw new NoSuchAlgorithmException("Unknown NSEC3 algorithm" + "identifier: " + hashAlg);
+    companion object {
+        const val SHA1_DIGEST_ID = Digest.SHA1
+        private const val serialVersionUID = -7123504635968932855L
+        private val b32 = base32(base32.Alphabet.BASE32HEX, false, false)
+        @Throws(NoSuchAlgorithmException::class)
+        fun hashName(name: Name, hashAlg: Int, iterations: Int, salt: ByteArray?): ByteArray? {
+            val digest: MessageDigest
+            digest = when (hashAlg) {
+                Digest.SHA1 -> MessageDigest.getInstance("sha-1")
+                else -> throw NoSuchAlgorithmException("Unknown NSEC3 algorithmidentifier: $hashAlg")
+            }
+            var hash: ByteArray? = null
+            for (i in 0..iterations) {
+                digest.reset()
+                if (i == 0) {
+                    digest.update(name.toWireCanonical())
+                } else {
+                    digest.update(hash)
+                }
+                if (salt != null) {
+                    digest.update(salt)
+                }
+                hash = digest.digest()
+            }
+            return hash
         }
-        byte[] hash = null;
-        for (int i = 0; i <= iterations; i++) {
-            digest.reset();
-            if (i == 0) {
-                digest.update(name.toWireCanonical());
-            }
-            else {
-                digest.update(hash);
-            }
-            if (salt != null) {
-                digest.update(salt);
-            }
-            hash = digest.digest();
-        }
-        return hash;
     }
-
 }

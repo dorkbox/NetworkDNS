@@ -13,78 +13,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.netUtil.IPv4;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.utils.Address;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Address
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.netUtil.IP
+import dorkbox.netUtil.IPv4.isFamily
+import dorkbox.netUtil.IPv4.length
+import dorkbox.netUtil.IPv4.toString
+import java.io.IOException
+import java.net.InetAddress
+import java.net.UnknownHostException
 
 /**
  * Address Record - maps a domain name to an Internet address
  *
  * @author Brian Wellington
  */
+class ARecord : DnsRecord {
+    private var addr = 0
 
-public
-class ARecord extends DnsRecord {
+    internal constructor() {}
 
-    private static final long serialVersionUID = -2172609200849142323L;
+    override val `object`: DnsRecord
+        get() = ARecord()
 
-    private int addr;
-
-    ARecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new ARecord();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        addr = fromArray(`in`.readByteArray(4))
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        addr = fromArray(in.readByteArray(4));
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU32(((long) addr) & 0xFFFFFFFFL);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU32(addr.toLong() and 0xFFFFFFFFL)
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        IPv4.INSTANCE.toString(addr, sb);
+    override fun rrToString(sb: StringBuilder) {
+        toString(addr, sb)
     }
 
-    private static
-    byte[] toArray(int addr) {
-        byte[] bytes = new byte[4];
-        bytes[0] = (byte) ((addr >>> 24) & 0xFF);
-        bytes[1] = (byte) ((addr >>> 16) & 0xFF);
-        bytes[2] = (byte) ((addr >>> 8) & 0xFF);
-        bytes[3] = (byte) (addr & 0xFF);
-        return bytes;
-    }
-
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        addr = fromArray(st.getAddressBytes(Address.IPv4));
-    }
-
-    private static
-    int fromArray(byte[] array) {
-        return (((array[0] & 0xFF) << 24) | ((array[1] & 0xFF) << 16) | ((array[2] & 0xFF) << 8) | (array[3] & 0xFF));
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        addr = fromArray(st.getAddressBytes(Address.IPv4))
     }
 
     /**
@@ -92,13 +69,9 @@ class ARecord extends DnsRecord {
      *
      * @param address The address that the name refers to
      */
-    public
-    ARecord(Name name, int dclass, long ttl, InetAddress address) {
-        super(name, DnsRecordType.A, dclass, ttl);
-        if (!IPv4.INSTANCE.isFamily(address)) {
-            throw new IllegalArgumentException("invalid IPv4 address");
-        }
-        addr = fromArray(address.getAddress());
+    constructor(name: Name?, dclass: Int, ttl: Long, address: InetAddress) : super(name ?: Name(IP.toString(address), null), DnsRecordType.A, dclass, ttl) {
+        require(isFamily(address)) { "invalid IPv4 address" }
+        addr = fromArray(address.address)
     }
 
     /**
@@ -106,29 +79,34 @@ class ARecord extends DnsRecord {
      *
      * @param address The address that the name refers to as a byte array. This value is NOT COPIED.
      */
-    public
-    ARecord(Name name, int dclass, long ttl, byte[] address) {
-        super(name, DnsRecordType.A, dclass, ttl);
-        if (address.length != IPv4.INSTANCE.getLength()) {
-            throw new IllegalArgumentException("invalid IPv4 address");
-        }
-        addr = fromArray(address);
+    constructor(name: Name?, dclass: Int, ttl: Long, address: ByteArray) : super(name!!, DnsRecordType.A, dclass, ttl) {
+        require(address.size == length) { "invalid IPv4 address" }
+        addr = fromArray(address)
     }
 
     /**
      * Returns the Internet address
      */
-    public
-    InetAddress getAddress() {
-        try {
-            if (name == null) {
-                return InetAddress.getByAddress(toArray(addr));
-            }
-            else {
-                return InetAddress.getByAddress(name.toString(true), toArray(addr));
-            }
-        } catch (UnknownHostException e) {
-            return null;
+    val address: InetAddress?
+        get() = try {
+            InetAddress.getByAddress(name.toString(true), toArray(addr))
+        } catch (e: UnknownHostException) {
+            null
+        }
+
+    companion object {
+        private const val serialVersionUID = -2172609200849142323L
+        private fun toArray(addr: Int): ByteArray {
+            val bytes = ByteArray(4)
+            bytes[0] = (addr ushr 24 and 0xFF).toByte()
+            bytes[1] = (addr ushr 16 and 0xFF).toByte()
+            bytes[2] = (addr ushr 8 and 0xFF).toByte()
+            bytes[3] = (addr and 0xFF).toByte()
+            return bytes
+        }
+
+        private fun fromArray(array: ByteArray): Int {
+            return array[0].toInt() and 0xFF shl 24 or (array[1].toInt() and 0xFF shl 16) or (array[2].toInt() and 0xFF shl 8) or (array[3].toInt() and 0xFF)
         }
     }
 }

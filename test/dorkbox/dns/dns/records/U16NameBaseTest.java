@@ -25,8 +25,6 @@ import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.RelativeNameException;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.U16NameBase;
 import dorkbox.dns.dns.utils.Tokenizer;
 import junit.framework.TestCase;
 
@@ -54,18 +52,6 @@ class U16NameBaseTest extends TestCase {
 
         @Override
         public
-        int getU16Field() {
-            return super.getU16Field();
-        }
-
-        @Override
-        public
-        Name getNameField() {
-            return super.getNameField();
-        }
-
-        @Override
-        public
         DnsRecord getObject() {
             return null;
         }
@@ -76,37 +62,37 @@ class U16NameBaseTest extends TestCase {
         TestClass tc = new TestClass();
         assertNull(tc.getName());
         assertEquals(0, tc.getType());
-        assertEquals(0, tc.getDClass());
-        assertEquals(0, tc.getTTL());
+        assertEquals(0, tc.getDclass());
+        assertEquals(0, tc.getTtl());
         assertEquals(0, tc.getU16Field());
         assertNull(tc.getNameField());
     }
 
     public
     void test_ctor_4arg() throws TextParseException {
-        Name n = Name.fromString("My.Name.");
+        Name n = Name.Companion.fromString("My.Name.");
 
         TestClass tc = new TestClass(n, DnsRecordType.MX, DnsClass.IN, 0xBCDA);
 
         assertSame(n, tc.getName());
         assertEquals(DnsRecordType.MX, tc.getType());
-        assertEquals(DnsClass.IN, tc.getDClass());
-        assertEquals(0xBCDA, tc.getTTL());
+        assertEquals(DnsClass.IN, tc.getDclass());
+        assertEquals(0xBCDA, tc.getTtl());
         assertEquals(0, tc.getU16Field());
         assertNull(tc.getNameField());
     }
 
     public
     void test_ctor_8arg() throws TextParseException {
-        Name n = Name.fromString("My.Name.");
-        Name m = Name.fromString("My.Other.Name.");
+        Name n = Name.Companion.fromString("My.Name.");
+        Name m = Name.Companion.fromString("My.Other.Name.");
 
         TestClass tc = new TestClass(n, DnsRecordType.MX, DnsClass.IN, 0xB12FL, 0x1F2B, "u16 description", m, "name description");
 
         assertSame(n, tc.getName());
         assertEquals(DnsRecordType.MX, tc.getType());
-        assertEquals(DnsClass.IN, tc.getDClass());
-        assertEquals(0xB12FL, tc.getTTL());
+        assertEquals(DnsClass.IN, tc.getDclass());
+        assertEquals(0xB12FL, tc.getTtl());
         assertEquals(0x1F2B, tc.getU16Field());
         assertEquals(m, tc.getNameField());
 
@@ -118,7 +104,7 @@ class U16NameBaseTest extends TestCase {
         }
 
         // a relative name
-        Name rel = Name.fromString("My.relative.Name");
+        Name rel = Name.Companion.fromString("My.relative.Name");
         try {
             new TestClass(n, DnsRecordType.MX, DnsClass.IN, 0xB12FL, 0x1F2B, "u16 description", rel, "name description");
             fail("RelativeNameException not thrown");
@@ -135,14 +121,14 @@ class U16NameBaseTest extends TestCase {
         TestClass tc = new TestClass();
         tc.rrFromWire(in);
 
-        Name exp = Name.fromString("My.single.name.");
+        Name exp = Name.Companion.fromString("My.single.name.");
         assertEquals(0xBC1FL, tc.getU16Field());
         assertEquals(exp, tc.getNameField());
     }
 
     public
     void test_rdataFromString() throws IOException {
-        Name exp = Name.fromString("My.Single.Name.");
+        Name exp = Name.Companion.fromString("My.Single.Name.");
 
         Tokenizer t = new Tokenizer(0x19A2 + " My.Single.Name.");
         TestClass tc = new TestClass();
@@ -162,8 +148,8 @@ class U16NameBaseTest extends TestCase {
 
     public
     void test_rrToString() throws IOException, TextParseException {
-        Name n = Name.fromString("My.Name.");
-        Name m = Name.fromString("My.Other.Name.");
+        Name n = Name.Companion.fromString("My.Name.");
+        Name m = Name.Companion.fromString("My.Other.Name.");
 
         TestClass tc = new TestClass(n, DnsRecordType.MX, DnsClass.IN, 0xB12FL, 0x1F2B, "u16 description", m, "name description");
 
@@ -177,8 +163,8 @@ class U16NameBaseTest extends TestCase {
 
     public
     void test_rrToWire() throws IOException, TextParseException {
-        Name n = Name.fromString("My.Name.");
-        Name m = Name.fromString("M.O.n.");
+        Name n = Name.Companion.fromString("My.Name.");
+        Name m = Name.Companion.fromString("M.O.n.");
 
         TestClass tc = new TestClass(n, DnsRecordType.MX, DnsClass.IN, 0xB12FL, 0x1F2B, "u16 description", m, "name description");
 

@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.server;
+package dorkbox.dns.dns.server
 
-import dorkbox.dns.dns.records.DnsMessage;
+import dorkbox.dns.dns.records.DnsMessage
 
 /**
  *
  */
-public
 interface Response {
-    int responseCode();
-
-    void postProcess(DnsMessage message);
+    fun responseCode(): Int
+    fun postProcess(message: DnsMessage)
 }

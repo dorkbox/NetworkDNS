@@ -13,52 +13,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * Name Server Record  - contains the name server serving the named zone
  *
  * @author Brian Wellington
  */
+class NSRecord : SingleCompressedNameBase {
+    internal constructor() {}
 
-public
-class NSRecord extends SingleCompressedNameBase {
+    override val `object`: DnsRecord
+        get() = NSRecord()
 
-    private static final long serialVersionUID = 487170758138268838L;
-
-    NSRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new NSRecord();
-    }
-
-    @Override
-    public
-    Name getAdditionalName() {
-        return getSingleName();
-    }
+    /**
+     * Gets the target of the NS Record
+     */
+    val target: Name
+        get() = singleName
 
     /**
      * Creates a new NS Record with the given data
      *
      * @param target The name server for the given domain
      */
-    public
-    NSRecord(Name name, int dclass, long ttl, Name target) {
-        super(name, DnsRecordType.NS, dclass, ttl, target, "target");
+    constructor(name: Name, dclass: Int, ttl: Long, target: Name) : super(name, DnsRecordType.NS, dclass, ttl, target, "target") {
+        this.additionalName = singleName
     }
 
-    /**
-     * Gets the target of the NS Record
-     */
-    public
-    Name getTarget() {
-        return getSingleName();
+    companion object {
+        private const val serialVersionUID = 487170758138268838L
     }
-
 }

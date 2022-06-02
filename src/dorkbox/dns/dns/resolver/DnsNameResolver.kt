@@ -13,314 +13,224 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver;
+package dorkbox.dns.dns.resolver
 
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
-import static io.netty.util.internal.ObjectUtil.checkPositive;
-
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import dorkbox.dns.dns.DnsQuestion;
-import dorkbox.dns.dns.clientHandlers.DatagramDnsQueryEncoder;
-import dorkbox.dns.dns.clientHandlers.DatagramDnsResponseDecoder;
-import dorkbox.dns.dns.clientHandlers.DnsResponse;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.resolver.addressProvider.DefaultDnsServerAddressStreamProvider;
-import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStream;
-import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStreamProvider;
-import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddresses;
-import dorkbox.dns.dns.resolver.cache.DnsCache;
-import dorkbox.dns.dns.resolver.cache.DnsCacheEntry;
-import dorkbox.netUtil.Dns;
-import dorkbox.netUtil.IP;
-import dorkbox.netUtil.IPv4;
-import dorkbox.netUtil.IPv6;
-import dorkbox.netUtil.dnsUtils.ResolvedAddressTypes;
-import dorkbox.os.OS;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFactory;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.EventLoop;
-import io.netty.channel.FixedRecvByteBufAllocator;
-import io.netty.channel.socket.DatagramChannel;
-import io.netty.channel.socket.InternetProtocolFamily;
-import io.netty.resolver.InetNameResolver;
-import io.netty.util.concurrent.FastThreadLocal;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.Promise;
-import io.netty.util.internal.UnstableApi;
+import dorkbox.dns.dns.DnsQuestion
+import dorkbox.dns.dns.DnsQuestion.Companion.hostNameAsciiFix
+import dorkbox.dns.dns.clientHandlers.DatagramDnsQueryEncoder
+import dorkbox.dns.dns.clientHandlers.DatagramDnsResponseDecoder
+import dorkbox.dns.dns.clientHandlers.DnsResponse
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.resolver.addressProvider.DefaultDnsServerAddressStreamProvider
+import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStream
+import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStreamProvider
+import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddresses
+import dorkbox.dns.dns.resolver.cache.DnsCache
+import dorkbox.netUtil.Dns.defaultNameServers
+import dorkbox.netUtil.Dns.numberDots
+import dorkbox.netUtil.Dns.resolveFromHosts
+import dorkbox.netUtil.IP.isValid
+import dorkbox.netUtil.IP.toBytes
+import dorkbox.netUtil.IP.toString
+import dorkbox.netUtil.IPv4
+import dorkbox.netUtil.IPv6
+import dorkbox.netUtil.dnsUtils.ResolvedAddressTypes
+import dorkbox.os.OS.isWindows
+import io.netty.bootstrap.Bootstrap
+import io.netty.channel.Channel
+import io.netty.channel.ChannelFactory
+import io.netty.channel.ChannelFutureListener
+import io.netty.channel.ChannelInitializer
+import io.netty.channel.ChannelOption
+import io.netty.channel.ChannelPromise
+import io.netty.channel.EventLoop
+import io.netty.channel.FixedRecvByteBufAllocator
+import io.netty.channel.socket.DatagramChannel
+import io.netty.channel.socket.InternetProtocolFamily
+import io.netty.resolver.InetNameResolver
+import io.netty.util.concurrent.FastThreadLocal
+import io.netty.util.concurrent.Future
+import io.netty.util.concurrent.Promise
+import io.netty.util.internal.ObjectUtil
+import io.netty.util.internal.UnstableApi
+import org.slf4j.LoggerFactory
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.util.function.*
 
 /**
- * A DNS-based {@link InetNameResolver}
+ * A DNS-based [InetNameResolver]
  */
-@SuppressWarnings("unused")
 @UnstableApi
-public
-class DnsNameResolver extends InetNameResolver {
-
-    static final Logger logger = LoggerFactory.getLogger(DnsNameResolver.class);
-
-    private static final String LOCALHOST = "localhost";
-    private static final InetAddress LOCALHOST_ADDRESS;
-
-    private static final int[] IPV4_ONLY_RESOLVED_RECORD_TYPES = {DnsRecordType.A};
-    private static final InternetProtocolFamily[] IPV4_ONLY_RESOLVED_PROTOCOL_FAMILIES = {InternetProtocolFamily.IPv4};
-    private static final int[] IPV4_PREFERRED_RESOLVED_RECORD_TYPES = {DnsRecordType.A, DnsRecordType.AAAA};
-    private static final InternetProtocolFamily[] IPV4_PREFERRED_RESOLVED_PROTOCOL_FAMILIES = {InternetProtocolFamily.IPv4,
-                                                                                               InternetProtocolFamily.IPv6};
-
-    private static final int[] IPV6_ONLY_RESOLVED_RECORD_TYPES = {DnsRecordType.AAAA};
-    private static final InternetProtocolFamily[] IPV6_ONLY_RESOLVED_PROTOCOL_FAMILIES = {InternetProtocolFamily.IPv6};
-    private static final int[] IPV6_PREFERRED_RESOLVED_RECORD_TYPES = {DnsRecordType.AAAA, DnsRecordType.A};
-    private static final InternetProtocolFamily[] IPV6_PREFERRED_RESOLVED_PROTOCOL_FAMILIES = {InternetProtocolFamily.IPv6,
-                                                                                               InternetProtocolFamily.IPv4};
-
-    public static final ResolvedAddressTypes DEFAULT_RESOLVE_ADDRESS_TYPES;
-    static final String[] DEFAULT_SEARCH_DOMAINS;
-    private static final int DEFAULT_NDOTS;
-
-    private static final DatagramDnsResponseDecoder DNS_DECODER = new DatagramDnsResponseDecoder();
-    private final DatagramDnsQueryEncoder DNS_ENCODER;
-
-    final Future<Channel> channelFuture;
-    final DatagramChannel ch;
+class DnsNameResolver(
+    eventLoop: EventLoop,
+    channelFactory: ChannelFactory<out DatagramChannel>,
+    resolveCache: DnsCache,
+    authoritativeDnsServerCache: DnsCache,
+    dnsQueryLifecycleObserverFactory: DnsQueryLifecycleObserverFactory,
+    queryTimeoutMillis: Long,
+    resolvedAddressTypes: ResolvedAddressTypes?,
+    recursionDesired: Boolean,
+    maxQueriesPerResolve: Int,
+    traceEnabled: Boolean,
+    maxPayloadSize: Int,
+    dnsServerAddressStreamProvider: DnsServerAddressStreamProvider,
+    searchDomains: Array<String>?,
+    ndots: Int,
+    decodeIdn: Boolean
+) : InetNameResolver(eventLoop) {
+    private val DNS_ENCODER: DatagramDnsQueryEncoder
+    val channelFuture: Future<Channel>
+    val ch: DatagramChannel
 
     /**
-     * Manages the {@link DnsQueryContext}s in progress and their query IDs.
+     * Manages the [DnsQueryContext]s in progress and their query IDs.
      */
-    final DnsQueryContextManager queryContextManager = new DnsQueryContextManager();
+    internal val queryContextManager = DnsQueryContextManager()
 
     /**
-     * Cache for {@link #doResolve(String, Promise)} and {@link #doResolveAll(String, Promise)}.
+     * Cache for [.doResolve] and [.doResolveAll].
      */
-    private final DnsCache resolveCache;
+    private val resolveCache: DnsCache
+    private val authoritativeDnsServerCache: DnsCache
+    private val queryTimeoutMillis: Long
+    private val maxQueriesPerResolve: Int
+    private val resolvedAddressTypes: ResolvedAddressTypes
+    private val resolvedInternetProtocolFamilies: Array<InternetProtocolFamily>
 
-
-    private final DnsCache authoritativeDnsServerCache;
-
-    private final long queryTimeoutMillis;
-    private final int maxQueriesPerResolve;
-
-    private final ResolvedAddressTypes resolvedAddressTypes;
-    private final InternetProtocolFamily[] resolvedInternetProtocolFamilies;
-
-    private final boolean recursionDesired;
-    private final int maxPayloadSize;
-
-    private final DnsServerAddressStreamProvider dnsServerAddressStreamProvider;
-
-    private final FastThreadLocal<DnsServerAddressStream> nameServerAddrStream = new FastThreadLocal<DnsServerAddressStream>() {
-        @Override
-        protected
-        DnsServerAddressStream initialValue() throws Exception {
-            return dnsServerAddressStreamProvider.nameServerAddressStream("");
+    /**
+     * Returns `true` if and only if this resolver sends a DNS query with the RD (recursion desired) flag set.
+     * The default value is `true`.
+     */
+    val isRecursionDesired: Boolean
+    private val maxPayloadSize: Int
+    private val dnsServerAddressStreamProvider: DnsServerAddressStreamProvider
+    private val nameServerAddrStream: FastThreadLocal<DnsServerAddressStream> = object : FastThreadLocal<DnsServerAddressStream>() {
+        @Throws(Exception::class)
+        override fun initialValue(): DnsServerAddressStream {
+            return dnsServerAddressStreamProvider.nameServerAddressStream("")
         }
-    };
-
-    private final String[] searchDomains;
-    private final int ndots;
-
-    private final boolean supportsAAAARecords;
-    private final boolean supportsARecords;
-
-    private final InternetProtocolFamily preferredAddressType;
-    private final int[] resolveRecordTypes;
-
-    private final boolean decodeIdn;
-
-    private final DnsQueryLifecycleObserverFactory dnsQueryLifecycleObserverFactory;
-
-    static {
-        if (IPv4.INSTANCE.isPreferred()) {
-            DEFAULT_RESOLVE_ADDRESS_TYPES = ResolvedAddressTypes.IPV4_ONLY;
-            LOCALHOST_ADDRESS = IPv4.INSTANCE.getLOCALHOST();
-        }
-        else {
-            if (IPv6.INSTANCE.isPreferred()) {
-                DEFAULT_RESOLVE_ADDRESS_TYPES = ResolvedAddressTypes.IPV6_PREFERRED;
-                LOCALHOST_ADDRESS = IPv6.INSTANCE.getLOCALHOST();
-            }
-            else {
-                DEFAULT_RESOLVE_ADDRESS_TYPES = ResolvedAddressTypes.IPV4_PREFERRED;
-                LOCALHOST_ADDRESS = IPv4.INSTANCE.getLOCALHOST();
-            }
-        }
-
-        List<InetSocketAddress> searchDomains = Dns.INSTANCE.getDefaultNameServers();
-        DEFAULT_SEARCH_DOMAINS = searchDomains.stream()
-                                              .map((ras)->IP.INSTANCE.toString(ras.getAddress(), false))
-                                              .toArray(String[]::new);
-
-
-        DEFAULT_NDOTS = Dns.INSTANCE.getNumberDots();
     }
+    private val searchDomains: Array<String>
+    private val ndots: Int
+    private var supportsAAAARecords = false
+    private var supportsARecords = false
+    private var preferredAddressType: InternetProtocolFamily
+    private val resolveRecordTypes: IntArray
+    val isDecodeIdn: Boolean
+
+    private var dnsQueryLifecycleObserverFactory: DnsQueryLifecycleObserverFactory? = null
 
     /**
      * Creates a new DNS-based name resolver that communicates with the specified list of DNS servers.
      *
-     * @param eventLoop the {@link EventLoop} which will perform the communication with the DNS servers
-     * @param channelFactory the {@link ChannelFactory} that will create a {@link DatagramChannel}
+     * @param eventLoop the [EventLoop] which will perform the communication with the DNS servers
+     * @param channelFactory the [ChannelFactory] that will create a [DatagramChannel]
      * @param resolveCache the DNS resolved entries cache
      * @param authoritativeDnsServerCache the cache used to find the authoritative DNS server for a domain
-     * @param dnsQueryLifecycleObserverFactory used to generate new instances of {@link DnsQueryLifecycleObserver} which
-     *         can be used to track metrics for DNS servers.
+     * @param dnsQueryLifecycleObserverFactory used to generate new instances of [DnsQueryLifecycleObserver] which
+     * can be used to track metrics for DNS servers.
      * @param queryTimeoutMillis timeout of each DNS query in millis
      * @param resolvedAddressTypes the preferred address types
      * @param recursionDesired if recursion desired flag must be set
      * @param maxQueriesPerResolve the maximum allowed number of DNS queries for a given name resolution
      * @param traceEnabled if trace is enabled
      * @param maxPayloadSize the capacity of the datagram packet buffer
-     * @param dnsServerAddressStreamProvider The {@link DnsServerAddressStreamProvider} used to determine the name
-     *         servers for each hostname lookup.
+     * @param dnsServerAddressStreamProvider The [DnsServerAddressStreamProvider] used to determine the name
+     * servers for each hostname lookup.
      * @param searchDomains the list of search domain
-     *         (can be null, if so, will try to default to the underlying platform ones)
+     * (can be null, if so, will try to default to the underlying platform ones)
      * @param ndots the ndots value
-     * @param decodeIdn {@code true} if domain / host names should be decoded to unicode when received.
-     *         See <a href="https://tools.ietf.org/html/rfc3492">rfc3492</a>.
+     * @param decodeIdn `true` if domain / host names should be decoded to unicode when received.
+     * See [rfc3492](https://tools.ietf.org/html/rfc3492).
      */
-    public
-    DnsNameResolver(EventLoop eventLoop,
-                    ChannelFactory<? extends DatagramChannel> channelFactory,
-                    final DnsCache resolveCache,
-                    DnsCache authoritativeDnsServerCache,
-                    DnsQueryLifecycleObserverFactory dnsQueryLifecycleObserverFactory,
-                    long queryTimeoutMillis,
-                    ResolvedAddressTypes resolvedAddressTypes,
-                    boolean recursionDesired,
-                    int maxQueriesPerResolve,
-                    boolean traceEnabled,
-                    int maxPayloadSize,
-                    DnsServerAddressStreamProvider dnsServerAddressStreamProvider,
-                    String[] searchDomains,
-                    int ndots,
-                    boolean decodeIdn) {
-        super(eventLoop);
-
-        this.queryTimeoutMillis = checkPositive(queryTimeoutMillis, "queryTimeoutMillis");
-        this.resolvedAddressTypes = resolvedAddressTypes != null ? resolvedAddressTypes : DEFAULT_RESOLVE_ADDRESS_TYPES;
-        this.recursionDesired = recursionDesired;
-        this.maxQueriesPerResolve = checkPositive(maxQueriesPerResolve, "maxQueriesPerResolve");
-        this.maxPayloadSize = checkPositive(maxPayloadSize, "maxPayloadSize");
-        this.dnsServerAddressStreamProvider = checkNotNull(dnsServerAddressStreamProvider, "dnsServerAddressStreamProvider");
-        this.resolveCache = checkNotNull(resolveCache, "resolveCache");
-        this.authoritativeDnsServerCache = checkNotNull(authoritativeDnsServerCache, "authoritativeDnsServerCache");
-
+    init {
+        this.queryTimeoutMillis = ObjectUtil.checkPositive(queryTimeoutMillis, "queryTimeoutMillis")
+        this.resolvedAddressTypes = resolvedAddressTypes ?: DEFAULT_RESOLVE_ADDRESS_TYPES!!
+        isRecursionDesired = recursionDesired
+        this.maxQueriesPerResolve = ObjectUtil.checkPositive(maxQueriesPerResolve, "maxQueriesPerResolve")
+        this.maxPayloadSize = ObjectUtil.checkPositive(maxPayloadSize, "maxPayloadSize")
+        this.dnsServerAddressStreamProvider = ObjectUtil.checkNotNull(dnsServerAddressStreamProvider, "dnsServerAddressStreamProvider")
+        this.resolveCache = ObjectUtil.checkNotNull(resolveCache, "resolveCache")
+        this.authoritativeDnsServerCache = ObjectUtil.checkNotNull(authoritativeDnsServerCache, "authoritativeDnsServerCache")
         if (traceEnabled) {
-            if (dnsQueryLifecycleObserverFactory instanceof NoopDnsQueryLifecycleObserverFactory) {
-                this.dnsQueryLifecycleObserverFactory = new TraceDnsQueryLifeCycleObserverFactory();
+            if (dnsQueryLifecycleObserverFactory is NoopDnsQueryLifecycleObserverFactory) {
+                this.dnsQueryLifecycleObserverFactory = TraceDnsQueryLifeCycleObserverFactory()
+            } else {
+                this.dnsQueryLifecycleObserverFactory = BiDnsQueryLifecycleObserverFactory(
+                    TraceDnsQueryLifeCycleObserverFactory(), dnsQueryLifecycleObserverFactory
+                )
             }
-            else {
-                this.dnsQueryLifecycleObserverFactory = new BiDnsQueryLifecycleObserverFactory(new TraceDnsQueryLifeCycleObserverFactory(),
-                                                                                               dnsQueryLifecycleObserverFactory);
+        } else {
+            this.dnsQueryLifecycleObserverFactory =
+                ObjectUtil.checkNotNull(dnsQueryLifecycleObserverFactory, "dnsQueryLifecycleObserverFactory")
+        }
+        this.searchDomains = searchDomains?.clone() ?: DEFAULT_SEARCH_DOMAINS
+        this.ndots = if (ndots >= 0) ndots else DEFAULT_NDOTS
+        isDecodeIdn = decodeIdn
+
+        when (this.resolvedAddressTypes) {
+            ResolvedAddressTypes.IPV4_ONLY -> {
+                supportsAAAARecords = false
+                supportsARecords = true
+                resolveRecordTypes = IPV4_ONLY_RESOLVED_RECORD_TYPES
+                resolvedInternetProtocolFamilies = IPV4_ONLY_RESOLVED_PROTOCOL_FAMILIES
+                preferredAddressType = InternetProtocolFamily.IPv4
             }
-        }
-        else {
-            this.dnsQueryLifecycleObserverFactory = checkNotNull(dnsQueryLifecycleObserverFactory, "dnsQueryLifecycleObserverFactory");
-        }
-
-
-        this.searchDomains = searchDomains != null ? searchDomains.clone() : DEFAULT_SEARCH_DOMAINS;
-        this.ndots = ndots >= 0 ? ndots : DEFAULT_NDOTS;
-        this.decodeIdn = decodeIdn;
-
-        switch (this.resolvedAddressTypes) {
-            case IPV4_ONLY:
-                supportsAAAARecords = false;
-                supportsARecords = true;
-                resolveRecordTypes = IPV4_ONLY_RESOLVED_RECORD_TYPES;
-                resolvedInternetProtocolFamilies = IPV4_ONLY_RESOLVED_PROTOCOL_FAMILIES;
-                preferredAddressType = InternetProtocolFamily.IPv4;
-                break;
-            case IPV4_PREFERRED:
-                supportsAAAARecords = true;
-                supportsARecords = true;
-                resolveRecordTypes = IPV4_PREFERRED_RESOLVED_RECORD_TYPES;
-                resolvedInternetProtocolFamilies = IPV4_PREFERRED_RESOLVED_PROTOCOL_FAMILIES;
-                preferredAddressType = InternetProtocolFamily.IPv4;
-                break;
-            case IPV6_ONLY:
-                supportsAAAARecords = true;
-                supportsARecords = false;
-                resolveRecordTypes = IPV6_ONLY_RESOLVED_RECORD_TYPES;
-                resolvedInternetProtocolFamilies = IPV6_ONLY_RESOLVED_PROTOCOL_FAMILIES;
-                preferredAddressType = InternetProtocolFamily.IPv6;
-                break;
-            case IPV6_PREFERRED:
-                supportsAAAARecords = true;
-                supportsARecords = true;
-                resolveRecordTypes = IPV6_PREFERRED_RESOLVED_RECORD_TYPES;
-                resolvedInternetProtocolFamilies = IPV6_PREFERRED_RESOLVED_PROTOCOL_FAMILIES;
-                preferredAddressType = InternetProtocolFamily.IPv6;
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown ResolvedAddressTypes " + resolvedAddressTypes);
-        }
-
-        Bootstrap b = new Bootstrap();
-        b.group(executor());
-
-        b.channelFactory(channelFactory);
-        b.option(ChannelOption.DATAGRAM_CHANNEL_ACTIVE_ON_REGISTRATION, true);
-
-        DNS_ENCODER = new DatagramDnsQueryEncoder(maxPayloadSize);
-
-
-        Promise<Channel> channelActivePromise = executor().newPromise();
-        final DnsNameResolverResponseHandler responseHandler = new DnsNameResolverResponseHandler(this, channelActivePromise);
-        b.handler(new ChannelInitializer<DatagramChannel>() {
-            @Override
-            protected
-            void initChannel(DatagramChannel ch) throws Exception {
-                ch.pipeline()
-                  .addLast(DNS_DECODER, DNS_ENCODER, responseHandler);
+            ResolvedAddressTypes.IPV4_PREFERRED -> {
+                supportsAAAARecords = true
+                supportsARecords = true
+                resolveRecordTypes = IPV4_PREFERRED_RESOLVED_RECORD_TYPES
+                resolvedInternetProtocolFamilies = IPV4_PREFERRED_RESOLVED_PROTOCOL_FAMILIES
+                preferredAddressType = InternetProtocolFamily.IPv4
             }
-        });
-
-        channelFuture = channelActivePromise;
-        ch = (DatagramChannel) b.register()
-                                .channel();
-
-        ch.config()
-          .setRecvByteBufAllocator(new FixedRecvByteBufAllocator(maxPayloadSize));
-
-        ch.closeFuture()
-          .addListener(new ChannelFutureListener() {
-              @Override
-              public
-              void operationComplete(ChannelFuture future) throws Exception {
-                  resolveCache.clear();
-              }
-          });
+            ResolvedAddressTypes.IPV6_ONLY -> {
+                supportsAAAARecords = true
+                supportsARecords = false
+                resolveRecordTypes = IPV6_ONLY_RESOLVED_RECORD_TYPES
+                resolvedInternetProtocolFamilies = IPV6_ONLY_RESOLVED_PROTOCOL_FAMILIES
+                preferredAddressType = InternetProtocolFamily.IPv6
+            }
+            ResolvedAddressTypes.IPV6_PREFERRED -> {
+                supportsAAAARecords = true
+                supportsARecords = true
+                resolveRecordTypes = IPV6_PREFERRED_RESOLVED_RECORD_TYPES
+                resolvedInternetProtocolFamilies = IPV6_PREFERRED_RESOLVED_PROTOCOL_FAMILIES
+                preferredAddressType = InternetProtocolFamily.IPv6
+            }
+            else -> throw IllegalArgumentException("Unknown ResolvedAddressTypes $resolvedAddressTypes")
+        }
+        val b = Bootstrap()
+        b.group(executor())
+        b.channelFactory(channelFactory)
+        b.option(ChannelOption.DATAGRAM_CHANNEL_ACTIVE_ON_REGISTRATION, true)
+        DNS_ENCODER = DatagramDnsQueryEncoder(maxPayloadSize)
+        val channelActivePromise = executor().newPromise<Channel>()
+        val responseHandler = DnsNameResolverResponseHandler(this, channelActivePromise)
+        b.handler(object : ChannelInitializer<DatagramChannel>() {
+            @Throws(Exception::class)
+            override fun initChannel(ch: DatagramChannel) {
+                ch.pipeline().addLast(DNS_DECODER, DNS_ENCODER, responseHandler)
+            }
+        })
+        channelFuture = channelActivePromise
+        ch = b.register().channel() as DatagramChannel
+        ch.config().setRecvByteBufAllocator(FixedRecvByteBufAllocator(maxPayloadSize))
+        ch.closeFuture().addListener(ChannelFutureListener { resolveCache.clear() })
     }
 
-    @Override
-    protected
-    EventLoop executor() {
-        return (EventLoop) super.executor();
+    public override fun executor(): EventLoop {
+        return super.executor() as EventLoop
     }
 
-    @Override
-    protected
-    void doResolve(String inetHost, Promise<InetAddress> promise) throws Exception {
-        doResolve(inetHost, promise, resolveCache);
+    @Throws(Exception::class)
+    override fun doResolve(inetHost: String, promise: Promise<InetAddress>) {
+        doResolve(inetHost, promise, resolveCache)
     }
 
-    @Override
-    protected
-    void doResolveAll(String inetHost, Promise<List<InetAddress>> promise) throws Exception {
-        doResolveAll(inetHost, promise, resolveCache);
+    @Throws(Exception::class)
+    override fun doResolveAll(inetHost: String, promise: Promise<List<InetAddress>>) {
+        doResolveAll(inetHost, promise, resolveCache)
     }
 
     /**
@@ -328,11 +238,9 @@ class DnsNameResolver extends InetNameResolver {
      * records from the cache. Attempting to send a DNS query or to resolve a domain name will fail once this method
      * has been called.
      */
-    @Override
-    public
-    void close() {
-        if (ch.isOpen()) {
-            ch.close();
+    override fun close() {
+        if (ch.isOpen) {
+            ch.close()
         }
     }
 
@@ -340,223 +248,176 @@ class DnsNameResolver extends InetNameResolver {
      * Hook designed for extensibility so one can pass a different cache on each resolution attempt
      * instead of using the global one.
      */
-    protected
-    void doResolveAll(String inetHost, Promise<List<InetAddress>> promise, DnsCache resolveCache) throws Exception {
-
+    @Throws(Exception::class)
+    protected fun doResolveAll(inetHost: String?, promise: Promise<List<InetAddress>>, resolveCache: DnsCache) {
         if (inetHost == null || inetHost.isEmpty()) {
             // If an empty hostname is used we should use "localhost", just like InetAddress.getAllByName(...) does.
-            promise.setSuccess(Collections.singletonList(loopbackAddress()));
-            return;
+            promise.setSuccess(listOf(loopbackAddress()))
+            return
         }
-
-        if (IP.INSTANCE.isValid(inetHost)) {
-            final byte[] bytes = IP.INSTANCE.toBytes(inetHost);
-            if (bytes.length > 0) {
+        if (isValid(inetHost)) {
+            val bytes = toBytes(inetHost)
+            if (bytes.size > 0) {
                 // The unresolvedAddress was created via a String that contains an ip address.
-                promise.setSuccess(Collections.singletonList(InetAddress.getByAddress(bytes)));
-                return;
+                promise.setSuccess(listOf(InetAddress.getByAddress(bytes)))
+                return
             }
         }
-
-        final String hostname = DnsQuestion.hostNameAsciiFix(inetHost);
-
-        InetAddress hostsFileEntry = resolveHostsFileEntry(hostname);
+        val hostname = hostNameAsciiFix(inetHost)
+        val hostsFileEntry = resolveHostsFileEntry(hostname)
         if (hostsFileEntry != null) {
-            promise.setSuccess(Collections.singletonList(hostsFileEntry));
-            return;
+            promise.setSuccess(listOf(hostsFileEntry))
+            return
         }
-
         if (!doResolveAllCached(hostname, promise, resolveCache)) {
-            doResolveAllUncached(hostname, promise, resolveCache);
+            doResolveAllUncached(hostname!!, promise, resolveCache)
         }
     }
 
-    private
-    boolean doResolveAllCached(String hostname, Promise<List<InetAddress>> promise, DnsCache resolveCache) {
-
-        final List<DnsCacheEntry> cachedEntries = resolveCache.get(hostname);
-        if (cachedEntries == null || cachedEntries.isEmpty()) {
-            return false;
+    private fun doResolveAllCached(hostname: String?, promise: Promise<List<InetAddress>>, resolveCache: DnsCache): Boolean {
+        if (hostname == null) {
+            return false
         }
 
-        List<InetAddress> result = null;
-        Throwable cause = null;
-
-        //noinspection SynchronizationOnLocalVariableOrMethodParameter
-        synchronized (cachedEntries) {
-            final int numEntries = cachedEntries.size();
-            assert numEntries > 0;
-
-            if (cachedEntries.get(0)
-                             .cause() != null) {
-                cause = cachedEntries.get(0)
-                                     .cause();
-            }
-            else {
-                for (InternetProtocolFamily f : resolvedInternetProtocolFamilies) {
-                    for (int i = 0; i < numEntries; i++) {
-                        final DnsCacheEntry e = cachedEntries.get(i);
-                        if (f.addressType()
-                             .isInstance(e.address())) {
+        val cachedEntries = resolveCache[hostname]
+        if (cachedEntries == null || cachedEntries.isEmpty()) {
+            return false
+        }
+        var result: MutableList<InetAddress>? = null
+        var cause: Throwable? = null
+        synchronized(cachedEntries) {
+            val numEntries = cachedEntries.size
+            assert(numEntries > 0)
+            if (cachedEntries[0].cause() != null) {
+                cause = cachedEntries[0].cause()
+            } else {
+                for (f in resolvedInternetProtocolFamilies) {
+                    for (i in 0 until numEntries) {
+                        val e = cachedEntries[i]
+                        if (f.addressType().isInstance(e.address())) {
                             if (result == null) {
-                                result = new ArrayList<InetAddress>(numEntries);
+                                result = ArrayList(numEntries)
                             }
-                            result.add(e.address());
+                            result!!.add(e.address()!!)
                         }
                     }
                 }
             }
         }
-
         if (result != null) {
-            trySuccess(promise, result);
-            return true;
+            trySuccess(promise, result!!)
+            return true
         }
         if (cause != null) {
-            tryFailure(promise, cause);
-            return true;
+            tryFailure(promise, cause!!)
+            return true
         }
-        return false;
+        return false
     }
 
-    private
-    void doResolveAllUncached(String hostname, Promise<List<InetAddress>> promise, DnsCache resolveCache) {
-        DnsServerAddressStream nameServerAddrs = dnsServerAddressStreamProvider.nameServerAddressStream(hostname);
-
-        DnsNameResolverListResolverContext context = new DnsNameResolverListResolverContext(this, hostname, resolveCache, nameServerAddrs);
-        context.resolve(promise);
+    private fun doResolveAllUncached(hostname: String, promise: Promise<List<InetAddress>>, resolveCache: DnsCache) {
+        val nameServerAddrs = dnsServerAddressStreamProvider.nameServerAddressStream(hostname)
+        val context = DnsNameResolverListResolverContext(this, hostname, resolveCache, nameServerAddrs)
+        context.resolve(promise)
     }
 
     /**
      * Hook designed for extensibility so one can pass a different cache on each resolution attempt
      * instead of using the global one.
      */
-    protected
-    void doResolve(String inetHost, Promise<InetAddress> promise, DnsCache resolveCache) throws Exception {
+    @Throws(Exception::class)
+    protected fun doResolve(inetHost: String?, promise: Promise<InetAddress>, resolveCache: DnsCache) {
         if (inetHost == null || inetHost.isEmpty()) {
             // If an empty hostname is used we should use "localhost", just like InetAddress.getByName(...) does.
-            promise.setSuccess(loopbackAddress());
-            return;
+            promise.setSuccess(loopbackAddress())
+            return
         }
-
-        final byte[] bytes = IP.INSTANCE.toBytes(inetHost);
+        val bytes = toBytes(inetHost)
         if (bytes != null) {
             // The inetHost is actually an ipaddress.
-            promise.setSuccess(InetAddress.getByAddress(bytes));
-            return;
+            promise.setSuccess(InetAddress.getByAddress(bytes))
+            return
         }
-
-        final String hostname = DnsQuestion.hostNameAsciiFix(inetHost);
-
-        InetAddress hostsFileEntry = resolveHostsFileEntry(hostname);
+        val hostname = hostNameAsciiFix(inetHost)
+        val hostsFileEntry = resolveHostsFileEntry(hostname)
         if (hostsFileEntry != null) {
-            promise.setSuccess(hostsFileEntry);
-            return;
+            promise.setSuccess(hostsFileEntry)
+            return
         }
-
         if (!doResolveCached(hostname, promise, resolveCache)) {
-            doResolveUncached(hostname, promise, resolveCache);
+            doResolveUncached(hostname!!, promise, resolveCache)
         }
     }
 
-    public
-    InetAddress resolveHostsFileEntry(String hostname) {
-        InetAddress address = Dns.INSTANCE.resolveFromHosts(hostname, resolvedAddressTypes);
-        if (address == null && OS.INSTANCE.isWindows() && LOCALHOST.equalsIgnoreCase(hostname)) {
+    fun resolveHostsFileEntry(hostname: String?): InetAddress? {
+        val address = resolveFromHosts(hostname!!, resolvedAddressTypes)
+        return if (address == null && isWindows && LOCALHOST.equals(hostname, ignoreCase = true)) {
             // If we tried to resolve localhost we need workaround that windows removed localhost from its hostfile in later versions.
             // See https://github.com/netty/netty/issues/5386
-            return LOCALHOST_ADDRESS;
+            LOCALHOST_ADDRESS
+        } else address
+    }
+
+    private fun loopbackAddress(): InetAddress {
+        return preferredAddressType()!!.localhost()
+    }
+
+    fun preferredAddressType(): InternetProtocolFamily {
+        return preferredAddressType
+    }
+
+    private fun doResolveCached(hostname: String?, promise: Promise<InetAddress>, resolveCache: DnsCache): Boolean {
+        if (hostname == null) {
+            return false
         }
-        return address;
-    }
 
-    private
-    InetAddress loopbackAddress() {
-        return preferredAddressType().localhost();
-    }
-
-    final
-    InternetProtocolFamily preferredAddressType() {
-        return preferredAddressType;
-    }
-
-    private
-    boolean doResolveCached(String hostname, Promise<InetAddress> promise, DnsCache resolveCache) {
-        final List<DnsCacheEntry> cachedEntries = resolveCache.get(hostname);
+        val cachedEntries = resolveCache[hostname]
         if (cachedEntries == null || cachedEntries.isEmpty()) {
-            return false;
+            return false
         }
-
-        InetAddress address = null;
-        Throwable cause = null;
-        ArrayList<InetAddress> arrayList;
-
-        //noinspection SynchronizationOnLocalVariableOrMethodParameter
-        synchronized (cachedEntries) {
-            final int numEntries = cachedEntries.size();
-            assert numEntries > 0;
-
-            if (cachedEntries.get(0)
-                             .cause() != null) {
-                cause = cachedEntries.get(0)
-                                     .cause();
-            }
-            else {
+        var address: InetAddress? = null
+        var cause: Throwable? = null
+        var arrayList: ArrayList<InetAddress?>
+        synchronized(cachedEntries) {
+            val numEntries = cachedEntries.size
+            assert(numEntries > 0)
+            if (cachedEntries[0].cause() != null) {
+                cause = cachedEntries[0].cause()
+            } else {
                 // Find the first entry with the preferred address type.
-                for (InternetProtocolFamily f : resolvedInternetProtocolFamilies) {
-                    for (int i = 0; i < numEntries; i++) {
-                        final DnsCacheEntry e = cachedEntries.get(i);
-                        if (f.addressType()
-                             .isInstance(e.address())) {
-                            address = e.address();
-                            break;
+                for (f in resolvedInternetProtocolFamilies) {
+                    for (i in 0 until numEntries) {
+                        val e = cachedEntries[i]
+                        if (f.addressType().isInstance(e.address())) {
+                            address = e.address()
+                            break
                         }
                     }
                 }
             }
         }
-
         if (address != null) {
-            trySuccess(promise, address);
-            return true;
+            trySuccess(promise, address!!)
+            return true
         }
         if (cause != null) {
-            tryFailure(promise, cause);
-            return true;
+            tryFailure(promise, cause!!)
+            return true
         }
-        return false;
+        return false
     }
 
-    static
-    <T> void trySuccess(Promise<T> promise, T result) {
-        if (!promise.trySuccess(result)) {
-            logger.warn("Failed to notify success ({}) to a promise: {}", result, promise);
-        }
-    }
-
-    private static
-    void tryFailure(Promise<?> promise, Throwable cause) {
-        if (!promise.tryFailure(cause)) {
-            logger.warn("Failed to notify failure to a promise: {}", promise, cause);
-        }
-    }
-
-    private
-    void doResolveUncached(String hostname, Promise<InetAddress> promise, DnsCache resolveCache) {
-        new DnsNameResolverSingleResolverContext(this,
-                                                 hostname,
-                                                 resolveCache,
-                                                 dnsServerAddressStreamProvider.nameServerAddressStream(hostname)).resolve(promise);
+    private fun doResolveUncached(hostname: String, promise: Promise<InetAddress>, resolveCache: DnsCache) {
+        DnsNameResolverSingleResolverContext(this, hostname, resolveCache, dnsServerAddressStreamProvider.nameServerAddressStream(hostname)).resolve(promise)
     }
 
     // Only here to override in unit tests.
-    int dnsRedirectPort(@SuppressWarnings("unused") InetAddress server) {
-        return DefaultDnsServerAddressStreamProvider.DNS_PORT;
+    fun dnsRedirectPort(server: InetAddress?): Int {
+        return DefaultDnsServerAddressStreamProvider.DNS_PORT
     }
 
-    final
-    DnsQueryLifecycleObserverFactory dnsQueryLifecycleObserverFactory() {
-        return dnsQueryLifecycleObserverFactory;
+    fun dnsQueryLifecycleObserverFactory(): DnsQueryLifecycleObserverFactory? {
+        return dnsQueryLifecycleObserverFactory
     }
 
     /**
@@ -564,135 +425,103 @@ class DnsNameResolver extends InetNameResolver {
      *
      * @param nameServers The addresses of the DNS servers which are used in the event of a redirect.
      *
-     * @return A {@link DnsServerAddressStream} which will be used to follow the DNS redirect.
+     * @return A [DnsServerAddressStream] which will be used to follow the DNS redirect.
      */
-    protected
-    DnsServerAddressStream uncachedRedirectDnsServerStream(List<InetSocketAddress> nameServers) {
-        return DnsServerAddresses.sequential(nameServers)
-                                 .stream();
+    fun uncachedRedirectDnsServerStream(nameServers: List<InetSocketAddress>): DnsServerAddressStream {
+        return DnsServerAddresses.sequential(nameServers).stream()
     }
 
     /**
      * Returns the resolution cache.
      */
-    public
-    DnsCache resolveCache() {
-        return resolveCache;
+    fun resolveCache(): DnsCache {
+        return resolveCache
     }
 
     /**
      * Returns the cache used for authoritative DNS servers for a domain.
      */
-    public
-    DnsCache authoritativeDnsServerCache() {
-        return authoritativeDnsServerCache;
+    fun authoritativeDnsServerCache(): DnsCache {
+        return authoritativeDnsServerCache
     }
 
     /**
      * Returns the timeout of each DNS query performed by this resolver (in milliseconds).
      * The default value is 5 seconds.
      */
-    public
-    long queryTimeoutMillis() {
-        return queryTimeoutMillis;
+    fun queryTimeoutMillis(): Long {
+        return queryTimeoutMillis
     }
 
     /**
-     * Returns the {@link ResolvedAddressTypes} resolved by {@link #resolve(String)}.
-     * The default value depends on the value of the system property {@code "java.net.preferIPv6Addresses"}.
+     * Returns the [ResolvedAddressTypes] resolved by [.resolve].
+     * The default value depends on the value of the system property `"java.net.preferIPv6Addresses"`.
      */
-    public
-    ResolvedAddressTypes resolvedAddressTypes() {
-        return resolvedAddressTypes;
+    fun resolvedAddressTypes(): ResolvedAddressTypes {
+        return resolvedAddressTypes
     }
 
-    InternetProtocolFamily[] resolvedInternetProtocolFamiliesUnsafe() {
-        return resolvedInternetProtocolFamilies;
+    fun resolvedInternetProtocolFamiliesUnsafe(): Array<InternetProtocolFamily> {
+        return resolvedInternetProtocolFamilies
     }
 
-    final
-    String[] searchDomains() {
-        return searchDomains;
+    fun searchDomains(): Array<String> {
+        return searchDomains
     }
 
-    final
-    int ndots() {
-        return ndots;
+    fun ndots(): Int {
+        return ndots
     }
 
-    final
-    boolean supportsAAAARecords() {
-        return supportsAAAARecords;
+    fun supportsAAAARecords(): Boolean {
+        return supportsAAAARecords
     }
 
-    final
-    boolean supportsARecords() {
-        return supportsARecords;
+    fun supportsARecords(): Boolean {
+        return supportsARecords
     }
 
-    final
-    int[] resolveRecordTypes() {
-        return resolveRecordTypes;
-    }
-
-    final
-    boolean isDecodeIdn() {
-        return decodeIdn;
+    fun resolveRecordTypes(): IntArray {
+        return resolveRecordTypes
     }
 
     /**
      * Returns the maximum allowed number of DNS queries to send when resolving a host name.
-     * The default value is {@code 8}.
+     * The default value is `8`.
      */
-    public
-    int maxQueriesPerResolve() {
-        return maxQueriesPerResolve;
+    fun maxQueriesPerResolve(): Int {
+        return maxQueriesPerResolve
     }
 
     /**
-     * Returns the capacity of the datagram packet buffer (in bytes).  The default value is {@code 4096} bytes.
+     * Returns the capacity of the datagram packet buffer (in bytes).  The default value is `4096` bytes.
      */
-    public
-    int maxPayloadSize() {
-        return maxPayloadSize;
+    fun maxPayloadSize(): Int {
+        return maxPayloadSize
     }
 
     /**
      * @return resolve hostnames against the hosts file
      */
-    public
-    InetAddress hostsFileEntriesResolver(String hostname, ResolvedAddressTypes type) {
-        return Dns.INSTANCE.resolveFromHosts(hostname, type);
+    fun hostsFileEntriesResolver(hostname: String?, type: ResolvedAddressTypes?): InetAddress? {
+        return resolveFromHosts(hostname!!, type!!)
     }
-
-    /**
-     * Returns {@code true} if and only if this resolver sends a DNS query with the RD (recursion desired) flag set.
-     * The default value is {@code true}.
-     */
-    public
-    boolean isRecursionDesired() {
-        return recursionDesired;
-    }
-
-
 
     /**
      * Resolves the specified name into an address.
      *
      * @param inetHost the name to resolve
-     * @param promise the {@link Promise} which will be fulfilled when the name resolution is finished
+     * @param promise the [Promise] which will be fulfilled when the name resolution is finished
      *
      * @return the address as the result of the resolution
      */
-    @Override
-    public final
-    Future<InetAddress> resolve(String inetHost, Promise<InetAddress> promise) {
-        checkNotNull(promise, "promise");
-        try {
-            doResolve(inetHost, promise, resolveCache);
-            return promise;
-        } catch (Exception e) {
-            return promise.setFailure(e);
+    override fun resolve(inetHost: String, promise: Promise<InetAddress>): Future<InetAddress> {
+        ObjectUtil.checkNotNull(promise, "promise")
+        return try {
+            doResolve(inetHost, promise, resolveCache)
+            promise
+        } catch (e: Exception) {
+            promise.setFailure(e)
         }
     }
 
@@ -700,77 +529,119 @@ class DnsNameResolver extends InetNameResolver {
      * Resolves the specified host name and port into a list of address.
      *
      * @param inetHost the name to resolve
-     * @param promise the {@link Promise} which will be fulfilled when the name resolution is finished
+     * @param promise the [Promise] which will be fulfilled when the name resolution is finished
      *
      * @return the list of the address as the result of the resolution
      */
-    @Override
-    public final
-    Future<List<InetAddress>> resolveAll(String inetHost, Promise<List<InetAddress>> promise) {
-        checkNotNull(promise, "promise");
-        try {
-            doResolveAll(inetHost, promise, resolveCache);
-            return promise;
-        } catch (Exception e) {
-            return promise.setFailure(e);
+    override fun resolveAll(inetHost: String, promise: Promise<List<InetAddress>>): Future<List<InetAddress>> {
+        ObjectUtil.checkNotNull(promise, "promise")
+        return try {
+            doResolveAll(inetHost, promise, resolveCache)
+            promise
+        } catch (e: Exception) {
+            promise.setFailure(e)
         }
     }
 
     /**
      * Sends a DNS query with the specified question.
      */
-    public
-    Future<DnsResponse> query(DnsQuestion question) {
-        return query(nextNameServerAddress(), question);
+    fun query(question: DnsQuestion): Future<DnsResponse> {
+        return query(nextNameServerAddress(), question)
     }
 
-    private
-    InetSocketAddress nextNameServerAddress() {
-        return nameServerAddrStream.get()
-                                   .next();
+    private fun nextNameServerAddress(): InetSocketAddress {
+        return nameServerAddrStream.get().next()!!
     }
 
     /**
      * Sends a DNS query with the specified question using the specified name server list.
      */
-    public
-    Future<DnsResponse> query(InetSocketAddress nameServerAddr, DnsQuestion question) {
-        return query0(nameServerAddr, question, ch.eventLoop().<DnsResponse>newPromise());
+    fun query(nameServerAddr: InetSocketAddress, question: DnsQuestion): Future<DnsResponse> {
+        return query0(nameServerAddr, question, ch.eventLoop().newPromise())
     }
 
-    final
-    Future<DnsResponse> query0(InetSocketAddress nameServerAddr, DnsQuestion question, Promise<DnsResponse> promise) {
-        return query0(nameServerAddr, question, ch.newPromise(), promise);
+    fun query0(nameServerAddr: InetSocketAddress, question: DnsQuestion, promise: Promise<DnsResponse>): Future<DnsResponse> {
+        return query0(nameServerAddr, question, ch.newPromise(), promise)
     }
 
-    final
-    Future<DnsResponse> query0(InetSocketAddress nameServerAddr,
-                               DnsQuestion question,
-                               ChannelPromise writePromise,
-                               Promise<DnsResponse> promise) {
-        assert !writePromise.isVoid();
-
-        try {
-            new DnsQueryContext(this, nameServerAddr, question, promise).query(writePromise);
-            return promise;
-        } catch (Exception e) {
-            return promise.setFailure(e);
+    fun query0(
+        nameServerAddr: InetSocketAddress, question: DnsQuestion, writePromise: ChannelPromise?, promise: Promise<DnsResponse>
+    ): Future<DnsResponse> {
+        assert(!writePromise!!.isVoid)
+        return try {
+            DnsQueryContext(this, nameServerAddr, question, promise).query(writePromise)
+            promise
+        } catch (e: Exception) {
+            promise.setFailure(e)
         }
     }
 
     /**
      * Sends a DNS query with the specified question.
      */
-    public
-    Future<DnsResponse> query(DnsQuestion question, Promise<DnsResponse> promise) {
-        return query(nextNameServerAddress(), question, promise);
+    fun query(question: DnsQuestion, promise: Promise<DnsResponse>): Future<DnsResponse> {
+        return query(nextNameServerAddress(), question, promise)
     }
 
     /**
      * Sends a DNS query with the specified question using the specified name server list.
      */
-    public
-    Future<DnsResponse> query(InetSocketAddress nameServerAddr, DnsQuestion question, Promise<DnsResponse> promise) {
-        return query0(nameServerAddr, question, null, promise);
+    fun query(nameServerAddr: InetSocketAddress, question: DnsQuestion, promise: Promise<DnsResponse>): Future<DnsResponse> {
+        return query0(nameServerAddr, question, null, promise)
+    }
+
+    companion object {
+        val logger = LoggerFactory.getLogger(DnsNameResolver::class.java)
+
+        private const val LOCALHOST = "localhost"
+        private val LOCALHOST_ADDRESS: InetAddress
+
+        private val IPV4_ONLY_RESOLVED_RECORD_TYPES = intArrayOf(DnsRecordType.A)
+        private val IPV4_ONLY_RESOLVED_PROTOCOL_FAMILIES = arrayOf(InternetProtocolFamily.IPv4)
+        private val IPV4_PREFERRED_RESOLVED_RECORD_TYPES = intArrayOf(DnsRecordType.A, DnsRecordType.AAAA)
+        private val IPV4_PREFERRED_RESOLVED_PROTOCOL_FAMILIES = arrayOf(InternetProtocolFamily.IPv4, InternetProtocolFamily.IPv6)
+
+        private val IPV6_ONLY_RESOLVED_RECORD_TYPES = intArrayOf(DnsRecordType.AAAA)
+        private val IPV6_ONLY_RESOLVED_PROTOCOL_FAMILIES = arrayOf(InternetProtocolFamily.IPv6)
+        private val IPV6_PREFERRED_RESOLVED_RECORD_TYPES = intArrayOf(DnsRecordType.AAAA, DnsRecordType.A)
+        private val IPV6_PREFERRED_RESOLVED_PROTOCOL_FAMILIES = arrayOf(InternetProtocolFamily.IPv6, InternetProtocolFamily.IPv4)
+
+        val DEFAULT_RESOLVE_ADDRESS_TYPES: ResolvedAddressTypes
+        val DEFAULT_SEARCH_DOMAINS: Array<String>
+
+        private val DEFAULT_NDOTS: Int
+        private val DNS_DECODER = DatagramDnsResponseDecoder()
+
+        init {
+            if (IPv4.isPreferred) {
+                DEFAULT_RESOLVE_ADDRESS_TYPES = ResolvedAddressTypes.IPV4_ONLY
+                LOCALHOST_ADDRESS = IPv4.LOCALHOST
+            } else {
+                if (IPv6.isPreferred) {
+                    DEFAULT_RESOLVE_ADDRESS_TYPES = ResolvedAddressTypes.IPV6_PREFERRED
+                    LOCALHOST_ADDRESS = IPv6.LOCALHOST
+                } else {
+                    DEFAULT_RESOLVE_ADDRESS_TYPES = ResolvedAddressTypes.IPV4_PREFERRED
+                    LOCALHOST_ADDRESS = IPv4.LOCALHOST
+                }
+            }
+
+            val searchDomains = defaultNameServers
+            DEFAULT_SEARCH_DOMAINS = searchDomains.map { toString(it.address, false) }.toTypedArray()
+            DEFAULT_NDOTS = numberDots
+        }
+
+        fun <T> trySuccess(promise: Promise<T>, result: T) {
+            if (!promise.trySuccess(result)) {
+                logger.warn("Failed to notify success ({}) to a promise: {}", result, promise)
+            }
+        }
+
+        private fun tryFailure(promise: Promise<*>, cause: Throwable) {
+            if (!promise.tryFailure(cause)) {
+                logger.warn("Failed to notify failure to a promise: {}", promise, cause)
+            }
+        }
     }
 }

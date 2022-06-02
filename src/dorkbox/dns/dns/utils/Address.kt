@@ -13,22 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.utils
 
-package dorkbox.dns.dns.utils;
-
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-
-import dorkbox.dns.DnsClient;
-import dorkbox.dns.dns.records.PTRRecord;
-import dorkbox.netUtil.dnsUtils.ResolvedAddressTypes;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.records.DnsRecord;
+import dorkbox.dns.DnsClient
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.records.DnsRecord
+import dorkbox.dns.dns.records.PTRRecord
+import dorkbox.dns.dns.utils.ReverseMap.fromAddress
+import dorkbox.netUtil.dnsUtils.ResolvedAddressTypes
+import java.net.Inet4Address
+import java.net.Inet6Address
+import java.net.InetAddress
+import java.net.UnknownHostException
 
 /**
  * Routines dealing with IP addresses.  Includes functions similar to
@@ -36,15 +32,9 @@ import dorkbox.dns.dns.records.DnsRecord;
  *
  * @author Brian Wellington
  */
-
-public final
-class Address {
-
-    public static final int IPv4 = 1;
-    public static final int IPv6 = 2;
-
-    private
-    Address() {}
+object Address {
+    const val IPv4 = 1
+    const val IPv6 = 2
 
     /**
      * Determines the IP address of a host
@@ -55,20 +45,21 @@ class Address {
      *
      * @throws UnknownHostException The hostname does not have any addresses
      */
-    public static
-    InetAddress getByName(String name) throws UnknownHostException {
+    @Throws(UnknownHostException::class)
+    fun getByName(name: String): InetAddress? {
         // are we ALREADY IPv 4/6
-        if (dorkbox.netUtil.IPv4.INSTANCE.isValid(name)) {
-            return dorkbox.netUtil.IPv4.INSTANCE.toAddress(name);
-        }
-        if (dorkbox.netUtil.IPv6.INSTANCE.isValid(name)) {
-            return dorkbox.netUtil.IPv6.INSTANCE.toAddress(name);
+        if (dorkbox.netUtil.IPv4.isValid(name)) {
+            return dorkbox.netUtil.IPv4.toAddress(name)
         }
 
-        DnsClient client = new DnsClient();
-        List<InetAddress> records = client.resolve(name);
-        client.stop();
-        return records.get(0);
+        if (dorkbox.netUtil.IPv6.isValid(name)) {
+            return dorkbox.netUtil.IPv6.toAddress(name)
+        }
+
+        val client = DnsClient()
+        val records = client.resolve(name)
+        client.stop()
+        return records[0]
     }
 
     /**
@@ -80,66 +71,65 @@ class Address {
      *
      * @throws UnknownHostException The hostname does not have any addresses
      */
-    public static
-    InetAddress[] getAllByName(String name) throws UnknownHostException {
+    @Throws(UnknownHostException::class)
+    fun getAllByName(name: String): Array<InetAddress?> {
         // are we ALREADY IPv 4/6
-        if (dorkbox.netUtil.IPv4.INSTANCE.isValid(name)) {
-            return new InetAddress[] {dorkbox.netUtil.IPv4.INSTANCE.toAddress(name)};
-        }
-        if (dorkbox.netUtil.IPv6.INSTANCE.isValid(name)) {
-            return new InetAddress[] {dorkbox.netUtil.IPv6.INSTANCE.toAddress(name)};
+        if (dorkbox.netUtil.IPv4.isValid(name)) {
+            return arrayOf(dorkbox.netUtil.IPv4.toAddress(name))
         }
 
+        if (dorkbox.netUtil.IPv6.isValid(name)) {
+            return arrayOf(dorkbox.netUtil.IPv6.toAddress(name))
+        }
 
-        List<InetAddress> combined = new ArrayList<InetAddress>();
-        DnsClient client = new DnsClient();
+        val combined: MutableList<InetAddress?> = ArrayList()
+        var client = DnsClient()
+
         // ipv4
-        client.resolvedAddressTypes(ResolvedAddressTypes.IPV4_ONLY);
-        List<InetAddress> resolved = client.resolve(name);
-        combined.addAll(resolved);
-        client.stop();
+        client.resolvedAddressTypes(ResolvedAddressTypes.IPV4_ONLY)
+        var resolved: List<InetAddress?> = client.resolve(name)
+        combined.addAll(resolved)
+        client.stop()
 
         // ipv6
-        client = new DnsClient();
-        client.resolvedAddressTypes(ResolvedAddressTypes.IPV6_ONLY);
-        resolved = client.resolve(name);
-        client.stop();
-        combined.addAll(resolved);
+        client = DnsClient()
+        client.resolvedAddressTypes(ResolvedAddressTypes.IPV6_ONLY)
+        resolved = client.resolve(name)
+        client.stop()
 
-        return combined.toArray(new InetAddress[0]);
+        combined.addAll(resolved)
+        return combined.toTypedArray()
     }
 
     /**
      * Determines the hostname for an address
      *
-     * @param addr The address to look up
+     * @param address The address to look up
      *
      * @return The associated host name
      *
      * @throws UnknownHostException There is no hostname for the address
      */
-    public static
-    String getHostName(InetAddress addr) throws UnknownHostException {
-        Name name = ReverseMap.fromAddress(addr);
+    @Throws(UnknownHostException::class)
+    fun getHostName(address: InetAddress): String {
+        val name = fromAddress(address)
+        val client = DnsClient()
+        client.resolvedAddressTypes(ResolvedAddressTypes.IPV4_ONLY)
 
-        DnsClient client = new DnsClient();
-        client.resolvedAddressTypes(ResolvedAddressTypes.IPV4_ONLY);
-        DnsRecord[] records;
-        try {
-            records = client.query(name.toString(true), DnsRecordType.PTR);
-        } catch (Throwable ignored) {
-            throw new UnknownHostException("unknown address");
+        val records: Array<DnsRecord>
+        records = try {
+            client.query(name.toString(true), DnsRecordType.PTR)
+        } catch (ignored: Throwable) {
+            throw UnknownHostException("unknown address")
         } finally {
-            client.stop();
+            client.stop()
         }
 
         if (records == null) {
-            throw new UnknownHostException("unknown address");
+            throw UnknownHostException("unknown address")
         }
-
-        PTRRecord ptr = (PTRRecord) records[0];
-        return ptr.getTarget()
-                  .toString();
+        val ptr = records[0] as PTRRecord
+        return ptr.target.toString()
     }
 
     /**
@@ -149,15 +139,14 @@ class Address {
      *
      * @return The family, either IPv4 or IPv6.
      */
-    public static
-    int familyOf(InetAddress address) {
-        if (address instanceof Inet4Address) {
-            return IPv4;
+    @JvmStatic
+    fun familyOf(address: InetAddress?): Int {
+        if (address is Inet4Address) {
+            return IPv4
         }
-
-        if (address instanceof Inet6Address) {
-            return IPv6;
+        if (address is Inet6Address) {
+            return IPv6
         }
-        throw new IllegalArgumentException("unknown address family");
+        throw IllegalArgumentException("unknown address family")
     }
 }

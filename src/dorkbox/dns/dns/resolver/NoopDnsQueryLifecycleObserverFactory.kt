@@ -13,23 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver;
+package dorkbox.dns.dns.resolver
 
-import dorkbox.dns.dns.records.DnsMessage;
-import io.netty.util.internal.UnstableApi;
+import dorkbox.dns.dns.records.DnsMessage
+import io.netty.util.internal.UnstableApi
 
 @UnstableApi
-public final
-class NoopDnsQueryLifecycleObserverFactory implements DnsQueryLifecycleObserverFactory {
-    public static final NoopDnsQueryLifecycleObserverFactory INSTANCE = new NoopDnsQueryLifecycleObserverFactory();
-
-    private
-    NoopDnsQueryLifecycleObserverFactory() {
+class NoopDnsQueryLifecycleObserverFactory private constructor() : DnsQueryLifecycleObserverFactory {
+    override fun newDnsQueryLifecycleObserver(question: DnsMessage): DnsQueryLifecycleObserver {
+        return NoopDnsQueryLifecycleObserver.INSTANCE
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver newDnsQueryLifecycleObserver(DnsMessage question) {
-        return NoopDnsQueryLifecycleObserver.INSTANCE;
+    companion object {
+        val INSTANCE = NoopDnsQueryLifecycleObserverFactory()
     }
 }

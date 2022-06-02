@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package dorkbox.dns.dns.records;
+package dorkbox.dns.dns.records
 
 /**
  * The Name Server Identifier Option, define in RFC 5001.
@@ -22,23 +21,17 @@ package dorkbox.dns.dns.records;
  * @author Brian Wellington
  * @see OPTRecord
  */
-public
-class NSIDOption extends GenericEDNSOption {
-
-    private static final long serialVersionUID = 74739759292589056L;
-
-    NSIDOption() {
-        super(EDNSOption.Code.NSID);
-    }
+class NSIDOption : GenericEDNSOption {
+    internal constructor() : super(Code.NSID) {}
 
     /**
      * Construct an NSID option.
      *
      * @param data The contents of the option.
      */
-    public
-    NSIDOption(byte[] data) {
-        super(EDNSOption.Code.NSID, data);
-    }
+    constructor(data: ByteArray?) : super(Code.NSID, data) {}
 
+    companion object {
+        private const val serialVersionUID = 74739759292589056L
+    }
 }

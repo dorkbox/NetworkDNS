@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * Pointer Record  - maps a domain name representing an Internet Address to
@@ -25,35 +24,29 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  */
+class PTRRecord : SingleCompressedNameBase {
+    internal constructor() {}
 
-public
-class PTRRecord extends SingleCompressedNameBase {
-
-    private static final long serialVersionUID = -8321636610425434192L;
-
-    PTRRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new PTRRecord();
-    }
+    override val `object`: DnsRecord
+        get() = PTRRecord()
 
     /**
      * Creates a new PTR Record with the given data
      *
      * @param target The name of the machine with this address
      */
-    public
-    PTRRecord(Name name, int dclass, long ttl, Name target) {
-        super(name, DnsRecordType.PTR, dclass, ttl, target, "target");
-    }
+    constructor(name: Name, dclass: Int, ttl: Long, target: Name) : super(name, DnsRecordType.PTR, dclass, ttl, target, "target") {}
 
     /**
      * Gets the target of the PTR Record
      */
-    public
-    Name getTarget() {
-        return getSingleName();
-    }
+    var target: Name
+        get() = singleName
+        set(target) {
+            singleName = target
+        }
 
+    companion object {
+        private const val serialVersionUID = -8321636610425434192L
+    }
 }

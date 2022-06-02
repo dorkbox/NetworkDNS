@@ -13,52 +13,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns
 
-package dorkbox.dns.dns;
-
-import dorkbox.dns.dns.exceptions.WireParseException;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import dorkbox.dns.dns.exceptions.WireParseException
+import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 
 /**
  * An class for parsing DNS messages.
  *
  * @author Brian Wellington
  */
-
-public
 class DnsInput {
-
-    private ByteBuf byteBuf;
-    private int savedActiveIndex = -1;
-    private boolean marked = false;
+    private var byteBuf: ByteBuf
+    private var savedActiveIndex = -1
+    private var marked = false
 
     /**
      * Creates a new DnsInput
      *
      * @param input The byte array to read from
      */
-    public
-    DnsInput(byte[] input) {
-        byteBuf = Unpooled.wrappedBuffer(input);
+    constructor(input: ByteArray) {
+        byteBuf = Unpooled.wrappedBuffer(input)
     }
 
     /**
-     * Creates a new DnsInput from the given {@link ByteBuf}
+     * Creates a new DnsInput from the given [ByteBuf]
      *
      * @param byteBuf The ByteBuf
      */
-    public
-    DnsInput(ByteBuf byteBuf) {
-        this.byteBuf = byteBuf;
+    constructor(byteBuf: ByteBuf) {
+        this.byteBuf = byteBuf
     }
 
     /**
      * Returns the current position, for reading only
      */
-    public
-    int readIndex() {
-        return byteBuf.readerIndex();
+    fun readIndex(): Int {
+        return byteBuf.readerIndex()
     }
 
     /**
@@ -70,27 +63,21 @@ class DnsInput {
      * @param len The number of bytes in the active region.
      *
      * @throws IllegalArgumentException The number of bytes in the active region
-     *         is longer than the remainder of the input.
+     * is longer than the remainder of the input.
      */
-    public
-    void setActive(int len) {
-        savedActiveIndex = byteBuf.writerIndex();
-
-        if (len > byteBuf.readableBytes()) {
-            throw new IllegalArgumentException("cannot set active " + "region past end of input");
-        }
-
-        byteBuf.writerIndex(byteBuf.readerIndex() + len);
+    fun setActive(len: Int) {
+        savedActiveIndex = byteBuf.writerIndex()
+        require(len <= byteBuf.readableBytes()) { "cannot set active " + "region past end of input" }
+        byteBuf.writerIndex(byteBuf.readerIndex() + len)
     }
 
     /**
      * Restores the previously set active region.
      */
-    public
-    void restoreActive() {
+    fun restoreActive() {
         if (savedActiveIndex > -1) {
-            byteBuf.writerIndex(savedActiveIndex);
-            savedActiveIndex = -1;
+            byteBuf.writerIndex(savedActiveIndex)
+            savedActiveIndex = -1
         }
     }
 
@@ -102,14 +89,10 @@ class DnsInput {
      *
      * @throws IllegalArgumentException The index is not within the input.
      */
-    public
-    void jump(int index) {
-        if (index >= byteBuf.capacity()) {
-            throw new IllegalArgumentException("cannot jump past " + "end of input");
-        }
-        byteBuf.readerIndex(index);
-
-        restoreActive();
+    fun jump(index: Int) {
+        require(index < byteBuf.capacity()) { "cannot jump past " + "end of input" }
+        byteBuf.readerIndex(index)
+        restoreActive()
     }
 
     /**
@@ -118,27 +101,23 @@ class DnsInput {
      *
      * @throws IllegalArgumentException The index is not within the input.
      */
-    public
-    void save() {
-        marked = true;
-        byteBuf.markReaderIndex();
+    fun save() {
+        marked = true
+        byteBuf.markReaderIndex()
     }
 
     /**
-     * Restores the input stream to its state before the call to {@link #save}.
+     * Restores the input stream to its state before the call to [.save].
      */
-    public
-    void restore() {
-        if (!marked) {
-            throw new IllegalStateException("Not marked first");
-        }
-        byteBuf.resetReaderIndex();
+    fun restore() {
+        check(marked) { "Not marked first" }
+        byteBuf.resetReaderIndex()
     }
 
-    private
-    void require(int n) throws WireParseException {
+    @Throws(WireParseException::class)
+    private fun require(n: Int) {
         if (n > remaining()) {
-            throw new WireParseException("end of input");
+            throw WireParseException("end of input")
         }
     }
 
@@ -146,9 +125,8 @@ class DnsInput {
      * Returns the number of bytes that can be read from this stream before
      * reaching the end.
      */
-    public
-    int remaining() {
-        return byteBuf.readableBytes();
+    fun remaining(): Int {
+        return byteBuf.readableBytes()
     }
 
     /**
@@ -158,10 +136,10 @@ class DnsInput {
      *
      * @throws WireParseException The end of the stream was reached.
      */
-    public
-    int readU8() throws WireParseException {
-        require(1);
-        return byteBuf.readUnsignedByte();
+    @Throws(WireParseException::class)
+    fun readU8(): Int {
+        require(1)
+        return byteBuf.readUnsignedByte().toInt()
     }
 
     /**
@@ -171,10 +149,10 @@ class DnsInput {
      *
      * @throws WireParseException The end of the stream was reached.
      */
-    public
-    int readU16() throws WireParseException {
-        require(2);
-        return byteBuf.readUnsignedShort();
+    @Throws(WireParseException::class)
+    fun readU16(): Int {
+        require(2)
+        return byteBuf.readUnsignedShort()
     }
 
     /**
@@ -184,10 +162,10 @@ class DnsInput {
      *
      * @throws WireParseException The end of the stream was reached.
      */
-    public
-    long readU32() throws WireParseException {
-        require(4);
-        return byteBuf.readUnsignedInt();
+    @Throws(WireParseException::class)
+    fun readU32(): Long {
+        require(4)
+        return byteBuf.readUnsignedInt()
     }
 
     /**
@@ -200,10 +178,10 @@ class DnsInput {
      *
      * @throws WireParseException The end of the stream was reached.
      */
-    public
-    void readByteArray(byte[] b, int off, int len) throws WireParseException {
-        require(len);
-        byteBuf.readBytes(b, off, len);
+    @Throws(WireParseException::class)
+    fun readByteArray(b: ByteArray?, off: Int, len: Int) {
+        require(len)
+        byteBuf.readBytes(b, off, len)
     }
 
     /**
@@ -213,12 +191,12 @@ class DnsInput {
      *
      * @throws WireParseException The end of the stream was reached.
      */
-    public
-    byte[] readByteArray(int len) throws WireParseException {
-        require(len);
-        byte[] out = new byte[len];
-        byteBuf.readBytes(out, 0, len);
-        return out;
+    @Throws(WireParseException::class)
+    fun readByteArray(len: Int): ByteArray {
+        require(len)
+        val out = ByteArray(len)
+        byteBuf.readBytes(out, 0, len)
+        return out
     }
 
     /**
@@ -227,12 +205,11 @@ class DnsInput {
      *
      * @return The byte array.
      */
-    public
-    byte[] readByteArray() {
-        int len = remaining();
-        byte[] out = new byte[len];
-        byteBuf.readBytes(out, 0, len);
-        return out;
+    fun readByteArray(): ByteArray {
+        val len = remaining()
+        val out = ByteArray(len)
+        byteBuf.readBytes(out, 0, len)
+        return out
     }
 
     /**
@@ -243,9 +220,9 @@ class DnsInput {
      *
      * @throws WireParseException The end of the stream was reached.
      */
-    public
-    byte[] readCountedString() throws WireParseException {
-        int len = readU8();
-        return readByteArray(len);
+    @Throws(WireParseException::class)
+    fun readCountedString(): ByteArray {
+        val len = readU8()
+        return readByteArray(len)
     }
 }

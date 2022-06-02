@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package dorkbox.dns.dns.exceptions;
+package dorkbox.dns.dns.exceptions
 
 /**
  * An exception thrown when a name is longer than the maximum length of a DNS
@@ -22,18 +21,7 @@ package dorkbox.dns.dns.exceptions;
  *
  * @author Brian Wellington
  */
-
-public
-class NameTooLongException extends WireParseException {
-
-    public
-    NameTooLongException() {
-        super();
-    }
-
-    public
-    NameTooLongException(String s) {
-        super(s);
-    }
-
+class NameTooLongException : WireParseException {
+    constructor() : super()
+    constructor(s: String) : super(s)
 }

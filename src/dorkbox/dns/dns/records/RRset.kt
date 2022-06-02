@@ -13,18 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsClass;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsClass
+import dorkbox.dns.dns.constants.DnsRecordType
+import java.io.Serializable
+import java.util.*
 
 /**
  * A set of Records with the same name, type, and class.  Also included
@@ -32,100 +27,82 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  * @see DnsRecord
+ *
  * @see RRSIGRecord
  */
-
-public
-class RRset implements Serializable {
-
-    private static final long serialVersionUID = -3270249290171239695L;
-
+class RRset : Serializable {
     /*
      * rrs contains both normal and RRSIG records, with the RRSIG records
      * at the end.
      */
-    private List<DnsRecord> resourceRecords;
-    private short nsigs;
-    private short position;
+    private var resourceRecords: MutableList<DnsRecord> = ArrayList(1)
+    private var nsigs: Short = 0
+    private var position: Short = 0
 
     /**
      * Creates an RRset and sets its contents to the specified record
      */
-    public
-    RRset(DnsRecord record) {
-        this();
-        safeAddRR(record);
+    constructor(record: DnsRecord) : this() {
+        safeAddRR(record)
     }
 
     /**
      * Creates an empty RRset
      */
-    public
-    RRset() {
-        resourceRecords = new ArrayList<DnsRecord>(1);
-        nsigs = 0;
-        position = 0;
-    }
+    constructor()
 
-    private
-    void safeAddRR(DnsRecord r) {
-        if (!(r instanceof RRSIGRecord)) {
-            if (nsigs == 0) {
-                resourceRecords.add(r);
+    private fun safeAddRR(r: DnsRecord) {
+        if (r !is RRSIGRecord) {
+            if (nsigs.toInt() == 0) {
+                resourceRecords!!.add(r)
+            } else {
+                resourceRecords!!.add(resourceRecords!!.size - nsigs, r)
             }
-            else {
-                resourceRecords.add(resourceRecords.size() - nsigs, r);
-            }
-        }
-        else {
-            resourceRecords.add(r);
-            nsigs++;
+        } else {
+            resourceRecords!!.add(r)
+            nsigs++
         }
     }
 
     /**
      * Creates an RRset with the contents of an existing RRset
      */
-    public
-    RRset(RRset rrset) {
-        synchronized (rrset) {
-            resourceRecords = new ArrayList<>(rrset.resourceRecords);
-            nsigs = rrset.nsigs;
-            position = rrset.position;
+    constructor(rrset: RRset) {
+        synchronized(rrset) {
+
+            resourceRecords = ArrayList(rrset.resourceRecords)
+            nsigs = rrset.nsigs
+            position = rrset.position
         }
     }
 
     /**
      * Adds a Record to an RRset
      */
-    public synchronized
-    void addRR(DnsRecord r) {
-        if (resourceRecords.size() == 0) {
-            safeAddRR(r);
-            return;
+    @Synchronized
+    fun addRR(r: DnsRecord) {
+        var r = r
+        if (resourceRecords!!.size == 0) {
+            safeAddRR(r)
+            return
         }
-        DnsRecord first = first();
-        if (!r.sameRRset(first)) {
-            throw new IllegalArgumentException("record does not match " + "rrset");
-        }
-
-        if (r.getTTL() != first.getTTL()) {
-            if (r.getTTL() > first.getTTL()) {
-                r = r.cloneRecord();
-                r.setTTL(first.getTTL());
-            }
-            else {
-                for (int i = 0; i < resourceRecords.size(); i++) {
-                    DnsRecord tmp = (DnsRecord) resourceRecords.get(i);
-                    tmp = tmp.cloneRecord();
-                    tmp.setTTL(r.getTTL());
-                    resourceRecords.set(i, tmp);
+        val first = first()
+        require(r.sameRRset(first)) { "record does not match " + "rrset" }
+        if (r.ttl != first.ttl) {
+            if (r.ttl > first.ttl) {
+                r = r.cloneRecord()
+                r.ttl = first.ttl
+            } else {
+                for (i in resourceRecords!!.indices) {
+                    var tmp = resourceRecords!![i]
+                    tmp = tmp.cloneRecord()
+                    tmp.ttl = r.ttl
+                    resourceRecords!![i] = tmp
                 }
             }
         }
-
-        if (!resourceRecords.contains(r)) {
-            safeAddRR(r);
+        if (!resourceRecords!!.contains(r)) {
+            safeAddRR(r)
         }
     }
 
@@ -134,137 +111,126 @@ class RRset implements Serializable {
      *
      * @throws IllegalStateException if the rrset is empty
      */
-    public synchronized
-    DnsRecord first() {
-        if (resourceRecords.size() == 0) {
-            throw new IllegalStateException("rrset is empty");
-        }
-        return (DnsRecord) resourceRecords.get(0);
+    @Synchronized
+    fun first(): DnsRecord {
+        check(resourceRecords!!.size != 0) { "rrset is empty" }
+        return resourceRecords!![0]
     }
 
     /**
      * Deletes a Record from an RRset
      */
-    public synchronized
-    void deleteRR(DnsRecord r) {
-        if (resourceRecords.remove(r) && (r instanceof RRSIGRecord)) {
-            nsigs--;
+    @Synchronized
+    fun deleteRR(r: DnsRecord) {
+        if (resourceRecords!!.remove(r) && r is RRSIGRecord) {
+            nsigs--
         }
     }
 
     /**
      * Deletes all Records from an RRset
      */
-    public synchronized
-    void clear() {
-        resourceRecords.clear();
-        position = 0;
-        nsigs = 0;
+    @Synchronized
+    fun clear() {
+        resourceRecords!!.clear()
+        position = 0
+        nsigs = 0
     }
 
     /**
      * Returns an Iterator listing all (data) records.
      *
      * @param cycle If true, cycle through the records so that each Iterator will
-     *         start with a different record.
+     * start with a different record.
      */
-    public synchronized
-    Iterator rrs(boolean cycle) {
-        return iterator(true, cycle);
+    @Synchronized
+    fun rrs(cycle: Boolean): Iterator<*> {
+        return iterator(true, cycle)
     }
 
-    private synchronized
-    Iterator iterator(boolean data, boolean cycle) {
-        int size, start, total;
-
-        total = resourceRecords.size();
-
-        if (data) {
-            size = total - nsigs;
-        }
-        else {
-            size = nsigs;
+    @Synchronized
+    private fun iterator(data: Boolean, cycle: Boolean): Iterator<*> {
+        val size: Int
+        val start: Int
+        val total: Int
+        total = resourceRecords!!.size
+        size = if (data) {
+            total - nsigs
+        } else {
+            nsigs.toInt()
         }
         if (size == 0) {
-            return Collections.EMPTY_LIST.iterator();
+            return Collections.EMPTY_LIST.iterator()
         }
-
         if (data) {
             if (!cycle) {
-                start = 0;
-            }
-            else {
+                start = 0
+            } else {
                 if (position >= size) {
-                    position = 0;
+                    position = 0
                 }
-                start = position++;
+                start = position++.toInt()
             }
+        } else {
+            start = total - nsigs
         }
-        else {
-            start = total - nsigs;
-        }
-
-        List<DnsRecord> list = new ArrayList<>(size);
+        val list: MutableList<DnsRecord> = ArrayList(size)
         if (data) {
-            list.addAll(resourceRecords.subList(start, size));
+            list.addAll(resourceRecords!!.subList(start, size))
             if (start != 0) {
-                list.addAll(resourceRecords.subList(0, start));
+                list.addAll(resourceRecords!!.subList(0, start))
             }
+        } else {
+            list.addAll(resourceRecords!!.subList(start, total))
         }
-        else {
-            list.addAll(resourceRecords.subList(start, total));
-        }
-
-        return list.iterator();
+        return list.iterator()
     }
 
     /**
      * Returns an Iterator listing all (data) records.  This cycles through
      * the records, so each Iterator will start with a different record.
      */
-    public synchronized
-    Iterator rrs() {
-        return iterator(true, true);
+    @Synchronized
+    fun rrs(): Iterator<*> {
+        return iterator(true, true)
     }
 
     /**
      * Returns an Iterator listing all signature records
      */
-    public synchronized
-    Iterator sigs() {
-        return iterator(false, false);
+    @Synchronized
+    fun sigs(): Iterator<*> {
+        return iterator(false, false)
     }
 
     /**
      * Returns the number of (data) records
      */
-    public synchronized
-    int size() {
-        return resourceRecords.size() - nsigs;
+    @Synchronized
+    fun size(): Int {
+        return resourceRecords!!.size - nsigs
     }
 
     /**
      * Converts the RRset to a String
      */
-    @Override
-    public
-    String toString() {
-        if (resourceRecords.size() == 0) {
-            return ("{empty}");
+    override fun toString(): String {
+        if (resourceRecords!!.size == 0) {
+            return "{empty}"
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("{ ");
-        sb.append(getName() + " ");
-        sb.append(getTTL() + " ");
-        sb.append(DnsClass.string(getDClass()) + " ");
-        sb.append(DnsRecordType.string(getType()) + " ");
-        sb.append(iteratorToString(iterator(true, false)));
+        val sb = StringBuilder()
+        sb.append("{ ")
+        sb.append("$name ")
+        sb.append("$TTL ")
+        sb.append(DnsClass.string(dClass) + " ")
+        sb.append(DnsRecordType.string(this.type) + " ")
+        sb.append(iteratorToString(iterator(true, false)))
         if (nsigs > 0) {
-            sb.append(" sigs: ");
-            sb.append(iteratorToString(iterator(false, false)));
+            sb.append(" sigs: ")
+            sb.append(iteratorToString(iterator(false, false)))
         }
-        sb.append(" }");
-        return sb.toString();
+        sb.append(" }")
+        return sb.toString()
     }
 
     /**
@@ -272,52 +238,47 @@ class RRset implements Serializable {
      *
      * @see Name
      */
-    public
-    Name getName() {
-        return first().getName();
-    }
+    val name: Name
+        get() = first().name
 
     /**
      * Returns the type of the records
      *
      * @see DnsRecordType
      */
-    public
-    int getType() {
-        return first().getRRsetType();
-    }
+    val type: Int
+        get() = first().rRsetType
 
     /**
      * Returns the class of the records
      *
      * @see DnsClass
      */
-    public
-    int getDClass() {
-        return first().getDClass();
-    }
+    val dClass: Int
+        get() = first().dclass
 
     /**
      * Returns the ttl of the records
      */
-    public synchronized
-    long getTTL() {
-        return first().getTTL();
-    }
+    @get:Synchronized
+    val TTL: Long
+        get() = first().ttl
 
-    private
-    String iteratorToString(Iterator it) {
-        StringBuilder sb = new StringBuilder();
+    private fun iteratorToString(it: Iterator<*>): String {
+        val sb = StringBuilder()
         while (it.hasNext()) {
-            DnsRecord rr = (DnsRecord) it.next();
-            sb.append("[");
-            rr.rdataToString(sb);
-            sb.append("]");
+            val rr = it.next() as DnsRecord
+            sb.append("[")
+            rr.rdataToString(sb)
+            sb.append("]")
             if (it.hasNext()) {
-                sb.append(" ");
+                sb.append(" ")
             }
         }
-        return sb.toString();
+        return sb.toString()
     }
 
+    companion object {
+        private const val serialVersionUID = -3270249290171239695L
+    }
 }

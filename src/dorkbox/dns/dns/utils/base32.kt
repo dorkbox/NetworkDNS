@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.utils
 
-package dorkbox.dns.dns.utils;
-
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
+import java.io.IOException
 
 /**
  * Routines for converting between Strings of base32-encoded data and arrays
@@ -27,37 +26,18 @@ import java.io.IOException;
  *
  * @author Brian Wellington
  */
-
-public
-class base32 {
-
-    private String alphabet;
-
-
-    private boolean padding, lowercase;
-
-
-    public static
-    class Alphabet {
-        public static final String BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567=";
-        public static final String BASE32HEX = "0123456789ABCDEFGHIJKLMNOPQRSTUV=";
-        private
-        Alphabet() {}
-    }
-
-    /**
-     * Creates an object that can be used to do base32 conversions.
-     *
-     * @param alphabet Which alphabet should be used
-     * @param padding Whether padding should be used
-     * @param lowercase Whether lowercase characters should be used.
-     *         default parameters (The standard base32 alphabet, no padding, uppercase)
-     */
-    public
-    base32(String alphabet, boolean padding, boolean lowercase) {
-        this.alphabet = alphabet;
-        this.padding = padding;
-        this.lowercase = lowercase;
+class base32
+/**
+ * Creates an object that can be used to do base32 conversions.
+ *
+ * @param alphabet Which alphabet should be used
+ * @param padding Whether padding should be used
+ * @param lowercase Whether lowercase characters should be used.
+ * default parameters (The standard base32 alphabet, no padding, uppercase)
+ */(private val alphabet: String, private val padding: Boolean, private val lowercase: Boolean) {
+    object Alphabet {
+        const val BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567="
+        const val BASE32HEX = "0123456789ABCDEFGHIJKLMNOPQRSTUV="
     }
 
     /**
@@ -67,81 +47,59 @@ class base32 {
      *
      * @return A String containing the encoded data
      */
-    public
-    String toString(byte[] b) {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
+    fun toString(b: ByteArray): String {
+        val os = ByteArrayOutputStream()
 
-        for (int i = 0; i < (b.length + 4) / 5; i++) {
-            short s[] = new short[5];
-            int t[] = new int[8];
-
-            int blocklen = 5;
-            for (int j = 0; j < 5; j++) {
-                if ((i * 5 + j) < b.length) {
-                    s[j] = (short) (b[i * 5 + j] & 0xFF);
-                }
-                else {
-                    s[j] = 0;
-                    blocklen--;
+        for (i in (0 until (b.size + 4) / 5)) {
+            val s = ShortArray(5)
+            val t = IntArray(8)
+            var blocklen = 5
+            for (j in 0..4) {
+                if (i * 5 + j < b.size) {
+                    s[j] = (b[i * 5 + j].toInt() and 0xFF).toShort()
+                } else {
+                    s[j] = 0
+                    blocklen--
                 }
             }
-            int padlen = blockLenToPadding(blocklen);
+            val padlen = blockLenToPadding(blocklen)
 
             // convert the 5 byte block into 8 characters (values 0-31).
 
             // upper 5 bits from first byte
-            t[0] = (byte) ((s[0] >> 3) & 0x1F);
+            t[0] = (s[0].toInt() shr 3 and 0x1F).toByte().toInt()
             // lower 3 bits from 1st byte, upper 2 bits from 2nd.
-            t[1] = (byte) (((s[0] & 0x07) << 2) | ((s[1] >> 6) & 0x03));
+            t[1] = (s[0].toInt() and 0x07 shl 2 or (s[1].toInt() shr 6 and 0x03)).toByte().toInt()
             // bits 5-1 from 2nd.
-            t[2] = (byte) ((s[1] >> 1) & 0x1F);
+            t[2] = (s[1].toInt() shr 1 and 0x1F).toByte().toInt()
             // lower 1 bit from 2nd, upper 4 from 3rd
-            t[3] = (byte) (((s[1] & 0x01) << 4) | ((s[2] >> 4) & 0x0F));
+            t[3] = (s[1].toInt() and 0x01 shl 4 or (s[2].toInt() shr 4 and 0x0F)).toByte().toInt()
             // lower 4 from 3rd, upper 1 from 4th.
-            t[4] = (byte) (((s[2] & 0x0F) << 1) | ((s[3] >> 7) & 0x01));
+            t[4] = (s[2].toInt() and 0x0F shl 1 or (s[3].toInt() shr 7 and 0x01)).toByte().toInt()
             // bits 6-2 from 4th
-            t[5] = (byte) ((s[3] >> 2) & 0x1F);
+            t[5] = (s[3].toInt() shr 2 and 0x1F).toByte().toInt()
             // lower 2 from 4th, upper 3 from 5th;
-            t[6] = (byte) (((s[3] & 0x03) << 3) | ((s[4] >> 5) & 0x07));
+            t[6] = (s[3].toInt() and 0x03 shl 3 or (s[4].toInt() shr 5 and 0x07)).toByte().toInt()
             // lower 5 from 5th;
-            t[7] = (byte) (s[4] & 0x1F);
+            t[7] = (s[4].toInt() and 0x1F).toByte().toInt()
 
             // write out the actual characters.
-            for (int j = 0; j < t.length - padlen; j++) {
-                char c = alphabet.charAt(t[j]);
+            for (j in 0 until t.size - padlen) {
+                var c = alphabet[t[j]]
                 if (lowercase) {
-                    c = Character.toLowerCase(c);
+                    c = c.lowercaseChar()
                 }
-                os.write(c);
+                os.write(c.code)
             }
 
             // write out the padding (if any)
             if (padding) {
-                for (int j = t.length - padlen; j < t.length; j++) {
-                    os.write('=');
+                for (j in t.size - padlen until t.size) {
+                    os.write('='.code)
                 }
             }
         }
-
-        return new String(os.toByteArray());
-    }
-
-    static private
-    int blockLenToPadding(int blocklen) {
-        switch (blocklen) {
-            case 1:
-                return 6;
-            case 2:
-                return 4;
-            case 3:
-                return 3;
-            case 4:
-                return 1;
-            case 5:
-                return 0;
-            default:
-                return -1;
-        }
+        return String(os.toByteArray())
     }
 
     /**
@@ -151,93 +109,89 @@ class base32 {
      *
      * @return An array containing the binary data, or null if the string is invalid
      */
-    public
-    byte[] fromString(String str) {
-        ByteArrayOutputStream bs = new ByteArrayOutputStream();
-        byte[] raw = str.getBytes();
-        for (int i = 0; i < raw.length; i++) {
-            char c = (char) raw[i];
+    fun fromString(str: String): ByteArray? {
+        val bs = ByteArrayOutputStream()
+        val raw = str.toByteArray()
+        for (i in raw.indices) {
+            var c = Char(raw[i].toUShort())
             if (!Character.isWhitespace(c)) {
-                c = Character.toUpperCase(c);
-                bs.write((byte) c);
+                c = c.uppercaseChar()
+                bs.write(c.code.toByte().toInt())
             }
         }
-
         if (padding) {
             if (bs.size() % 8 != 0) {
-                return null;
+                return null
             }
-        }
-        else {
+        } else {
             while (bs.size() % 8 != 0) {
-                bs.write('=');
+                bs.write('='.code)
             }
         }
-
-        byte[] in = bs.toByteArray();
-
-        bs.reset();
-        DataOutputStream ds = new DataOutputStream(bs);
-
-        for (int i = 0; i < in.length / 8; i++) {
-            short[] s = new short[8];
-            int[] t = new int[5];
-
-            int padlen = 8;
-            for (int j = 0; j < 8; j++) {
-                char c = (char) in[i * 8 + j];
+        val `in` = bs.toByteArray()
+        bs.reset()
+        val ds = DataOutputStream(bs)
+        for (i in 0 until `in`.size / 8) {
+            val s = ShortArray(8)
+            val t = IntArray(5)
+            var padlen = 8
+            for (j in 0..7) {
+                val c = Char(`in`[i * 8 + j].toUShort())
                 if (c == '=') {
-                    break;
+                    break
                 }
-                s[j] = (short) alphabet.indexOf(in[i * 8 + j]);
+                s[j] = alphabet.indexOf(Char(`in`[i * 8 + j].toUShort())).toShort()
                 if (s[j] < 0) {
-                    return null;
+                    return null
                 }
-                padlen--;
+                padlen--
             }
-            int blocklen = paddingToBlockLen(padlen);
+            val blocklen = paddingToBlockLen(padlen)
             if (blocklen < 0) {
-                return null;
+                return null
             }
 
             // all 5 bits of 1st, high 3 (of 5) of 2nd
-            t[0] = (s[0] << 3) | s[1] >> 2;
+            t[0] = s[0].toInt() shl 3 or (s[1].toInt() shr 2)
             // lower 2 of 2nd, all 5 of 3rd, high 1 of 4th
-            t[1] = ((s[1] & 0x03) << 6) | (s[2] << 1) | (s[3] >> 4);
+            t[1] = s[1].toInt() and 0x03 shl 6 or (s[2].toInt() shl 1) or (s[3].toInt() shr 4)
             // lower 4 of 4th, high 4 of 5th
-            t[2] = ((s[3] & 0x0F) << 4) | ((s[4] >> 1) & 0x0F);
+            t[2] = s[3].toInt() and 0x0F shl 4 or (s[4].toInt() shr 1 and 0x0F)
             // lower 1 of 5th, all 5 of 6th, high 2 of 7th
-            t[3] = (s[4] << 7) | (s[5] << 2) | (s[6] >> 3);
+            t[3] = s[4].toInt() shl 7 or (s[5].toInt() shl 2) or (s[6].toInt() shr 3)
             // lower 3 of 7th, all of 8th
-            t[4] = ((s[6] & 0x07) << 5) | s[7];
-
+            t[4] = s[6].toInt() and 0x07 shl 5 or s[7].toInt()
             try {
-                for (int j = 0; j < blocklen; j++) {
-                    ds.writeByte((byte) (t[j] & 0xFF));
+                for (j in 0 until blocklen) {
+                    ds.writeByte((t[j] and 0xFF).toByte().toInt())
                 }
-            } catch (IOException e) {
+            } catch (e: IOException) {
+            }
+        }
+        return bs.toByteArray()
+    }
+
+    companion object {
+        private fun blockLenToPadding(blocklen: Int): Int {
+            return when (blocklen) {
+                1 -> 6
+                2 -> 4
+                3 -> 3
+                4 -> 1
+                5 -> 0
+                else -> -1
             }
         }
 
-        return bs.toByteArray();
-    }
-
-    static private
-    int paddingToBlockLen(int padlen) {
-        switch (padlen) {
-            case 6:
-                return 1;
-            case 4:
-                return 2;
-            case 3:
-                return 3;
-            case 1:
-                return 4;
-            case 0:
-                return 5;
-            default:
-                return -1;
+        private fun paddingToBlockLen(padlen: Int): Int {
+            return when (padlen) {
+                6 -> 1
+                4 -> 2
+                3 -> 3
+                1 -> 4
+                0 -> 5
+                else -> -1
+            }
         }
     }
-
 }

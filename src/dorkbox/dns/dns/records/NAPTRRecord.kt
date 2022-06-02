@@ -13,18 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.exceptions.TextParseException
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * Name Authority Pointer Record  - specifies rewrite rule, that when applied
@@ -32,157 +30,140 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Chuck Santos
  */
+class NAPTRRecord : DnsRecord {
+    /**
+     * Returns the order
+     */
+    var order = 0
+        private set
 
-public
-class NAPTRRecord extends DnsRecord {
+    /**
+     * Returns the preference
+     */
+    var preference = 0
+        private set
 
-    private static final long serialVersionUID = 5191232392044947002L;
+    private lateinit var flags: ByteArray
+    private lateinit var service: ByteArray
+    private lateinit var regexp: ByteArray
 
-    private int order, preference;
-    private byte[] flags, service, regexp;
-    private Name replacement;
+    internal constructor() {}
 
-    NAPTRRecord() {}
+    override val `object`: DnsRecord
+        get() = NAPTRRecord()
 
-    @Override
-    DnsRecord getObject() {
-        return new NAPTRRecord();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        order = `in`.readU16()
+        preference = `in`.readU16()
+        flags = `in`.readCountedString()
+        service = `in`.readCountedString()
+        regexp = `in`.readCountedString()
+        additionalName = Name(`in`)
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        order = in.readU16();
-        preference = in.readU16();
-        flags = in.readCountedString();
-        service = in.readCountedString();
-        regexp = in.readCountedString();
-        replacement = new Name(in);
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU16(order);
-        out.writeU16(preference);
-        out.writeCountedString(flags);
-        out.writeCountedString(service);
-        out.writeCountedString(regexp);
-        replacement.toWire(out, null, canonical);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU16(order)
+        out.writeU16(preference)
+        out.writeCountedString(flags)
+        out.writeCountedString(service)
+        out.writeCountedString(regexp)
+        additionalName!!.toWire(out, null, canonical)
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(order);
-        sb.append(" ");
-        sb.append(preference);
-        sb.append(" ");
-        sb.append(byteArrayToString(flags, true));
-        sb.append(" ");
-        sb.append(byteArrayToString(service, true));
-        sb.append(" ");
-        sb.append(byteArrayToString(regexp, true));
-        sb.append(" ");
-        sb.append(replacement);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(order)
+        sb.append(" ")
+        sb.append(preference)
+        sb.append(" ")
+        sb.append(byteArrayToString(flags, true))
+        sb.append(" ")
+        sb.append(byteArrayToString(service, true))
+        sb.append(" ")
+        sb.append(byteArrayToString(regexp, true))
+        sb.append(" ")
+        sb.append(additionalName)
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        order = st.getUInt16();
-        preference = st.getUInt16();
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        order = st.getUInt16()
+        preference = st.getUInt16()
         try {
-            flags = byteArrayFromString(st.getString());
-            service = byteArrayFromString(st.getString());
-            regexp = byteArrayFromString(st.getString());
-        } catch (TextParseException e) {
-            throw st.exception(e.getMessage());
+            flags = byteArrayFromString(st.getString())
+            service = byteArrayFromString(st.getString())
+            regexp = byteArrayFromString(st.getString())
+        } catch (e: TextParseException) {
+            throw st.exception(e.message ?: "")
         }
-        replacement = st.getName(origin);
-    }
-
-    @Override
-    public
-    Name getAdditionalName() {
-        return replacement;
+        additionalName = st.getName(origin)
     }
 
     /**
      * Creates an NAPTR Record from the given data
      *
      * @param order The order of this NAPTR.  Records with lower order are
-     *         preferred.
+     * preferred.
      * @param preference The preference, used to select between records at the
-     *         same order.
+     * same order.
      * @param flags The control aspects of the NAPTRRecord.
      * @param service The service or protocol available down the rewrite path.
      * @param regexp The regular/substitution expression.
      * @param replacement The domain-name to query for the next DNS resource
-     *         record, depending on the value of the flags field.
+     * record, depending on the value of the flags field.
      *
      * @throws IllegalArgumentException One of the strings has invalid escapes
      */
-    public
-    NAPTRRecord(Name name, int dclass, long ttl, int order, int preference, String flags, String service, String regexp, Name replacement) {
-        super(name, DnsRecordType.NAPTR, dclass, ttl);
-        this.order = checkU16("order", order);
-        this.preference = checkU16("preference", preference);
+    constructor(
+        name: Name?,
+        dclass: Int,
+        ttl: Long,
+        order: Int,
+        preference: Int,
+        flags: String?,
+        service: String?,
+        regexp: String?,
+        replacement: Name?
+    ) : super(
+        name!!, DnsRecordType.NAPTR, dclass, ttl
+    ) {
+        this.order = checkU16("order", order)
+        this.preference = checkU16("preference", preference)
         try {
-            this.flags = byteArrayFromString(flags);
-            this.service = byteArrayFromString(service);
-            this.regexp = byteArrayFromString(regexp);
-        } catch (TextParseException e) {
-            throw new IllegalArgumentException(e.getMessage());
+            this.flags = byteArrayFromString(flags!!)
+            this.service = byteArrayFromString(service!!)
+            this.regexp = byteArrayFromString(regexp!!)
+        } catch (e: TextParseException) {
+            throw IllegalArgumentException(e.message)
         }
-        this.replacement = checkName("replacement", replacement);
-    }
-
-    /**
-     * Returns the order
-     */
-    public
-    int getOrder() {
-        return order;
-    }
-
-    /**
-     * Returns the preference
-     */
-    public
-    int getPreference() {
-        return preference;
+        additionalName = checkName("replacement", replacement!!)
     }
 
     /**
      * Returns flags
      */
-    public
-    String getFlags() {
-        return byteArrayToString(flags, false);
+    fun getFlags(): String {
+        return byteArrayToString(flags, false)
     }
 
     /**
      * Returns service
      */
-    public
-    String getService() {
-        return byteArrayToString(service, false);
+    fun getService(): String {
+        return byteArrayToString(service, false)
     }
 
     /**
      * Returns regexp
      */
-    public
-    String getRegexp() {
-        return byteArrayToString(regexp, false);
+    fun getRegexp(): String {
+        return byteArrayToString(regexp, false)
     }
 
-    /**
-     * Returns the replacement domain-name
-     */
-    public
-    Name getReplacement() {
-        return replacement;
+    companion object {
+        private const val serialVersionUID = 5191232392044947002L
     }
-
 }

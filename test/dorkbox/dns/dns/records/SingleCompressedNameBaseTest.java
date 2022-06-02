@@ -22,8 +22,6 @@ import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.SingleCompressedNameBase;
 import junit.framework.TestCase;
 
 public
@@ -40,12 +38,6 @@ class SingleCompressedNameBaseTest extends TestCase {
 
         @Override
         public
-        Name getSingleName() {
-            return super.getSingleName();
-        }
-
-        @Override
-        public
         DnsRecord getObject() {
             return null;
         }
@@ -56,22 +48,22 @@ class SingleCompressedNameBaseTest extends TestCase {
         TestClass tc = new TestClass();
         assertNull(tc.getSingleName());
 
-        Name n = Name.fromString("my.name.");
-        Name sn = Name.fromString("my.single.name.");
+        Name n = Name.Companion.fromString("my.name.");
+        Name sn = Name.Companion.fromString("my.single.name.");
 
         tc = new TestClass(n, DnsRecordType.A, DnsClass.IN, 100L, sn, "The Description");
 
         assertSame(n, tc.getName());
         assertEquals(DnsRecordType.A, tc.getType());
-        assertEquals(DnsClass.IN, tc.getDClass());
-        assertEquals(100L, tc.getTTL());
+        assertEquals(DnsClass.IN, tc.getDclass());
+        assertEquals(100L, tc.getTtl());
         assertSame(sn, tc.getSingleName());
     }
 
     public
     void test_rrToWire() throws IOException, TextParseException {
-        Name n = Name.fromString("my.name.");
-        Name sn = Name.fromString("My.Single.Name.");
+        Name n = Name.Companion.fromString("my.name.");
+        Name sn = Name.Companion.fromString("My.Single.Name.");
 
         // non-canonical (case sensitive)
         TestClass tc = new TestClass(n, DnsRecordType.A, DnsClass.IN, 100L, sn, "The Description");

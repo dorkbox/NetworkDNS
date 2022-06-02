@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.zone;
+package dorkbox.dns.dns.zone
 
-public
-enum ZoneType {
+enum class ZoneType {
     master, slave, stub, forward, rootHint
 }

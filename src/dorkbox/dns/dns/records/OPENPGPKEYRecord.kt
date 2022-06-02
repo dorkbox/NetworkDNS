@@ -13,20 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.util.Base64;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.utils.Options;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.os.OS;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Options.check
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.os.OS.LINE_SEPARATOR
+import java.io.IOException
+import java.util.*
 
 /**
  * OPENPGPKEY Record - Stores an OpenPGP certificate associated with a name.
@@ -35,50 +33,45 @@ import dorkbox.os.OS;
  * @author Brian Wellington
  * @author Valentin Hauner
  */
-public
-class OPENPGPKEYRecord extends DnsRecord {
+class OPENPGPKEYRecord : DnsRecord {
+    /**
+     * Returns the binary representation of the certificate
+     */
+    var cert: ByteArray? = null
+        private set
 
-    private static final long serialVersionUID = -1277262990243423062L;
+    internal constructor() {}
 
-    private byte[] cert;
+    override val `object`: DnsRecord
+        get() = OPENPGPKEYRecord()
 
-    OPENPGPKEYRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new OPENPGPKEYRecord();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        cert = `in`.readByteArray()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        cert = in.readByteArray();
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeByteArray(cert);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeByteArray(cert!!)
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
+    override fun rrToString(sb: StringBuilder) {
         if (cert != null) {
-            if (Options.check("multiline")) {
-                sb.append(OS.INSTANCE.getLINE_SEPARATOR());
-                sb.append(Base64.getEncoder().encodeToString(cert));
-            }
-            else {
-                sb.append("\t");
-                sb.append(Base64.getEncoder().encodeToString(cert));
+            if (check("multiline")) {
+                sb.append(LINE_SEPARATOR)
+                sb.append(Base64.getEncoder().encodeToString(cert))
+            } else {
+                sb.append("\t")
+                sb.append(Base64.getEncoder().encodeToString(cert))
             }
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        cert = st.getBase64();
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        cert = st.base64
     }
 
     /**
@@ -86,18 +79,11 @@ class OPENPGPKEYRecord extends DnsRecord {
      *
      * @param cert Binary data representing the certificate
      */
-    public
-    OPENPGPKEYRecord(Name name, int dclass, long ttl, byte[] cert) {
-        super(name, DnsRecordType.OPENPGPKEY, dclass, ttl);
-        this.cert = cert;
+    constructor(name: Name?, dclass: Int, ttl: Long, cert: ByteArray?) : super(name!!, DnsRecordType.OPENPGPKEY, dclass, ttl) {
+        this.cert = cert
     }
 
-    /**
-     * Returns the binary representation of the certificate
-     */
-    public
-    byte[] getCert() {
-        return cert;
+    companion object {
+        private const val serialVersionUID = -1277262990243423062L
     }
-
 }

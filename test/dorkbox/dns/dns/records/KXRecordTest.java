@@ -19,8 +19,6 @@ import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.KXRecord;
 import junit.framework.TestCase;
 
 public
@@ -34,14 +32,14 @@ class KXRecordTest extends TestCase {
 
     public
     void test_ctor_5arg() throws TextParseException {
-        Name n = Name.fromString("My.Name.");
-        Name m = Name.fromString("My.OtherName.");
+        Name n = Name.Companion.fromString("My.Name.");
+        Name m = Name.Companion.fromString("My.OtherName.");
 
         KXRecord d = new KXRecord(n, DnsClass.IN, 0xABCDEL, 0xF1, m);
         assertEquals(n, d.getName());
         assertEquals(DnsRecordType.KX, d.getType());
-        assertEquals(DnsClass.IN, d.getDClass());
-        assertEquals(0xABCDEL, d.getTTL());
+        assertEquals(DnsClass.IN, d.getDclass());
+        assertEquals(0xABCDEL, d.getTtl());
         assertEquals(0xF1, d.getPreference());
         assertEquals(m, d.getTarget());
         assertEquals(m, d.getAdditionalName());

@@ -13,34 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.exceptions
 
-package dorkbox.dns.dns.exceptions;
-
-import java.io.IOException;
+import java.io.IOException
 
 /**
  * An exception thrown when a DNS message is invalid.
  *
  * @author Brian Wellington
  */
-
-public
-class WireParseException extends IOException {
-
-    public
-    WireParseException() {
-        super();
+open class WireParseException : IOException {
+    constructor() : super()
+    constructor(s: String) : super(s)
+    constructor(s: String, cause: Throwable) : super(s) {
+        initCause(cause)
     }
-
-    public
-    WireParseException(String s) {
-        super(s);
-    }
-
-    public
-    WireParseException(String s, Throwable cause) {
-        super(s);
-        initCause(cause);
-    }
-
 }

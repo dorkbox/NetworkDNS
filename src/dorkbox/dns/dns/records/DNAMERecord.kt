@@ -13,54 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * DNAME Record  - maps a nonterminal alias (subtree) to a different domain
  *
  * @author Brian Wellington
  */
+class DNAMERecord : SingleNameBase {
+    internal constructor() {}
 
-public
-class DNAMERecord extends SingleNameBase {
-
-    private static final long serialVersionUID = 2670767677200844154L;
-
-    DNAMERecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new DNAMERecord();
-    }
+    override val `object`: DnsRecord
+        get() = DNAMERecord()
 
     /**
      * Creates a new DNAMERecord with the given data
      *
      * @param alias The name to which the DNAME alias points
      */
-    public
-    DNAMERecord(Name name, int dclass, long ttl, Name alias) {
-        super(name, DnsRecordType.DNAME, dclass, ttl, alias, "alias");
-    }
+    constructor(name: Name, dclass: Int, ttl: Long, alias: Name) : super(name, DnsRecordType.DNAME, dclass, ttl, alias, "alias") {}
 
     /**
      * Gets the target of the DNAME Record
      */
-    public
-    Name getTarget() {
-        return getSingleName();
-    }
+    val target: Name
+        get() = singleName
 
     /**
      * Gets the alias specified by the DNAME Record
      */
-    public
-    Name getAlias() {
-        return getSingleName();
-    }
+    val alias: Name
+        get() = singleName
 
+    companion object {
+        private const val serialVersionUID = 2670767677200844154L
+    }
 }

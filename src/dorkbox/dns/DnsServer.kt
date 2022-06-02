@@ -13,35 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns;
+package dorkbox.dns
 
-import java.util.ArrayList;
-
-import org.slf4j.Logger;
-
-import dorkbox.dns.dns.DnsQuestion;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.records.ARecord;
-import dorkbox.dns.dns.serverHandlers.DnsServerHandler;
-import dorkbox.dns.util.NativeLibrary;
-import dorkbox.dns.util.Shutdownable;
-import dorkbox.netUtil.IP;
-import dorkbox.os.OS;
-import dorkbox.util.NamedThreadFactory;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.DefaultEventLoopGroup;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.WriteBufferWaterMark;
-import io.netty.channel.epoll.EpollDatagramChannel;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.kqueue.KQueueDatagramChannel;
-import io.netty.channel.kqueue.KQueueEventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioDatagramChannel;
+import dorkbox.dns.dns.DnsQuestion
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.records.ARecord
+import dorkbox.dns.dns.serverHandlers.DnsServerHandler
+import dorkbox.dns.util.NativeLibrary
+import dorkbox.dns.util.Shutdownable
+import dorkbox.netUtil.IP.toBytes
+import dorkbox.os.OS.isLinux
+import dorkbox.os.OS.isMacOsX
+import dorkbox.updates.Updates.add
+import dorkbox.util.NamedThreadFactory
+import io.netty.bootstrap.Bootstrap
+import io.netty.buffer.PooledByteBufAllocator
+import io.netty.channel.ChannelFuture
+import io.netty.channel.ChannelOption
+import io.netty.channel.DefaultEventLoopGroup
+import io.netty.channel.EventLoopGroup
+import io.netty.channel.WriteBufferWaterMark
+import io.netty.channel.epoll.EpollDatagramChannel
+import io.netty.channel.epoll.EpollEventLoopGroup
+import io.netty.channel.kqueue.KQueueDatagramChannel
+import io.netty.channel.kqueue.KQueueEventLoopGroup
+import io.netty.channel.nio.NioEventLoopGroup
+import io.netty.channel.socket.nio.NioDatagramChannel
 
 /**
  * from: https://blog.cloudflare.com/how-the-consumer-product-safety-commission-is-inadvertently-behind-the-internets-largest-ddos-attacks/
@@ -67,80 +64,57 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
  * IPv6 - FF02:0:0:0:0:0:1:3 (this notation can be abbreviated as FF02::1:3), MAC address of 33-33-00-01-00-03
  * The responders also listen on TCP port 5355 on the unicast address that the host uses to respond to queries.
  */
-public
-class DnsServer extends Shutdownable {
+class DnsServer(host: String?, tcpPort: Int) : Shutdownable(DnsServer::class.java) {
+    companion object {
+        /**
+         * Gets the version number.
+         */
+        val version = "1.6.1"
 
-    /**
-     * Gets the version number.
-     */
-    public static
-    String getVersion() {
-        return "1.6.1";
+        var workerThreadPoolSize = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+
+        init {
+            // Add this project to the updates system, which verifies this class + UUID + version information
+            add(DnsServer::class.java, "3aaf262a500147daa340f7274a481a2b", version)
+        }
     }
-
-
-    public static int workerThreadPoolSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 1);
-
-    static {
-        // Add this project to the updates system, which verifies this class + UUID + version information
-        dorkbox.updates.Updates.INSTANCE.add(DnsServer.class, "3aaf262a500147daa340f7274a481a2b", getVersion());
-    }
-
 
     // private final ServerBootstrap tcpBootstrap;
-    private final Bootstrap udpBootstrap;
+    private val udpBootstrap: Bootstrap
+    private val udpPort: Int
+    private var hostName: String? = null
+    private val dnsServerHandler: DnsServerHandler
 
-    private final int tcpPort;
-    private final int udpPort;
-    private final String hostName;
+    init {
+        udpPort = tcpPort
+        hostName = host ?: "0.0.0.0"
+        dnsServerHandler = DnsServerHandler(logger)
+        val threadName = DnsServer::class.java.simpleName
+        val threadFactory = NamedThreadFactory(threadName, threadGroup)
+        val boss: EventLoopGroup
+        val work: EventLoopGroup
 
-    private final DnsServerHandler dnsServerHandler;
+        val namedThreadFactory = NamedThreadFactory("$threadName-boss", threadGroup)
 
-    @SuppressWarnings("deprecation")
-    public
-    DnsServer(String host, int port) {
-        super(DnsServer.class);
-
-        tcpPort = port;
-        udpPort = port;
-
-        if (host == null) {
-            hostName = "0.0.0.0";
-        }
-        else {
-            hostName = host;
-        }
-
-        dnsServerHandler = new DnsServerHandler(logger);
-        String threadName = DnsServer.class.getSimpleName();
-
-        NamedThreadFactory threadFactory = new NamedThreadFactory(threadName, threadGroup);
-
-        final EventLoopGroup boss;
-        final EventLoopGroup work;
-
-        if (OS.INSTANCE.isLinux() && NativeLibrary.isAvailable()) {
+        if (isLinux && NativeLibrary.isAvailable) {
             // epoll network stack is MUCH faster (but only on linux)
-            boss = new EpollEventLoopGroup(1, new NamedThreadFactory(threadName + "-boss", threadGroup));
-            work = new EpollEventLoopGroup(workerThreadPoolSize, threadFactory);
-        }
-        else if (OS.INSTANCE.isMacOsX() && NativeLibrary.isAvailable()) {
+            boss = EpollEventLoopGroup(1, namedThreadFactory)
+            work = EpollEventLoopGroup(workerThreadPoolSize, threadFactory)
+        } else if (isMacOsX && NativeLibrary.isAvailable) {
             // KQueue network stack is MUCH faster (but only on macosx)
-            boss = new KQueueEventLoopGroup(1, new NamedThreadFactory(threadName + "-boss", threadGroup));
-            work = new KQueueEventLoopGroup(workerThreadPoolSize, threadFactory);
-        }
-        else {
+            boss = KQueueEventLoopGroup(1, namedThreadFactory)
+            work = KQueueEventLoopGroup(workerThreadPoolSize, threadFactory)
+        } else {
             // sometimes the native libraries cannot be loaded, so fall back to NIO
-            boss = new NioEventLoopGroup(1, new NamedThreadFactory(threadName + "-boss", threadGroup));
-            work = new DefaultEventLoopGroup(workerThreadPoolSize, threadFactory);
+            boss = NioEventLoopGroup(1, namedThreadFactory)
+            work = DefaultEventLoopGroup(workerThreadPoolSize, threadFactory)
         }
-
-        manageForShutdown(boss);
-        manageForShutdown(work);
+        manageForShutdown(boss)
+        manageForShutdown(work)
 
 
         // tcpBootstrap = new ServerBootstrap();
-        udpBootstrap = new Bootstrap();
+        udpBootstrap = Bootstrap()
 
 
         // if (OS.isAndroid()) {
@@ -178,67 +152,52 @@ class DnsServer extends Shutdownable {
         // // android screws up on this!!
         // tcpBootstrap.option(ChannelOption.TCP_NODELAY, !OS.isAndroid())
         //             .childOption(ChannelOption.TCP_NODELAY, !OS.isAndroid());
-
-
-        if (OS.INSTANCE.isLinux() && NativeLibrary.isAvailable()) {
+        if (isLinux && NativeLibrary.isAvailable) {
             // epoll network stack is MUCH faster (but only on linux)
-            udpBootstrap.channel(EpollDatagramChannel.class);
-        }
-        else if (OS.INSTANCE.isMacOsX() && NativeLibrary.isAvailable()) {
+            udpBootstrap.channel(EpollDatagramChannel::class.java)
+        } else if (isMacOsX && NativeLibrary.isAvailable) {
             // KQueue network stack is MUCH faster (but only on macosx)
-            udpBootstrap.channel(KQueueDatagramChannel.class);
+            udpBootstrap.channel(KQueueDatagramChannel::class.java)
+        } else {
+            udpBootstrap.channel(NioDatagramChannel::class.java)
         }
-        else {
-            udpBootstrap.channel(NioDatagramChannel.class);
-        }
-
-        udpBootstrap.group(work)
-                    .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-                    .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(WRITE_BUFF_LOW, WRITE_BUFF_HIGH))
-
-                    // not binding to specific address, since it's driven by TCP, and that can be bound to a specific address
-                    .localAddress(udpPort) // if you bind to a specific interface, Linux will be unable to receive broadcast packets!
-                    .handler(dnsServerHandler);
+        udpBootstrap.group(work).option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT).option(
+                ChannelOption.WRITE_BUFFER_WATER_MARK,
+                WriteBufferWaterMark(WRITE_BUFF_LOW, WRITE_BUFF_HIGH)
+            ) // not binding to specific address, since it's driven by TCP, and that can be bound to a specific address
+            .localAddress(udpPort) // if you bind to a specific interface, Linux will be unable to receive broadcast packets!
+            .handler(dnsServerHandler)
     }
 
-    @Override
-    protected
-    void stopExtraActions() {
-        dnsServerHandler.stop();
+    override fun stopExtraActions() {
+        dnsServerHandler.stop()
     }
-
     /**
      * Binds the server to the configured, underlying protocols.
-     * <p/>
+     *
+     *
+     * This is a more advanced method, and you should consider calling `bind()` instead.
+     *
+     * @param blockUntilTerminate will BLOCK until the server stop method is called, and if you want to continue running code after this method
+     * invocation, bind should be called in a separate, non-daemon thread - or with false as the parameter.
+     */
+    /**
+     * Binds the server to the configured, underlying protocols.
+     *
+     *
      * This method will also BLOCK until the stop method is called, and if you want to continue running code after this method invocation,
      * bind should be called in a separate, non-daemon thread.
      */
-    public
-    void bind() {
-        bind(true);
-    }
-
-    /**
-     * Binds the server to the configured, underlying protocols.
-     * <p/>
-     * This is a more advanced method, and you should consider calling <code>bind()</code> instead.
-     *
-     * @param blockUntilTerminate will BLOCK until the server stop method is called, and if you want to continue running code after this method
-     *         invocation, bind should be called in a separate, non-daemon thread - or with false as the parameter.
-     */
-    @SuppressWarnings("AutoBoxing")
-    public
-    void bind(boolean blockUntilTerminate) {
+    @JvmOverloads
+    fun bind(blockUntilTerminate: Boolean = true) {
         // make sure we are not trying to connect during a close or stop event.
         // This will wait until we have finished starting up/shutting down.
-        synchronized (shutdownInProgress) {
-        }
+        synchronized(shutdownInProgress) {}
 
 
         // The bootstraps will be accessed ONE AT A TIME, in this order!
-        ChannelFuture future;
-
-        Logger logger2 = logger;
+        val future: ChannelFuture
+        val logger2 = logger
 
 
         // TCP
@@ -272,34 +231,30 @@ class DnsServer extends Shutdownable {
         // UDP
         // Wait until the connection attempt succeeds or fails.
         try {
-            future = udpBootstrap.bind();
-            future.await();
-        } catch (Exception e) {
-            String errorMessage = stopWithErrorMessage(logger2,
-                                                       "Could not bind to address " + hostName + " UDP port " + udpPort +
-                                                       " on the server.",
-                                                       e);
-            throw new IllegalArgumentException(errorMessage);
+            future = udpBootstrap.bind()
+            future.await()
+        } catch (e: Exception) {
+            val errorMessage = stopWithErrorMessage(
+                logger2, "Could not bind to address $hostName UDP port $udpPort on the server.", e
+            )
+            throw IllegalArgumentException(errorMessage)
         }
-
-        if (!future.isSuccess()) {
-            String errorMessage = stopWithErrorMessage(logger2,
-                                                       "Could not bind to address " + hostName + " UDP port " + udpPort +
-                                                       " on the server.",
-                                                       future.cause());
-            throw new IllegalArgumentException(errorMessage);
+        if (!future.isSuccess) {
+            val errorMessage = stopWithErrorMessage(
+                logger2, "Could not bind to address $hostName UDP port $udpPort on the server.", future.cause()
+            )
+            throw IllegalArgumentException(errorMessage)
         }
 
         // logger2.info("Listening on address {} at UDP port: {}", hostName, udpPort);
-        manageForShutdown(future);
+        manageForShutdown(future)
 
         // we now BLOCK until the stop method is called.
         // if we want to continue running code in the server, bind should be called in a separate, non-daemon thread.
         if (blockUntilTerminate) {
-            waitForShutdown();
+            waitForShutdown()
         }
     }
-
 
     /**
      * Adds a domain name query result, so clients that request the domain name will get the ipAddress
@@ -307,18 +262,14 @@ class DnsServer extends Shutdownable {
      * @param domainName the domain name to have results for
      * @param ipAddresses the ip addresses (can be multiple) to return for the requested domain name
      */
-    public
-    void aRecord(final String domainName, final int dClass, final int ttl, final String... ipAddresses) {
-        Name name = DnsQuestion.createName(domainName, DnsRecordType.A);
-
-        int length = ipAddresses.length;
-        ArrayList<ARecord> records = new ArrayList<ARecord>(length);
-
-        for (int i = 0; i < length; i++) {
-            byte[] address = IP.INSTANCE.toBytes(ipAddresses[i]);
-            records.add(new ARecord(name, dClass, ttl, address));
+    fun aRecord(domainName: String, dClass: Int, ttl: Int, vararg ipAddresses: String) {
+        val name = DnsQuestion.createName(domainName, DnsRecordType.A)
+        val length = ipAddresses.size
+        val records = mutableListOf<ARecord>()
+        for (i in 0 until length) {
+            val address = toBytes(ipAddresses[i])
+            records.add(ARecord(name, dClass, ttl.toLong(), address))
         }
-
-        dnsServerHandler.addARecord(name, records);
+        dnsServerHandler.addARecord(name, records)
     }
 }

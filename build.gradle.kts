@@ -25,9 +25,9 @@ import java.time.Instant
 gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS   // always show the stacktrace!
 
 plugins {
-    id("com.dorkbox.GradleUtils") version "2.16"
+    id("com.dorkbox.GradleUtils") version "2.17"
     id("com.dorkbox.Licensing") version "2.12"
-    id("com.dorkbox.VersionUpdate") version "2.4"
+    id("com.dorkbox.VersionUpdate") version "2.5"
     id("com.dorkbox.GradlePublish") version "1.12"
 
     kotlin("jvm") version "1.6.10"
@@ -54,8 +54,22 @@ object Extras {
 ///////////////////////////////
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.defaults()
-GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
-GradleUtils.jpms(JavaVersion.VERSION_1_9)
+GradleUtils.compileConfiguration(JavaVersion.VERSION_11)
+//GradleUtils.jpms(JavaVersion.VERSION_1_9)
+
+
+val sourceSets = project.extensions.getByName("sourceSets") as SourceSetContainer
+val main = sourceSets.named("main", org.gradle.api.tasks.SourceSet::class.java).get()
+val test = sourceSets.named("test", org.gradle.api.tasks.SourceSet::class.java).get()
+
+main.apply {
+    java.apply {
+        setSrcDirs(project.files("src"))
+        include("**/*.java") // want to include java files for the source. 'setSrcDirs' resets includes...
+    }
+}
+
+
 
 
 licensing {
@@ -88,7 +102,7 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    api("com.dorkbox:NetworkUtils:2.13")
+    api("com.dorkbox:NetworkUtils:2.15")
     api("com.dorkbox:OS:1.0")
     api("com.dorkbox:Utilities:1.25")
     api("com.dorkbox:Updates:1.1")

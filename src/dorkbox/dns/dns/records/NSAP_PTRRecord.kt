@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * NSAP Pointer Record  - maps a domain name representing an NSAP Address to
@@ -25,35 +24,35 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  */
-@Deprecated
-public
-class NSAP_PTRRecord extends SingleNameBase {
+@Deprecated("")
+class NSAP_PTRRecord : SingleNameBase {
+    internal constructor() {}
 
-    private static final long serialVersionUID = 2386284746382064904L;
+    override val `object`: DnsRecord
+        get() = NSAP_PTRRecord()
 
-    NSAP_PTRRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new NSAP_PTRRecord();
-    }
+    /**
+     * Gets the target of the NSAP_PTR Record
+     */
+    val target: Name
+        get() = singleName
 
     /**
      * Creates a new NSAP_PTR Record with the given data
      *
      * @param target The name of the host with this address
      */
-    public
-    NSAP_PTRRecord(Name name, int dclass, long ttl, Name target) {
-        super(name, DnsRecordType.NSAP_PTR, dclass, ttl, target, "target");
+    constructor(name: Name, dclass: Int, ttl: Long, target: Name) : super(
+        name,
+        DnsRecordType.NSAP_PTR,
+        dclass,
+        ttl,
+        target,
+        "target"
+    ) {
     }
 
-    /**
-     * Gets the target of the NSAP_PTR Record
-     */
-    public
-    Name getTarget() {
-        return getSingleName();
+    companion object {
+        private const val serialVersionUID = 2386284746382064904L
     }
-
 }

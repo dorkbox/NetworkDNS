@@ -13,18 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.zone;
+package dorkbox.dns.dns.zone
 
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.server.Response;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.server.Response
 
-public
 interface Zone {
-    int dnsClass();
-
-    Response find(Name qname, int recordType);
-
-    Name name();
-
-    ZoneType type();
+    fun dnsClass(): Int
+    fun find(qname: Name, recordType: Int): Response?
+    fun name(): Name
+    fun type(): ZoneType
 }

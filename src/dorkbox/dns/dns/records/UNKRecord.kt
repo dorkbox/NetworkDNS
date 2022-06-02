@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * A class implementing Records of unknown and/or unimplemented types.  This
@@ -30,50 +28,38 @@ import dorkbox.dns.dns.Name;
  *
  * @author Brian Wellington
  */
+class UNKRecord internal constructor() : DnsRecord() {
+    /**
+     * Returns the contents of this record.
+     */
+    lateinit var data: ByteArray
+        private set
 
-public
-class UNKRecord extends DnsRecord {
+    override val `object`: DnsRecord
+        get() = UNKRecord()
 
-    private static final long serialVersionUID = -4193583311594626915L;
-
-    private byte[] data;
-
-    UNKRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new UNKRecord();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        data = `in`.readByteArray()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        data = in.readByteArray();
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeByteArray(data);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeByteArray(data)
     }
 
     /**
      * Converts this Record to the String "unknown format"
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(unknownToString(data));
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(unknownToString(data))
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        throw st.exception("invalid unknown RR encoding");
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        throw st.exception("invalid unknown RR encoding")
     }
 
-    /**
-     * Returns the contents of this record.
-     */
-    public
-    byte[] getData() {
-        return data;
+    companion object {
+        private const val serialVersionUID = -4193583311594626915L
     }
-
 }

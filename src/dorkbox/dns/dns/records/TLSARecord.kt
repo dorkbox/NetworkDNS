@@ -13,178 +13,155 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.utils.base16;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.dns.dns.utils.base16.toString
+import java.io.IOException
 
 /**
  * Transport Layer Security Authentication
  *
  * @author Brian Wellington
  */
+class TLSARecord : DnsRecord {
+    /**
+     * Returns the certificate usage of the TLSA record
+     */
+    var certificateUsage = 0
+        private set
 
-public
-class TLSARecord extends DnsRecord {
+    /**
+     * Returns the selector of the TLSA record
+     */
+    var selector = 0
+        private set
 
-    private static final long serialVersionUID = 356494267028580169L;
-    private int certificateUsage;
-    private int selector;
-    private int matchingType;
-    private byte[] certificateAssociationData;
+    /**
+     * Returns the matching type of the TLSA record
+     */
+    var matchingType = 0
+        private set
 
+    /**
+     * Returns the certificate associate data of this TLSA record
+     */
+    var certificateAssociationData: ByteArray? = null
+        private set
 
-    public static
-    class CertificateUsage {
-        public static final int CA_CONSTRAINT = 0;
-        public static final int SERVICE_CERTIFICATE_CONSTRAINT = 1;
-        public static final int TRUST_ANCHOR_ASSERTION = 2;
-        public static final int DOMAIN_ISSUED_CERTIFICATE = 3;
-        private
-        CertificateUsage() {}
+    object CertificateUsage {
+        const val CA_CONSTRAINT = 0
+        const val SERVICE_CERTIFICATE_CONSTRAINT = 1
+        const val TRUST_ANCHOR_ASSERTION = 2
+        const val DOMAIN_ISSUED_CERTIFICATE = 3
     }
 
-
-    public static
-    class Selector {
+    object Selector {
         /**
          * Full certificate; the Certificate binary structure defined in
          * [RFC5280]
          */
-        public static final int FULL_CERTIFICATE = 0;
+        const val FULL_CERTIFICATE = 0
+
         /**
          * SubjectPublicKeyInfo; DER-encoded binary structure defined in
          * [RFC5280]
          */
-        public static final int SUBJECT_PUBLIC_KEY_INFO = 1;
-
-        private
-        Selector() {}
+        const val SUBJECT_PUBLIC_KEY_INFO = 1
     }
 
-
-    public static
-    class MatchingType {
+    object MatchingType {
         /**
          * Exact match on selected content
          */
-        public static final int EXACT = 0;
+        const val EXACT = 0
+
         /**
          * SHA-256 hash of selected content [RFC6234]
          */
-        public static final int SHA256 = 1;
+        const val SHA256 = 1
+
         /**
          * SHA-512 hash of selected content [RFC6234]
          */
-        public static final int SHA512 = 2;
-
-        private
-        MatchingType() {}
+        const val SHA512 = 2
     }
 
-    TLSARecord() {}
+    internal constructor() {}
 
-    @Override
-    DnsRecord getObject() {
-        return new TLSARecord();
+    override val `object`: DnsRecord
+        get() = TLSARecord()
+
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        certificateUsage = `in`.readU8()
+        selector = `in`.readU8()
+        matchingType = `in`.readU8()
+        certificateAssociationData = `in`.readByteArray()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        certificateUsage = in.readU8();
-        selector = in.readU8();
-        matchingType = in.readU8();
-        certificateAssociationData = in.readByteArray();
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU8(certificateUsage);
-        out.writeU8(selector);
-        out.writeU8(matchingType);
-        out.writeByteArray(certificateAssociationData);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU8(certificateUsage)
+        out.writeU8(selector)
+        out.writeU8(matchingType)
+        out.writeByteArray(certificateAssociationData!!)
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(certificateUsage);
-        sb.append(" ");
-        sb.append(selector);
-        sb.append(" ");
-        sb.append(matchingType);
-        sb.append(" ");
-        sb.append(base16.toString(certificateAssociationData));
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(certificateUsage)
+        sb.append(" ")
+        sb.append(selector)
+        sb.append(" ")
+        sb.append(matchingType)
+        sb.append(" ")
+        sb.append(toString(certificateAssociationData!!))
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        certificateUsage = st.getUInt8();
-        selector = st.getUInt8();
-        matchingType = st.getUInt8();
-        certificateAssociationData = st.getHex();
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        certificateUsage = st.getUInt8()
+        selector = st.getUInt8()
+        matchingType = st.getUInt8()
+        certificateAssociationData = st.hex
     }
 
     /**
      * Creates an TLSA Record from the given data
      *
      * @param certificateUsage The provided association that will be used to
-     *         match the certificate presented in the TLS handshake.
+     * match the certificate presented in the TLS handshake.
      * @param selector The part of the TLS certificate presented by the server
-     *         that will be matched against the association data.
+     * that will be matched against the association data.
      * @param matchingType How the certificate association is presented.
      * @param certificateAssociationData The "certificate association data" to be
-     *         matched.
+     * matched.
      */
-    public
-    TLSARecord(Name name, int dclass, long ttl, int certificateUsage, int selector, int matchingType, byte[] certificateAssociationData) {
-        super(name, DnsRecordType.TLSA, dclass, ttl);
-        this.certificateUsage = checkU8("certificateUsage", certificateUsage);
-        this.selector = checkU8("selector", selector);
-        this.matchingType = checkU8("matchingType", matchingType);
-        this.certificateAssociationData = checkByteArrayLength("certificateAssociationData", certificateAssociationData, 0xFFFF);
+    constructor(
+        name: Name?,
+        dclass: Int,
+        ttl: Long,
+        certificateUsage: Int,
+        selector: Int,
+        matchingType: Int,
+        certificateAssociationData: ByteArray?
+    ) : super(
+        name!!, DnsRecordType.TLSA, dclass, ttl
+    ) {
+        this.certificateUsage = checkU8("certificateUsage", certificateUsage)
+        this.selector = checkU8("selector", selector)
+        this.matchingType = checkU8("matchingType", matchingType)
+        this.certificateAssociationData = checkByteArrayLength("certificateAssociationData", certificateAssociationData!!, 0xFFFF)
     }
 
-    /**
-     * Returns the certificate usage of the TLSA record
-     */
-    public
-    int getCertificateUsage() {
-        return certificateUsage;
+    companion object {
+        private const val serialVersionUID = 356494267028580169L
     }
-
-    /**
-     * Returns the selector of the TLSA record
-     */
-    public
-    int getSelector() {
-        return selector;
-    }
-
-    /**
-     * Returns the matching type of the TLSA record
-     */
-    public
-    int getMatchingType() {
-        return matchingType;
-    }
-
-    /**
-     * Returns the certificate associate data of this TLSA record
-     */
-    public final
-    byte[] getCertificateAssociationData() {
-        return certificateAssociationData;
-    }
-
 }

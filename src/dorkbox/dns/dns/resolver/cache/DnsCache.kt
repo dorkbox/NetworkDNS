@@ -13,56 +13,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver.cache;
+package dorkbox.dns.dns.resolver.cache
 
-import java.net.InetAddress;
-import java.util.List;
-
-import io.netty.channel.EventLoop;
-import io.netty.util.internal.UnstableApi;
+import io.netty.channel.EventLoop
+import io.netty.util.internal.UnstableApi
+import java.net.InetAddress
 
 /**
  * A cache for DNS resolution entries.
  */
 @UnstableApi
-public interface DnsCache {
-
+interface DnsCache {
     /**
      * Clears all the resolved addresses cached by this resolver.
      *
-     * @see #clear(String)
+     * @see .clear
      */
-    void clear();
+    fun clear()
 
     /**
      * Clears the resolved addresses of the specified host name from the cache of this resolver.
      *
-     * @return {@code true} if and only if there was an entry for the specified host name in the cache and
-     *         it has been removed by this method
+     * @return `true` if and only if there was an entry for the specified host name in the cache and
+     * it has been removed by this method
      */
-    boolean clear(String hostname);
+    fun clear(hostname: String): Boolean
 
     /**
      * Return the cached entries for the given hostname.
      * @param hostname the hostname
      * @return the cached entries
      */
-    List<DnsCacheEntry> get(String hostname);
+    operator fun get(hostname: String): MutableList<DnsCacheEntry>?
 
     /**
      * Cache a resolved address for a given hostname.
      * @param hostname the hostname
      * @param address the resolved address
      * @param originalTtl the TLL as returned by the DNS server
-     * @param loop the {@link EventLoop} used to register the TTL timeout
+     * @param loop the [EventLoop] used to register the TTL timeout
      */
-    void cache(String hostname, InetAddress address, long originalTtl, EventLoop loop);
+    fun cache(hostname: String, address: InetAddress, originalTtl: Long, loop: EventLoop)
 
     /**
      * Cache the resolution failure for a given hostname.
      * @param hostname the hostname
      * @param cause the resolution failure
-     * @param loop the {@link EventLoop} used to register the TTL timeout
+     * @param loop the [EventLoop] used to register the TTL timeout
      */
-    void cache(String hostname, Throwable cause, EventLoop loop);
+    fun cache(hostname: String, cause: Throwable, loop: EventLoop)
 }

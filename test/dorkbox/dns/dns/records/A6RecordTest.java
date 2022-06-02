@@ -42,9 +42,9 @@ class A6RecordTest extends TestCase {
     @Override
     protected
     void setUp() throws TextParseException, UnknownHostException {
-        m_an = Name.fromString("My.Absolute.Name.");
-        m_an2 = Name.fromString("My.Second.Absolute.Name.");
-        m_rn = Name.fromString("My.Relative.Name");
+        m_an = Name.Companion.fromString("My.Absolute.Name.");
+        m_an2 = Name.Companion.fromString("My.Second.Absolute.Name.");
+        m_rn = Name.Companion.fromString("My.Relative.Name");
         m_addr_string = "2001:0db8:85a3:08d3:1319:8a2e:0370:7334";
         m_addr_string_canonical = "2001:db8:85a3:8d3:1319:8a2e:370:7334";
         m_addr = InetAddress.getByName(m_addr_string);
@@ -58,8 +58,8 @@ class A6RecordTest extends TestCase {
         A6Record ar = new A6Record();
         assertNull(ar.getName());
         assertEquals(0, ar.getType());
-        assertEquals(0, ar.getDClass());
-        assertEquals(0, ar.getTTL());
+        assertEquals(0, ar.getDclass());
+        assertEquals(0, ar.getTtl());
     }
 
     public
@@ -74,8 +74,8 @@ class A6RecordTest extends TestCase {
         A6Record ar = new A6Record(m_an, DnsClass.IN, m_ttl, m_prefix_bits, m_addr, null);
         assertEquals(m_an, ar.getName());
         assertEquals(DnsRecordType.A6, ar.getType());
-        assertEquals(DnsClass.IN, ar.getDClass());
-        assertEquals(m_ttl, ar.getTTL());
+        assertEquals(DnsClass.IN, ar.getDclass());
+        assertEquals(m_ttl, ar.getTtl());
         assertEquals(m_prefix_bits, ar.getPrefixBits());
         assertEquals(m_addr, ar.getSuffix());
         assertNull(ar.getPrefix());
@@ -84,8 +84,8 @@ class A6RecordTest extends TestCase {
         ar = new A6Record(m_an, DnsClass.IN, m_ttl, m_prefix_bits, m_addr, m_an2);
         assertEquals(m_an, ar.getName());
         assertEquals(DnsRecordType.A6, ar.getType());
-        assertEquals(DnsClass.IN, ar.getDClass());
-        assertEquals(m_ttl, ar.getTTL());
+        assertEquals(DnsClass.IN, ar.getDclass());
+        assertEquals(m_ttl, ar.getTtl());
         assertEquals(m_prefix_bits, ar.getPrefixBits());
         assertEquals(m_addr, ar.getSuffix());
         assertEquals(m_an2, ar.getPrefix());

@@ -40,14 +40,14 @@ class NameTest extends TestCase {
         @Override
         protected
         void setUp() throws TextParseException {
-            m_abs_origin = Name.fromString("Orig.");
-            m_rel_origin = Name.fromString("Orig");
+            m_abs_origin = Name.Companion.fromString("Orig.", null);
+            m_rel_origin = Name.Companion.fromString("Orig", null);
         }
 
         public
         void test_ctor_empty() {
             try {
-                new Name("");
+                new Name("", null);
                 fail("TextParseException not thrown");
             } catch (TextParseException e) {
             }
@@ -55,7 +55,7 @@ class NameTest extends TestCase {
 
         public
         void test_ctor_at_null_origin() throws TextParseException {
-            Name n = new Name("@");
+            Name n = new Name("@", null);
             assertFalse(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(0, n.labels());
@@ -76,16 +76,16 @@ class NameTest extends TestCase {
 
         public
         void test_ctor_dot() throws TextParseException {
-            Name n = new Name(".");
-            assertEquals(Name.root, n);
-            assertNotSame(Name.root, n);
+            Name n = new Name(".", null);
+            assertEquals(Name.getRoot(), n);
+            assertNotSame(Name.getRoot(), n);
             assertEquals(1, n.labels());
             assertEquals(1, n.length());
         }
 
         public
         void test_ctor_wildcard() throws TextParseException {
-            Name n = new Name("*");
+            Name n = new Name("*", null);
             assertFalse(n.isAbsolute());
             assertTrue(n.isWild());
             assertEquals(1, n.labels());
@@ -96,7 +96,7 @@ class NameTest extends TestCase {
 
         public
         void test_ctor_abs() throws TextParseException {
-            Name n = new Name(m_abs);
+            Name n = new Name(m_abs, null);
             assertTrue(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(4, n.labels());
@@ -113,7 +113,7 @@ class NameTest extends TestCase {
 
         public
         void test_ctor_rel() throws TextParseException {
-            Name n = new Name(m_rel);
+            Name n = new Name(m_rel, null);
             assertFalse(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(2, n.labels());
@@ -127,7 +127,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_7label() throws TextParseException {
             // 7 is the number of label positions that are cached
-            Name n = new Name("a.b.c.d.e.f.");
+            Name n = new Name("a.b.c.d.e.f.", null);
             assertTrue(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(7, n.labels());
@@ -151,7 +151,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_8label() throws TextParseException {
             // 7 is the number of label positions that are cached
-            Name n = new Name("a.b.c.d.e.f.g.");
+            Name n = new Name("a.b.c.d.e.f.g.", null);
             assertTrue(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(8, n.labels());
@@ -177,10 +177,10 @@ class NameTest extends TestCase {
         public
         void test_ctor_removed_label() throws TextParseException, NameTooLongException {
             String pre = "prepend";
-            Name stripped = new Name(Name.fromString("sub.domain.example."), 1);
+            Name stripped = new Name(Name.Companion.fromString("sub.domain.example.", null), 1);
             Name concat = new Name(pre, stripped);
-            assertEquals(Name.concatenate(Name.fromString(pre), stripped), concat);
-            assertEquals(Name.fromString(pre, stripped), concat);
+            assertEquals(Name.Companion.concatenate(Name.Companion.fromString(pre, null), stripped), concat);
+            assertEquals(Name.Companion.fromString(pre, stripped), concat);
             assertEquals("prepend.domain.example.", concat.toString());
         }
 
@@ -238,7 +238,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_invalid_label() {
             try {
-                new Name("junk..junk.");
+                new Name("junk..junk.", null);
                 fail("TextParseException not thrown");
             } catch (TextParseException e) {
             }
@@ -247,7 +247,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_max_label() throws TextParseException {
             // name with a 63 char label
-            Name n = new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.b.");
+            Name n = new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.b.", null);
             assertTrue(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(3, n.labels());
@@ -267,7 +267,7 @@ class NameTest extends TestCase {
         void test_ctor_toobig_label() {
             // name with a 64 char label
             try {
-                new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.b.");
+                new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.b.", null);
                 fail("TextParseException not thrown");
             } catch (TextParseException e) {
             }
@@ -276,7 +276,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_max_length_rel() throws TextParseException {
             // relative name with three 63-char labels and a 62-char label
-            Name n = new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
+            Name n = new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", null);
             assertFalse(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(4, n.labels());
@@ -286,7 +286,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_max_length_abs() throws TextParseException {
             // absolute name with three 63-char labels and a 61-char label
-            Name n = new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.");
+            Name n = new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.", null);
             assertTrue(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(5, n.labels());
@@ -295,7 +295,7 @@ class NameTest extends TestCase {
 
         public
         void test_ctor_escaped() throws TextParseException {
-            Name n = new Name("ab\\123cd");
+            Name n = new Name("ab\\123cd", null);
             assertFalse(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(1, n.labels());
@@ -305,7 +305,7 @@ class NameTest extends TestCase {
 
         public
         void test_ctor_escaped_end() throws TextParseException {
-            Name n = new Name("abcd\\123");
+            Name n = new Name("abcd\\123", null);
             assertFalse(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(1, n.labels());
@@ -316,7 +316,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_short_escaped() throws TextParseException {
             try {
-                new Name("ab\\12cd");
+                new Name("ab\\12cd", null);
                 fail("TextParseException not throw");
             } catch (TextParseException e) {
             }
@@ -325,7 +325,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_short_escaped_end() throws TextParseException {
             try {
-                new Name("ab\\12");
+                new Name("ab\\12", null);
                 fail("TextParseException not throw");
             } catch (TextParseException e) {
             }
@@ -334,7 +334,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_empty_escaped_end() throws TextParseException {
             try {
-                new Name("ab\\");
+                new Name("ab\\", null);
                 fail("TextParseException not throw");
             } catch (TextParseException e) {
             }
@@ -343,7 +343,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_toobig_escaped() throws TextParseException {
             try {
-                new Name("ab\\256cd");
+                new Name("ab\\256cd", null);
                 fail("TextParseException not throw");
             } catch (TextParseException e) {
             }
@@ -352,7 +352,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_toobig_escaped_end() throws TextParseException {
             try {
-                new Name("ab\\256");
+                new Name("ab\\256", null);
                 fail("TextParseException not throw");
             } catch (TextParseException e) {
             }
@@ -361,7 +361,7 @@ class NameTest extends TestCase {
         public
         void test_ctor_max_label_escaped() throws TextParseException {
             // name with a 63 char label containing an escape
-            Name n = new Name("aaaa\\100aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.b.");
+            Name n = new Name("aaaa\\100aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.b.", null);
             assertTrue(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(3, n.labels());
@@ -382,7 +382,7 @@ class NameTest extends TestCase {
             for (int i = 0; i < 127; ++i) {
                 sb.append("a.");
             }
-            Name n = new Name(sb.toString());
+            Name n = new Name(sb.toString(), null);
             assertTrue(n.isAbsolute());
             assertFalse(n.isWild());
             assertEquals(128, n.labels());
@@ -399,7 +399,7 @@ class NameTest extends TestCase {
         void test_ctor_toobig_label_escaped_end() throws TextParseException {
             try {
                 // name with a 64 char label containing an escape at the end
-                new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\090.b.");
+                new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\090.b.", null);
                 fail("TextParseException not thrown");
             } catch (TextParseException e) {
             }
@@ -409,7 +409,7 @@ class NameTest extends TestCase {
         void test_ctor_toobig_label_escaped() throws TextParseException {
             try {
                 // name with a 64 char label containing an escape at the end
-                new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaa\\001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.b.");
+                new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaa\\001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.b.", null);
                 fail("TextParseException not thrown");
             } catch (TextParseException e) {
             }
@@ -418,33 +418,33 @@ class NameTest extends TestCase {
         public
         void test_fromString() throws TextParseException {
             Name n = new Name(m_rel, m_abs_origin);
-            Name n2 = Name.fromString(m_rel, m_abs_origin);
+            Name n2 = Name.Companion.fromString(m_rel, m_abs_origin);
             assertEquals(n, n2);
         }
 
         public
         void test_fromString_at() throws TextParseException {
-            Name n = Name.fromString("@", m_rel_origin);
+            Name n = Name.Companion.fromString("@", m_rel_origin);
             assertSame(m_rel_origin, n);
         }
 
         public
         void test_fromString_dot() throws TextParseException {
-            Name n = Name.fromString(".");
-            assertSame(Name.root, n);
+            Name n = Name.Companion.fromString(".", null);
+            assertSame(Name.getRoot(), n);
         }
 
         public
         void test_fromConstantString() throws TextParseException {
-            Name n = new Name(m_abs);
-            Name n2 = Name.fromConstantString(m_abs);
+            Name n = new Name(m_abs, null);
+            Name n2 = Name.Companion.fromConstantString(m_abs);
             assertEquals(n, n2);
         }
 
         public
         void test_fromConstantString_invalid() {
             try {
-                Name.fromConstantString("junk..junk");
+                Name.Companion.fromConstantString("junk..junk");
                 fail("IllegalArgumentException not thrown");
             } catch (IllegalArgumentException e) {
             }
@@ -458,7 +458,7 @@ class NameTest extends TestCase {
         void test_basic() throws IOException, TextParseException, WireParseException {
 
             final byte[] raw = new byte[] {3, 'W', 'w', 'w', 7, 'D', 'n', 's', 'J', 'a', 'v', 'a', 3, 'o', 'r', 'g', 0};
-            Name e = Name.fromString("Www.DnsJava.org.");
+            Name e = Name.Companion.fromString("Www.DnsJava.org.", null);
 
             Name n = new Name(raw);
             assertEquals(e, n);
@@ -477,7 +477,7 @@ class NameTest extends TestCase {
         void test_root() throws WireParseException {
             final byte[] raw = new byte[] {0};
             Name n = new Name(new DnsInput(raw));
-            assertEquals(Name.root, n);
+            assertEquals(Name.getRoot(), n);
         }
 
         public
@@ -495,7 +495,7 @@ class NameTest extends TestCase {
                                      'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b',
                                      'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b',
                                      'b', 'b', 'b', 0};
-            Name e = Name.fromString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.");
+            Name e = Name.Companion.fromString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.", null);
 
             Name n = new Name(new DnsInput(raw));
             assertEquals(e, n);
@@ -504,7 +504,7 @@ class NameTest extends TestCase {
         public
         void test_max_name() throws TextParseException, WireParseException {
             // absolute name with three 63-char labels and a 61-char label
-            Name e = new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.");
+            Name e = new Name("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.", null);
             byte[] raw = new byte[] {63, 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
                                      'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
                                      'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',
@@ -559,8 +559,8 @@ class NameTest extends TestCase {
                                      1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a',
                                      1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a',
                                      1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 1, 'a', 0};
-            Name e = Name.fromString(
-                    "a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.");
+            Name e = Name.Companion.fromString(
+                    "a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.a.", null);
             Name n = new Name(new DnsInput(raw));
             assertEquals(128, n.labels());
             assertEquals(e, n);
@@ -588,12 +588,12 @@ class NameTest extends TestCase {
         public
         void test_basic_compression() throws TextParseException, WireParseException {
             byte[] raw = new byte[] {10, 3, 'a', 'b', 'c', 0, (byte) 0xC0, 1};
-            Name e = Name.fromString("abc.");
+            Name e = Name.Companion.fromString("abc.");
 
             DnsInput in = new DnsInput(raw);
             in.jump(6);
 
-            Options.set("verbosecompression");
+            Options.INSTANCE.set("verbosecompression");
             Name n = new Name(in);
             Options.unset("verbosecompression");
             assertEquals(e, n);
@@ -602,7 +602,7 @@ class NameTest extends TestCase {
         public
         void test_two_pointer_compression() throws TextParseException, WireParseException {
             byte[] raw = new byte[] {10, 3, 'a', 'b', 'c', 0, (byte) 0xC0, 1, (byte) 0xC0, 6};
-            Name e = Name.fromString("abc.");
+            Name e = Name.Companion.fromString("abc.");
 
             DnsInput in = new DnsInput(raw);
             in.jump(8);
@@ -614,7 +614,7 @@ class NameTest extends TestCase {
         public
         void test_two_part_compression() throws TextParseException, WireParseException {
             byte[] raw = new byte[] {10, 3, 'a', 'b', 'c', 0, 1, 'B', (byte) 0xC0, 1};
-            Name e = Name.fromString("B.abc.");
+            Name e = Name.Companion.fromString("B.abc.", null);
 
             DnsInput in = new DnsInput(raw);
             in.jump(6);
@@ -637,7 +637,7 @@ class NameTest extends TestCase {
                                      12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
                                      12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 3, 'a', 'b',
                                      'c', 0, (byte) 0xC1, 0};
-            Name e = Name.fromString("abc.");
+            Name e = Name.Companion.fromString("abc.", null);
 
             DnsInput in = new DnsInput(raw);
             in.jump(261);
@@ -658,8 +658,8 @@ class NameTest extends TestCase {
         public
         void test_basic_compression_state_restore() throws TextParseException, WireParseException {
             byte[] raw = new byte[] {10, 3, 'a', 'b', 'c', 0, (byte) 0xC0, 1, 3, 'd', 'e', 'f', 0};
-            Name e = Name.fromString("abc.");
-            Name e2 = Name.fromString("def.");
+            Name e = Name.Companion.fromString("abc.", null);
+            Name e2 = Name.Companion.fromString("def.");
 
             DnsInput in = new DnsInput(raw);
             in.jump(6);
@@ -674,8 +674,8 @@ class NameTest extends TestCase {
         public
         void test_two_part_compression_state_restore() throws TextParseException, WireParseException {
             byte[] raw = new byte[] {10, 3, 'a', 'b', 'c', 0, 1, 'B', (byte) 0xC0, 1, 3, 'd', 'e', 'f', 0};
-            Name e = Name.fromString("B.abc.");
-            Name e2 = Name.fromString("def.");
+            Name e = Name.Companion.fromString("B.abc.");
+            Name e2 = Name.Companion.fromString("def.");
 
             DnsInput in = new DnsInput(raw);
             in.jump(6);
@@ -700,7 +700,7 @@ class NameTest extends TestCase {
     void test_init_from_name_root() throws TextParseException {
         Name n = new Name("A.B.c.d.");
         Name o = new Name(n, 4);
-        assertEquals(Name.root, o);
+        assertEquals(Name.getRoot(), o);
     }
 
     public
@@ -716,33 +716,33 @@ class NameTest extends TestCase {
 
     public
     void test_concatenate_basic() throws NameTooLongException, TextParseException {
-        Name p = Name.fromString("A.B");
-        Name s = Name.fromString("c.d.");
-        Name e = Name.fromString("A.B.c.d.");
+        Name p = Name.Companion.fromString("A.B");
+        Name s = Name.Companion.fromString("c.d.");
+        Name e = Name.Companion.fromString("A.B.c.d.");
 
-        Name n = Name.concatenate(p, s);
+        Name n = Name.Companion.concatenate(p, s);
         assertEquals(e, n);
     }
 
     public
     void test_concatenate_abs_prefix() throws NameTooLongException, TextParseException {
-        Name p = Name.fromString("A.B.");
-        Name s = Name.fromString("c.d.");
-        Name e = Name.fromString("A.B.");
+        Name p = Name.Companion.fromString("A.B.");
+        Name s = Name.Companion.fromString("c.d.");
+        Name e = Name.Companion.fromString("A.B.");
 
-        Name n = Name.concatenate(p, s);
+        Name n = Name.Companion.concatenate(p, s);
         assertEquals(e, n);
     }
 
     public
     void test_concatenate_too_long() throws TextParseException {
-        Name p = Name.fromString(
+        Name p = Name.Companion.fromString(
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
-        Name s = Name.fromString(
+        Name s = Name.Companion.fromString(
                 "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.");
 
         try {
-            Name.concatenate(p, s);
+            Name.Companion.concatenate(p, s);
             fail("NameTooLongException not thrown");
         } catch (NameTooLongException e) {
         }
@@ -750,9 +750,9 @@ class NameTest extends TestCase {
 
     public
     void test_relativize() throws TextParseException {
-        Name sub = Name.fromString("a.b.c.");
-        Name dom = Name.fromString("c.");
-        Name exp = Name.fromString("a.b");
+        Name sub = Name.Companion.fromString("a.b.c.");
+        Name dom = Name.Companion.fromString("c.");
+        Name exp = Name.Companion.fromString("a.b");
 
         Name n = sub.relativize(dom);
         assertEquals(exp, n);
@@ -760,7 +760,7 @@ class NameTest extends TestCase {
 
     public
     void test_relativize_null_origin() throws TextParseException {
-        Name sub = Name.fromString("a.b.c.");
+        Name sub = Name.Companion.fromString("a.b.c.");
         Name dom = null;
 
         Name n = sub.relativize(dom);
@@ -769,8 +769,8 @@ class NameTest extends TestCase {
 
     public
     void test_relativize_disjoint() throws TextParseException {
-        Name sub = Name.fromString("a.b.c.");
-        Name dom = Name.fromString("e.f.");
+        Name sub = Name.Companion.fromString("a.b.c.");
+        Name dom = Name.Companion.fromString("e.f.");
 
         Name n = sub.relativize(dom);
         assertEquals(sub, n);
@@ -778,9 +778,9 @@ class NameTest extends TestCase {
 
     public
     void test_relativize_root() throws TextParseException {
-        Name sub = Name.fromString("a.b.c.");
-        Name dom = Name.fromString(".");
-        Name exp = Name.fromString("a.b.c");
+        Name sub = Name.Companion.fromString("a.b.c.");
+        Name dom = Name.Companion.fromString(".");
+        Name exp = Name.Companion.fromString("a.b.c");
 
         Name n = sub.relativize(dom);
         assertEquals(exp, n);
@@ -788,8 +788,8 @@ class NameTest extends TestCase {
 
     public
     void test_wild() throws TextParseException {
-        Name sub = Name.fromString("a.b.c.");
-        Name exp = Name.fromString("*.b.c.");
+        Name sub = Name.Companion.fromString("a.b.c.");
+        Name exp = Name.Companion.fromString("*.b.c.");
 
         Name n = sub.wild(1);
         assertEquals(exp, n);
@@ -797,8 +797,8 @@ class NameTest extends TestCase {
 
     public
     void test_parent() throws TextParseException {
-        Name dom = Name.fromString("a.b.c.");
-        Name exp = Name.fromString("b.c.");
+        Name dom = Name.Companion.fromString("a.b.c.");
+        Name exp = Name.Companion.fromString("b.c.");
 
         Name n = dom.parent(1);
         assertEquals(exp, n);
@@ -806,8 +806,8 @@ class NameTest extends TestCase {
 
     public
     void test_wild_abs() throws TextParseException {
-        Name sub = Name.fromString("a.b.c.");
-        Name exp = Name.fromString("*.");
+        Name sub = Name.Companion.fromString("a.b.c.");
+        Name exp = Name.Companion.fromString("*.");
 
         Name n = sub.wild(3);
         assertEquals(exp, n);
@@ -815,7 +815,7 @@ class NameTest extends TestCase {
 
     public
     void test_wild_toobig() throws TextParseException {
-        Name sub = Name.fromString("a.b.c.");
+        Name sub = Name.Companion.fromString("a.b.c.");
         try {
             sub.wild(4);
             fail("IllegalArgumentException not thrown");
@@ -825,7 +825,7 @@ class NameTest extends TestCase {
 
     public
     void test_wild_toosmall() throws TextParseException {
-        Name sub = Name.fromString("a.b.c.");
+        Name sub = Name.Companion.fromString("a.b.c.");
         try {
             sub.wild(0);
             fail("IllegalArgumentException not thrown");
@@ -847,10 +847,10 @@ class NameTest extends TestCase {
 
     public
     void test_fromDNAME_toobig() throws NameTooLongException, TextParseException {
-        Name own = new Name("the.owner.");
-        Name alias = new Name("the.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.");
+        Name own = new Name("the.owner.", null);
+        Name alias = new Name("the.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.", null);
         DNAMERecord dnr = new DNAMERecord(own, DnsClass.IN, 0xABCD, alias);
-        Name sub = new Name("ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.the.owner.");
+        Name sub = new Name("ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.the.owner.", null);
 
         try {
             sub.fromDNAME(dnr);
@@ -861,35 +861,35 @@ class NameTest extends TestCase {
 
     public
     void test_fromDNAME_disjoint() throws NameTooLongException, TextParseException {
-        Name own = new Name("the.owner.");
-        Name alias = new Name("the.alias.");
+        Name own = new Name("the.owner.", null);
+        Name alias = new Name("the.alias.", null);
         DNAMERecord dnr = new DNAMERecord(own, DnsClass.IN, 0xABCD, alias);
 
-        Name sub = new Name("sub.the.other");
+        Name sub = new Name("sub.the.other", null);
 
         assertNull(sub.fromDNAME(dnr));
     }
 
     public
     void test_subdomain_abs() throws TextParseException {
-        Name dom = new Name("the.domain.");
-        Name sub = new Name("sub.of.the.domain.");
+        Name dom = new Name("the.domain.", null);
+        Name sub = new Name("sub.of.the.domain.", null);
         assertTrue(sub.subdomain(dom));
         assertFalse(dom.subdomain(sub));
     }
 
     public
     void test_subdomain_rel() throws TextParseException {
-        Name dom = new Name("the.domain");
-        Name sub = new Name("sub.of.the.domain");
+        Name dom = new Name("the.domain", null);
+        Name sub = new Name("sub.of.the.domain", null);
         assertTrue(sub.subdomain(dom));
         assertFalse(dom.subdomain(sub));
     }
 
     public
     void test_subdomain_equal() throws TextParseException {
-        Name dom = new Name("the.domain");
-        Name sub = new Name("the.domain");
+        Name dom = new Name("the.domain", null);
+        Name sub = new Name("the.domain", null);
         assertTrue(sub.subdomain(dom));
         assertTrue(dom.subdomain(sub));
     }
@@ -897,7 +897,7 @@ class NameTest extends TestCase {
     public
     void test_toString_abs() throws TextParseException {
         String in = "This.Is.My.Absolute.Name.";
-        Name n = new Name(in);
+        Name n = new Name(in, null);
 
         assertEquals(in, n.toString());
     }
@@ -905,7 +905,7 @@ class NameTest extends TestCase {
     public
     void test_toString_rel() throws TextParseException {
         String in = "This.Is.My.Relative.Name";
-        Name n = new Name(in);
+        Name n = new Name(in, null);
 
         assertEquals(in, n.toString());
     }
@@ -918,20 +918,20 @@ class NameTest extends TestCase {
 
     public
     void test_toString_root() throws TextParseException {
-        assertEquals(".", Name.root.toString());
+        assertEquals(".", Name.getRoot().toString());
     }
 
     public
     void test_toString_wild() throws TextParseException {
         String in = "*.A.b.c.e";
-        Name n = new Name(in);
+        Name n = new Name(in, null);
         assertEquals(in, n.toString());
     }
 
     public
     void test_toString_escaped() throws TextParseException {
         String in = "my.escaped.junk\\128.label.";
-        Name n = new Name(in);
+        Name n = new Name(in, null);
         assertEquals(in, n.toString());
     }
 
@@ -947,7 +947,7 @@ class NameTest extends TestCase {
     class Test_toWire extends TestCase {
         public
         void test_rel() throws TextParseException {
-            Name n = new Name("A.Relative.Name");
+            Name n = new Name("A.Relative.Name", null);
             try {
                 n.toWire(new DnsOutput(), null);
                 fail("IllegalArgumentException not thrown");
@@ -958,7 +958,7 @@ class NameTest extends TestCase {
         public
         void test_null_Compression() throws TextParseException {
             byte[] raw = new byte[] {1, 'A', 5, 'B', 'a', 's', 'i', 'c', 4, 'N', 'a', 'm', 'e', 0};
-            Name n = new Name("A.Basic.Name.");
+            Name n = new Name("A.Basic.Name.", null);
 
             DnsOutput o = new DnsOutput();
             n.toWire(o, null);
@@ -969,7 +969,7 @@ class NameTest extends TestCase {
         public
         void test_empty_Compression() throws TextParseException {
             byte[] raw = new byte[] {1, 'A', 5, 'B', 'a', 's', 'i', 'c', 4, 'N', 'a', 'm', 'e', 0};
-            Name n = new Name("A.Basic.Name.");
+            Name n = new Name("A.Basic.Name.", null);
 
             Compression c = new Compression();
             DnsOutput o = new DnsOutput();
@@ -981,7 +981,7 @@ class NameTest extends TestCase {
 
         public
         void test_with_exact_Compression() throws TextParseException {
-            Name n = new Name("A.Basic.Name.");
+            Name n = new Name("A.Basic.Name.", null);
 
             Compression c = new Compression();
             c.add(256, n);
@@ -995,8 +995,8 @@ class NameTest extends TestCase {
 
         public
         void test_with_partial_Compression() throws TextParseException {
-            Name d = new Name("Basic.Name.");
-            Name n = new Name("A.Basic.Name.");
+            Name d = new Name("Basic.Name.", null);
+            Name n = new Name("A.Basic.Name.", null);
 
             Compression c = new Compression();
             c.add(257, d);
@@ -1011,7 +1011,7 @@ class NameTest extends TestCase {
 
         public
         void test_0arg_rel() throws TextParseException {
-            Name n = new Name("A.Relative.Name");
+            Name n = new Name("A.Relative.Name", null);
             try {
                 n.toWire();
                 fail("IllegalArgumentException not thrown");
@@ -1022,7 +1022,7 @@ class NameTest extends TestCase {
         public
         void test_0arg() throws TextParseException {
             byte[] raw = new byte[] {1, 'A', 5, 'B', 'a', 's', 'i', 'c', 4, 'N', 'a', 'm', 'e', 0};
-            Name n = new Name("A.Basic.Name.");
+            Name n = new Name("A.Basic.Name.", null);
 
             byte[] out = n.toWire();
 
@@ -1031,14 +1031,14 @@ class NameTest extends TestCase {
 
         public
         void test_root() {
-            byte[] out = Name.root.toWire();
+            byte[] out = Name.getRoot().toWire();
             assertTrue(Arrays.equals(new byte[] {0}, out));
         }
 
         public
         void test_3arg() throws TextParseException {
-            Name d = new Name("Basic.Name.");
-            Name n = new Name("A.Basic.Name.");
+            Name d = new Name("Basic.Name.", null);
+            Name n = new Name("A.Basic.Name.", null);
 
             Compression c = new Compression();
             c.add(257, d);
@@ -1058,7 +1058,7 @@ class NameTest extends TestCase {
         public
         void test_basic() throws TextParseException {
             byte[] raw = new byte[] {1, 'a', 5, 'b', 'a', 's', 'i', 'c', 4, 'n', 'a', 'm', 'e', 0};
-            Name n = new Name("A.Basic.Name.");
+            Name n = new Name("A.Basic.Name.", null);
 
             DnsOutput o = new DnsOutput();
             n.toWireCanonical(o);
@@ -1069,7 +1069,7 @@ class NameTest extends TestCase {
         public
         void test_0arg() throws TextParseException {
             byte[] raw = new byte[] {1, 'a', 5, 'b', 'a', 's', 'i', 'c', 4, 'n', 'a', 'm', 'e', 0};
-            Name n = new Name("A.Basic.Name.");
+            Name n = new Name("A.Basic.Name.", null);
 
             byte[] out = n.toWireCanonical();
 
@@ -1078,7 +1078,7 @@ class NameTest extends TestCase {
 
         public
         void test_root() {
-            byte[] out = Name.root.toWireCanonical();
+            byte[] out = Name.getRoot().toWireCanonical();
             assertTrue(Arrays.equals(new byte[] {0}, out));
         }
 
@@ -1091,8 +1091,8 @@ class NameTest extends TestCase {
 
         public
         void test_3arg() throws TextParseException {
-            Name d = new Name("Basic.Name.");
-            Name n = new Name("A.Basic.Name.");
+            Name d = new Name("Basic.Name.", null);
+            Name n = new Name("A.Basic.Name.", null);
 
             Compression c = new Compression();
             c.add(257, d);
@@ -1111,26 +1111,26 @@ class NameTest extends TestCase {
     class Test_equals extends TestCase {
         public
         void test_same() throws TextParseException {
-            Name n = new Name("A.Name.");
+            Name n = new Name("A.Name.", null);
             assertTrue(n.equals(n));
         }
 
         public
         void test_null() throws TextParseException {
-            Name n = new Name("A.Name.");
+            Name n = new Name("A.Name.", null);
             assertFalse(n.equals(null));
         }
 
         public
         void test_notName() throws TextParseException {
-            Name n = new Name("A.Name.");
+            Name n = new Name("A.Name.", null);
             assertFalse(n.equals(new Object()));
         }
 
         public
         void test_abs() throws TextParseException {
-            Name n = new Name("A.Name.");
-            Name n2 = new Name("a.name.");
+            Name n = new Name("A.Name.", null);
+            Name n2 = new Name("a.name.", null);
 
             assertTrue(n.equals(n2));
             assertTrue(n2.equals(n));
@@ -1138,8 +1138,8 @@ class NameTest extends TestCase {
 
         public
         void test_rel() throws TextParseException {
-            Name n1 = new Name("A.Relative.Name");
-            Name n2 = new Name("a.relative.name");
+            Name n1 = new Name("A.Relative.Name", null);
+            Name n2 = new Name("a.relative.name", null);
 
             assertTrue(n1.equals(n2));
             assertTrue(n2.equals(n1));
@@ -1147,8 +1147,8 @@ class NameTest extends TestCase {
 
         public
         void test_mixed() throws TextParseException {
-            Name n1 = new Name("A.Name");
-            Name n2 = new Name("a.name.");
+            Name n1 = new Name("A.Name", null);
+            Name n2 = new Name("a.name.", null);
 
             assertFalse(n1.equals(n2));
             assertFalse(n2.equals(n1));
@@ -1156,8 +1156,8 @@ class NameTest extends TestCase {
 
         public
         void test_weird() throws TextParseException {
-            Name n1 = new Name("ab.c");
-            Name n2 = new Name("abc.");
+            Name n1 = new Name("ab.c", null);
+            Name n2 = new Name("abc.", null);
 
             assertFalse(n1.equals(n2));
             assertFalse(n2.equals(n1));
@@ -1169,7 +1169,7 @@ class NameTest extends TestCase {
     class Test_compareTo extends TestCase {
         public
         void test_notName() throws TextParseException {
-            Name n = new Name("A.Name");
+            Name n = new Name("A.Name", null);
             try {
                 n.compareTo(new Object());
                 fail("ClassCastException not thrown");
@@ -1179,14 +1179,14 @@ class NameTest extends TestCase {
 
         public
         void test_same() throws TextParseException {
-            Name n = new Name("A.Name");
+            Name n = new Name("A.Name", null);
             assertEquals(0, n.compareTo(n));
         }
 
         public
         void test_equal() throws TextParseException {
-            Name n1 = new Name("A.Name.");
-            Name n2 = new Name("a.name.");
+            Name n1 = new Name("A.Name.", null);
+            Name n2 = new Name("a.name.", null);
 
             assertEquals(0, n1.compareTo(n2));
             assertEquals(0, n2.compareTo(n1));
@@ -1194,8 +1194,8 @@ class NameTest extends TestCase {
 
         public
         void test_close() throws TextParseException {
-            Name n1 = new Name("a.name");
-            Name n2 = new Name("a.name.");
+            Name n1 = new Name("a.name", null);
+            Name n2 = new Name("a.name.", null);
 
             assertTrue(n1.compareTo(n2) > 0);
             assertTrue(n2.compareTo(n1) < 0);
@@ -1203,8 +1203,8 @@ class NameTest extends TestCase {
 
         public
         void test_disjoint() throws TextParseException {
-            Name n1 = new Name("b");
-            Name n2 = new Name("c");
+            Name n1 = new Name("b", null);
+            Name n2 = new Name("c", null);
 
             assertTrue(n1.compareTo(n2) < 0);
             assertTrue(n2.compareTo(n1) > 0);
@@ -1212,8 +1212,8 @@ class NameTest extends TestCase {
 
         public
         void test_label_prefix() throws TextParseException {
-            Name n1 = new Name("thisIs.a.");
-            Name n2 = new Name("thisIsGreater.a.");
+            Name n1 = new Name("thisIs.a.", null);
+            Name n2 = new Name("thisIsGreater.a.", null);
 
             assertTrue(n1.compareTo(n2) < 0);
             assertTrue(n2.compareTo(n1) > 0);
@@ -1221,8 +1221,8 @@ class NameTest extends TestCase {
 
         public
         void test_more_labels() throws TextParseException {
-            Name n1 = new Name("c.b.a.");
-            Name n2 = new Name("d.c.b.a.");
+            Name n1 = new Name("c.b.a.", null);
+            Name n2 = new Name("d.c.b.a.", null);
 
             assertTrue(n1.compareTo(n2) < 0);
             assertTrue(n2.compareTo(n1) > 0);
@@ -1231,9 +1231,9 @@ class NameTest extends TestCase {
 
     public
     void test_canonicalize() throws TextParseException {
-        Name n1 = new Name("ABC.com");
-        Name n2 = new Name("abc.com");
-        Name n3 = new Name("\\193.com");
+        Name n1 = new Name("ABC.com", null);
+        Name n2 = new Name("abc.com", null);
+        Name n3 = new Name("\\193.com", null);
 
         Name cn1 = n1.canonicalize();
         Name cn2 = n2.canonicalize();
@@ -1257,18 +1257,21 @@ class NameTest extends TestCase {
         assertEquals(n1.toString(true), n1.toString(true));
         assertFalse(n2.toString(true)
                       .equals(n2.toString(false)));
+
         assertEquals(n2.toString(true) + ".", n2.toString(false));
-        assertEquals(Name.root.toString(true), Name.root.toString(false));
-        assertEquals(Name.empty.toString(true), Name.empty.toString(false));
+        assertEquals(Name.getRoot()
+                         .toString(true), Name.getRoot().toString(false));
+
+        assertEquals(Name.getRoot().toString(true), Name.getEmpty().toString(false));
     }
 
     public
     void test_absolute() throws TextParseException {
-        Name n1 = new Name("abc.com");
-        Name n2 = new Name("abc.com.");
-        Name n3 = new Name("abc.com", Name.root);
+        Name n1 = new Name("abc.com", null);
+        Name n2 = new Name("abc.com.", null);
+        Name n3 = new Name("abc.com", Name.getRoot());
         Name n4 = new Name("abc.com", n1);
-        Name n5 = new Name("abc.com\\000");
+        Name n5 = new Name("abc.com\\000", null);
 
         assertFalse(n1.isAbsolute());
         assertTrue(n2.isAbsolute());

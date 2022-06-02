@@ -13,34 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver.addressProvider;
+package dorkbox.dns.dns.resolver.addressProvider
 
-import java.net.InetSocketAddress;
+import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddresses.Companion.sequential
+import java.net.InetSocketAddress
 
 /**
- * A {@link DnsServerAddressStreamProvider} which is backed by a sequential list of DNS servers.
+ * A [DnsServerAddressStreamProvider] which is backed by a sequential list of DNS servers.
  */
-public final
-class SequentialDnsServerAddressStreamProvider extends UniSequentialDnsServerAddressStreamProvider {
+class SequentialDnsServerAddressStreamProvider : UniSequentialDnsServerAddressStreamProvider {
     /**
      * Create a new instance.
      *
      * @param addresses The addresses which will be be returned in sequential order via
-     *         {@link #nameServerAddressStream(String)}
+     * [.nameServerAddressStream]
      */
-    public
-    SequentialDnsServerAddressStreamProvider(InetSocketAddress... addresses) {
-        super(DnsServerAddresses.sequential(addresses));
-    }
+    constructor(vararg addresses: InetSocketAddress?) : super(sequential(*addresses as Array<out InetSocketAddress>)) {}
 
     /**
      * Create a new instance.
      *
      * @param addresses The addresses which will be be returned in sequential order via
-     *         {@link #nameServerAddressStream(String)}
+     * [.nameServerAddressStream]
      */
-    public
-    SequentialDnsServerAddressStreamProvider(Iterable<? extends InetSocketAddress> addresses) {
-        super(DnsServerAddresses.sequential(addresses));
-    }
+    constructor(addresses: Iterable<InetSocketAddress?>?) : super(sequential(addresses as Iterable<InetSocketAddress>)) {}
 }

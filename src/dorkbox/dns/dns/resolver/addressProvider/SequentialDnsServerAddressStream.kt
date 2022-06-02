@@ -13,69 +13,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.resolver.addressProvider
 
-package dorkbox.dns.dns.resolver.addressProvider;
+import java.net.InetSocketAddress
 
-import java.net.InetSocketAddress;
-
-final
-class SequentialDnsServerAddressStream implements DnsServerAddressStream {
-
-    private final InetSocketAddress[] addresses;
-    private int i;
-
-    SequentialDnsServerAddressStream(InetSocketAddress[] addresses, int startIdx) {
-        this.addresses = addresses;
-        i = startIdx;
-    }
-
-    @Override
-    public
-    InetSocketAddress next() {
-        int i = this.i;
-        InetSocketAddress next = addresses[i];
-        if (++i < addresses.length) {
-            this.i = i;
+internal class SequentialDnsServerAddressStream(private val addresses: Array<InetSocketAddress>, private var i: Int) :
+    DnsServerAddressStream {
+    override fun next(): InetSocketAddress {
+        var i = i
+        val next = addresses[i]
+        if (++i < addresses.size) {
+            this.i = i
+        } else {
+            this.i = 0
         }
-        else {
-            this.i = 0;
+        return next
+    }
+
+    override fun size(): Int {
+        return addresses.size
+    }
+
+    override fun duplicate(): SequentialDnsServerAddressStream {
+        return SequentialDnsServerAddressStream(addresses, i)
+    }
+
+    override fun toString(): String {
+        return toString("sequential", i, addresses)
+    }
+
+    companion object {
+        @JvmStatic
+        fun toString(type: String, index: Int, addresses: Array<InetSocketAddress>): String {
+            val buf = StringBuilder(type.length + 2 + addresses.size * 16)
+            buf.append(type).append("(index: ").append(index)
+            buf.append(", addrs: (")
+            for (a in addresses) {
+                buf.append(a).append(", ")
+            }
+            buf.setLength(buf.length - 2)
+            buf.append("))")
+            return buf.toString()
         }
-        return next;
-    }
-
-    @Override
-    public
-    int size() {
-        return addresses.length;
-    }
-
-    @Override
-    public
-    SequentialDnsServerAddressStream duplicate() {
-        return new SequentialDnsServerAddressStream(addresses, i);
-    }
-
-    @Override
-    public
-    String toString() {
-        return toString("sequential", i, addresses);
-    }
-
-    static
-    String toString(String type, int index, InetSocketAddress[] addresses) {
-        final StringBuilder buf = new StringBuilder(type.length() + 2 + addresses.length * 16);
-        buf.append(type)
-           .append("(index: ")
-           .append(index);
-        buf.append(", addrs: (");
-        for (InetSocketAddress a : addresses) {
-            buf.append(a)
-               .append(", ");
-        }
-
-        buf.setLength(buf.length() - 2);
-        buf.append("))");
-
-        return buf.toString();
     }
 }

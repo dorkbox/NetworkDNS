@@ -13,225 +13,163 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.resolver.addressProvider
 
-package dorkbox.dns.dns.resolver.addressProvider;
-
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import dorkbox.dns.dns.resolver.DnsNameResolver;
+import dorkbox.dns.dns.resolver.addressProvider.DefaultDnsServerAddressStreamProvider.Companion.defaultAddressArray
+import java.net.InetSocketAddress
 
 /**
- * Provides an infinite sequence of DNS server addresses to {@link DnsNameResolver}.
+ * Provides an infinite sequence of DNS server addresses to [DnsNameResolver].
  */
-@SuppressWarnings("IteratorNextCanNotThrowNoSuchElementException")
-public abstract
-class DnsServerAddresses {
+abstract class DnsServerAddresses {
     /**
-     * @deprecated Use {@link DefaultDnsServerAddressStreamProvider#defaultAddressList()}.
-     *         <p>
-     *         Returns the list of the system DNS server addresses. If it failed to retrieve the list of the system DNS server
-     *         addresses from the environment, it will return {@code "8.8.8.8"} and {@code "8.8.4.4"}, the addresses of the
-     *         Google public DNS servers.
+     * Starts a new infinite stream of DNS server addresses. This method is invoked by [DnsNameResolver] on every
+     * uncached [DnsNameResolver.resolve]or [DnsNameResolver.resolveAll].
      */
-    @Deprecated
-    public static
-    List<InetSocketAddress> defaultAddressList() {
-        return DefaultDnsServerAddressStreamProvider.defaultAddressList();
-    }
+    abstract fun stream(): DnsServerAddressStream
 
-    /**
-     * @deprecated Use {@link DefaultDnsServerAddressStreamProvider#defaultAddresses()}.
-     *         <p>
-     *         Returns the {@link DnsServerAddresses} that yields the system DNS server addresses sequentially. If it failed to
-     *         retrieve the list of the system DNS server addresses from the environment, it will use {@code "8.8.8.8"} and
-     *         {@code "8.8.4.4"}, the addresses of the Google public DNS servers.
-     *         <p>
-     *         This method has the same effect with the following code:
-     *         <pre>
-     *                 DnsServerAddresses.sequential(DnsServerAddresses.defaultAddressList());
-     *                 </pre>
-     *         </p>
-     */
-    @Deprecated
-    public static
-    DnsServerAddresses defaultAddresses() {
-        return DefaultDnsServerAddressStreamProvider.defaultAddresses();
-    }
+    companion object {
 
-    /**
-     * Returns the {@link DnsServerAddresses} that yields the specified {@code addresses} sequentially. Once the
-     * last address is yielded, it will start again from the first address.
-     */
-    public static
-    DnsServerAddresses sequential(Iterable<? extends InetSocketAddress> addresses) {
-        return sequential0(sanitize(addresses));
-    }
-
-    private static
-    DnsServerAddresses sequential0(final InetSocketAddress... addresses) {
-        if (addresses.length == 1) {
-            return singleton(addresses[0]);
+        @Deprecated(
+            """Use {@link DefaultDnsServerAddressStreamProvider#defaultAddressList()}.
+              <p>
+              Returns the list of the system DNS server addresses. If it failed to retrieve the list of the system DNS server
+              addresses from the environment, it will return {@code '8.8.8.8'} and {@code '8.8.4.4'}, the addresses of the
+              Google public DNS servers."""
+        )
+        fun defaultAddressList(): List<InetSocketAddress> {
+            return DefaultDnsServerAddressStreamProvider.defaultAddressList()
         }
 
-        return new DefaultDnsServerAddresses("sequential", addresses) {
-            @Override
-            public
-            DnsServerAddressStream stream() {
-                return new SequentialDnsServerAddressStream(addresses, 0);
+        @Deprecated(
+            """Use {@link DefaultDnsServerAddressStreamProvider#defaultAddresses()}.
+              <p>
+              Returns the {@link DnsServerAddresses} that yields the system DNS server addresses sequentially. If it failed to
+              retrieve the list of the system DNS server addresses from the environment, it will use {@code '8.8.8.8'} and
+              {@code '8.8.4.4'}, the addresses of the Google public DNS servers.
+              <p>
+              This method has the same effect with the following code:
+              <pre>
+                      DnsServerAddresses.sequential(DnsServerAddresses.defaultAddressList());
+                      </pre>
+              </p>"""
+        )
+        fun defaultAddresses(): DnsServerAddresses {
+            return DefaultDnsServerAddressStreamProvider.defaultAddresses()
+        }
+
+        /**
+         * Returns the [DnsServerAddresses] that yields the specified `addresses` sequentially. Once the
+         * last address is yielded, it will start again from the first address.
+         */
+        fun sequential(addresses: Iterable<InetSocketAddress>): DnsServerAddresses {
+            return sequential0(*sanitize(addresses))
+        }
+
+        private fun sequential0(vararg addresses: InetSocketAddress): DnsServerAddresses {
+            return if (addresses.size == 1) {
+                singleton(addresses[0])
+            } else object : DefaultDnsServerAddresses("sequential", addresses as Array<InetSocketAddress>) {
+                override fun stream(): DnsServerAddressStream {
+                    return SequentialDnsServerAddressStream(addresses as Array<InetSocketAddress>, 0)
+                }
             }
-        };
-    }
-
-    /**
-     * Returns the {@link DnsServerAddresses} that yields only a single {@code address}.
-     */
-    public static
-    DnsServerAddresses singleton(final InetSocketAddress address) {
-        if (address == null) {
-            throw new NullPointerException("address");
-        }
-        if (address.isUnresolved()) {
-            throw new IllegalArgumentException("cannot use an unresolved DNS server address: " + address);
         }
 
-        return new SingletonDnsServerAddresses(address);
-    }
-
-    private static
-    InetSocketAddress[] sanitize(Iterable<? extends InetSocketAddress> addresses) {
-        if (addresses == null) {
-            throw new NullPointerException("addresses");
+        /**
+         * Returns the [DnsServerAddresses] that yields only a single `address`.
+         */
+        @JvmStatic
+        fun singleton(address: InetSocketAddress): DnsServerAddresses {
+            require(!address.isUnresolved) { "cannot use an unresolved DNS server address: $address" }
+            return SingletonDnsServerAddresses(address)
         }
 
-        final List<InetSocketAddress> list;
-        if (addresses instanceof Collection) {
-            list = new ArrayList<InetSocketAddress>(((Collection<?>) addresses).size());
-        }
-        else {
-            list = new ArrayList<InetSocketAddress>(4);
-        }
-
-        for (InetSocketAddress a : addresses) {
-            if (a == null) {
-                break;
+        private fun sanitize(addresses: Iterable<InetSocketAddress>): Array<InetSocketAddress> {
+            val list: MutableList<InetSocketAddress>
+            list = if (addresses is Collection<*>) {
+                ArrayList((addresses as Collection<*>).size)
+            } else {
+                ArrayList(4)
             }
-            if (a.isUnresolved()) {
-                throw new IllegalArgumentException("cannot use an unresolved DNS server address: " + a);
+            for (a in addresses) {
+                require(!a.isUnresolved) { "cannot use an unresolved DNS server address: $a" }
+                list.add(a)
             }
-            list.add(a);
+            require(list.isNotEmpty()) { "empty addresses" }
+            return list.toTypedArray()
         }
 
-        if (list.isEmpty()) {
-            throw new IllegalArgumentException("empty addresses");
+        /**
+         * Returns the [DnsServerAddresses] that yields the specified `addresses` sequentially. Once the
+         * last address is yielded, it will start again from the first address.
+         */
+        @JvmStatic
+        fun sequential(vararg addresses: InetSocketAddress): DnsServerAddresses {
+            return sequential0(*sanitize(addresses as Array<InetSocketAddress>))
         }
 
-        return list.toArray(new InetSocketAddress[list.size()]);
-    }
-
-    /**
-     * Returns the {@link DnsServerAddresses} that yields the specified {@code addresses} sequentially. Once the
-     * last address is yielded, it will start again from the first address.
-     */
-    public static
-    DnsServerAddresses sequential(InetSocketAddress... addresses) {
-        return sequential0(sanitize(addresses));
-    }
-
-    private static
-    InetSocketAddress[] sanitize(InetSocketAddress[] addresses) {
-        if (addresses == null) {
-            throw new NullPointerException("addresses");
-        }
-
-        List<InetSocketAddress> list = new ArrayList<InetSocketAddress>(addresses.length);
-        for (InetSocketAddress a : addresses) {
-            if (a == null) {
-                break;
+        private fun sanitize(addresses: Array<InetSocketAddress>): Array<InetSocketAddress> {
+            val list: MutableList<InetSocketAddress> = ArrayList(addresses.size)
+            for (a in addresses) {
+                require(!a.isUnresolved) { "cannot use an unresolved DNS server address: $a" }
+                list.add(a)
             }
-            if (a.isUnresolved()) {
-                throw new IllegalArgumentException("cannot use an unresolved DNS server address: " + a);
+            return if (list.isEmpty()) {
+                defaultAddressArray()
+            } else list.toTypedArray()
+        }
+
+        /**
+         * Returns the [DnsServerAddresses] that yields the specified `address` in a shuffled order. Once all
+         * addresses are yielded, the addresses are shuffled again.
+         */
+        fun shuffled(addresses: Iterable<InetSocketAddress>?): DnsServerAddresses {
+            return shuffled0(sanitize(sanitize(addresses as Iterable<InetSocketAddress>)))
+        }
+
+        private fun shuffled0(addresses: Array<InetSocketAddress>): DnsServerAddresses {
+            return if (addresses.size == 1) {
+                singleton(addresses[0])
+            } else object : DefaultDnsServerAddresses("shuffled", addresses) {
+                override fun stream(): DnsServerAddressStream {
+                    return ShuffledDnsServerAddressStream(addresses)
+                }
             }
-            list.add(a);
         }
 
-        if (list.isEmpty()) {
-            return DefaultDnsServerAddressStreamProvider.defaultAddressArray();
+        /**
+         * Returns the [DnsServerAddresses] that yields the specified `addresses` in a shuffled order. Once all
+         * addresses are yielded, the addresses are shuffled again.
+         */
+        fun shuffled(vararg addresses: InetSocketAddress): DnsServerAddresses {
+            return shuffled0(sanitize(addresses as Array<InetSocketAddress>))
         }
 
-        return list.toArray(new InetSocketAddress[list.size()]);
-    }
-
-    /**
-     * Returns the {@link DnsServerAddresses} that yields the specified {@code address} in a shuffled order. Once all
-     * addresses are yielded, the addresses are shuffled again.
-     */
-    public static
-    DnsServerAddresses shuffled(Iterable<? extends InetSocketAddress> addresses) {
-        return shuffled0(sanitize(addresses));
-    }
-
-    private static
-    DnsServerAddresses shuffled0(final InetSocketAddress[] addresses) {
-        if (addresses.length == 1) {
-            return singleton(addresses[0]);
+        /**
+         * Returns the [DnsServerAddresses] that yields the specified `addresses` in a rotational sequential
+         * order. It is similar to [.sequential], but each [DnsServerAddressStream] starts from
+         * a different starting point.  For example, the first [.stream] will start from the first address, the
+         * second one will start from the second address, and so on.
+         */
+        fun rotational(addresses: Iterable<InetSocketAddress>): DnsServerAddresses {
+            return rotational0(sanitize(addresses))
         }
 
-        return new DefaultDnsServerAddresses("shuffled", addresses) {
-            @Override
-            public
-            DnsServerAddressStream stream() {
-                return new ShuffledDnsServerAddressStream(addresses);
-            }
-        };
-    }
-
-    /**
-     * Returns the {@link DnsServerAddresses} that yields the specified {@code addresses} in a shuffled order. Once all
-     * addresses are yielded, the addresses are shuffled again.
-     */
-    public static
-    DnsServerAddresses shuffled(InetSocketAddress... addresses) {
-        return shuffled0(sanitize(addresses));
-    }
-
-    /**
-     * Returns the {@link DnsServerAddresses} that yields the specified {@code addresses} in a rotational sequential
-     * order. It is similar to {@link #sequential(Iterable)}, but each {@link DnsServerAddressStream} starts from
-     * a different starting point.  For example, the first {@link #stream()} will start from the first address, the
-     * second one will start from the second address, and so on.
-     */
-    public static
-    DnsServerAddresses rotational(Iterable<? extends InetSocketAddress> addresses) {
-        return rotational0(sanitize(addresses));
-    }
-
-    private static
-    DnsServerAddresses rotational0(final InetSocketAddress[] addresses) {
-        if (addresses.length == 1) {
-            return singleton(addresses[0]);
+        private fun rotational0(addresses: Array<InetSocketAddress>): DnsServerAddresses {
+            return if (addresses.size == 1) {
+                singleton(addresses[0])
+            } else RotationalDnsServerAddresses(addresses)
         }
 
-        return new RotationalDnsServerAddresses(addresses);
+        /**
+         * Returns the [DnsServerAddresses] that yields the specified `addresses` in a rotational sequential
+         * order. It is similar to [.sequential], but each [DnsServerAddressStream] starts from
+         * a different starting point.  For example, the first [.stream] will start from the first address, the
+         * second one will start from the second address, and so on.
+         */
+        fun rotational(vararg addresses: InetSocketAddress): DnsServerAddresses {
+            return rotational0(sanitize(addresses as Array<InetSocketAddress>))
+        }
     }
-
-    /**
-     * Returns the {@link DnsServerAddresses} that yields the specified {@code addresses} in a rotational sequential
-     * order. It is similar to {@link #sequential(Iterable)}, but each {@link DnsServerAddressStream} starts from
-     * a different starting point.  For example, the first {@link #stream()} will start from the first address, the
-     * second one will start from the second address, and so on.
-     */
-    public static
-    DnsServerAddresses rotational(InetSocketAddress... addresses) {
-        return rotational0(sanitize(addresses));
-    }
-
-    /**
-     * Starts a new infinite stream of DNS server addresses. This method is invoked by {@link DnsNameResolver} on every
-     * uncached {@link DnsNameResolver#resolve(String)}or {@link DnsNameResolver#resolveAll(String)}.
-     */
-    public abstract
-    DnsServerAddressStream stream();
 }

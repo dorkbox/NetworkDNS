@@ -13,57 +13,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.util.Base64;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
+import java.util.*
 
 /**
  * DHCID - Dynamic Host Configuration Protocol (DHCP) ID (RFC 4701)
  *
  * @author Brian Wellington
  */
+class DHCIDRecord : DnsRecord {
+    /**
+     * Returns the binary data.
+     */
+    var data: ByteArray = byteArrayOf()
+        private set
 
-public
-class DHCIDRecord extends DnsRecord {
+    internal constructor() {}
 
-    private static final long serialVersionUID = -8214820200808997707L;
+    override val `object`: DnsRecord
+        get() = DHCIDRecord()
 
-    private byte[] data;
-
-    DHCIDRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new DHCIDRecord();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        data = `in`.readByteArray()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        data = in.readByteArray();
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeByteArray(data)
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeByteArray(data);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(Base64.getEncoder().encodeToString(data))
     }
 
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(Base64.getEncoder().encodeToString(data));
-    }
-
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        data = st.getBase64();
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        data = st.getBase64(true)!!
     }
 
     /**
@@ -71,18 +64,11 @@ class DHCIDRecord extends DnsRecord {
      *
      * @param data The binary data, which is opaque to DNS.
      */
-    public
-    DHCIDRecord(Name name, int dclass, long ttl, byte[] data) {
-        super(name, DnsRecordType.DHCID, dclass, ttl);
-        this.data = data;
+    constructor(name: Name, dclass: Int, ttl: Long, data: ByteArray) : super(name, DnsRecordType.DHCID, dclass, ttl) {
+        this.data = data
     }
 
-    /**
-     * Returns the binary data.
-     */
-    public
-    byte[] getData() {
-        return data;
+    companion object {
+        private const val serialVersionUID = -8214820200808997707L
     }
-
 }

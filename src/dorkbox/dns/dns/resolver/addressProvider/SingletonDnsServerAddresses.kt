@@ -13,55 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.resolver.addressProvider
 
-package dorkbox.dns.dns.resolver.addressProvider;
+import java.net.InetSocketAddress
 
-import java.net.InetSocketAddress;
-
-final
-class SingletonDnsServerAddresses extends DnsServerAddresses {
-
-    private final InetSocketAddress address;
-
-    private final DnsServerAddressStream stream = new DnsServerAddressStream() {
-        @Override
-        public
-        InetSocketAddress next() {
-            return address;
+internal class SingletonDnsServerAddresses(private val address: InetSocketAddress) : DnsServerAddresses() {
+    private val stream: DnsServerAddressStream = object : DnsServerAddressStream {
+        override fun next(): InetSocketAddress {
+            return address
         }
 
-        @Override
-        public
-        int size() {
-            return 1;
+        override fun size(): Int {
+            return 1
         }
 
-        @Override
-        public
-        DnsServerAddressStream duplicate() {
-            return this;
+        override fun duplicate(): DnsServerAddressStream {
+            return this
         }
 
-        @Override
-        public
-        String toString() {
-            return SingletonDnsServerAddresses.this.toString();
+        override fun toString(): String {
+            return this@SingletonDnsServerAddresses.toString()
         }
-    };
-
-    SingletonDnsServerAddresses(InetSocketAddress address) {
-        this.address = address;
     }
 
-    @Override
-    public
-    DnsServerAddressStream stream() {
-        return stream;
+    override fun stream(): DnsServerAddressStream {
+        return stream
     }
 
-    @Override
-    public
-    String toString() {
-        return "singleton(" + address + ")";
+    override fun toString(): String {
+        return "singleton($address)"
     }
 }

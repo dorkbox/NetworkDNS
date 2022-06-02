@@ -13,54 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * CNAME Record  - maps an alias to its real name
  *
  * @author Brian Wellington
  */
+class CNAMERecord : SingleCompressedNameBase {
+    internal constructor() {}
 
-public
-class CNAMERecord extends SingleCompressedNameBase {
+    override val `object`: DnsRecord
+        get() = CNAMERecord()
 
-    private static final long serialVersionUID = -4020373886892538580L;
+    /**
+     * Gets the target of the CNAME Record
+     */
+    val target: Name
+        get() = singleName
 
-    CNAMERecord() {}
 
-    @Override
-    DnsRecord getObject() {
-        return new CNAMERecord();
-    }
+    /**
+     * Gets the alias specified by the CNAME Record
+     */
+    val alias: Name
+        get() = singleName
 
     /**
      * Creates a new CNAMERecord with the given data
      *
      * @param alias The name to which the CNAME alias points
      */
-    public
-    CNAMERecord(Name name, int dclass, long ttl, Name alias) {
-        super(name, DnsRecordType.CNAME, dclass, ttl, alias, "alias");
-    }
+    constructor(name: Name, dclass: Int, ttl: Long, alias: Name) : super(name, DnsRecordType.CNAME, dclass, ttl, alias, "alias") {}
 
-    /**
-     * Gets the target of the CNAME Record
-     */
-    public
-    Name getTarget() {
-        return getSingleName();
+    companion object {
+        private const val serialVersionUID = -4020373886892538580L
     }
-
-    /**
-     * Gets the alias specified by the CNAME Record
-     */
-    public
-    Name getAlias() {
-        return getSingleName();
-    }
-
 }

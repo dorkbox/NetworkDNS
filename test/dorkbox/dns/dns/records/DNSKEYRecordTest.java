@@ -24,9 +24,6 @@ import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.RelativeNameException;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DNSKEYRecord;
-import dorkbox.dns.dns.records.DNSSEC;
-import dorkbox.dns.dns.records.DnsRecord;
 import dorkbox.dns.dns.utils.Tokenizer;
 import junit.framework.TestCase;
 
@@ -37,8 +34,8 @@ class DNSKEYRecordTest extends TestCase {
         DNSKEYRecord ar = new DNSKEYRecord();
         assertNull(ar.getName());
         assertEquals(0, ar.getType());
-        assertEquals(0, ar.getDClass());
-        assertEquals(0, ar.getTTL());
+        assertEquals(0, ar.getDclass());
+        assertEquals(0, ar.getTtl());
         assertEquals(0, ar.getAlgorithm());
         assertEquals(0, ar.getFlags());
         assertEquals(0, ar.getFootprint());
@@ -55,15 +52,15 @@ class DNSKEYRecordTest extends TestCase {
 
     public
     void test_ctor_7arg() throws TextParseException {
-        Name n = Name.fromString("My.Absolute.Name.");
-        Name r = Name.fromString("My.Relative.Name");
+        Name n = Name.Companion.fromString("My.Absolute.Name.");
+        Name r = Name.Companion.fromString("My.Relative.Name");
         byte[] key = new byte[] {0, 1, 3, 5, 7, 9};
 
         DNSKEYRecord kr = new DNSKEYRecord(n, DnsClass.IN, 0x24AC, 0x9832, 0x12, 0x67, key);
         assertEquals(n, kr.getName());
         assertEquals(DnsRecordType.DNSKEY, kr.getType());
-        assertEquals(DnsClass.IN, kr.getDClass());
-        assertEquals(0x24AC, kr.getTTL());
+        assertEquals(DnsClass.IN, kr.getDclass());
+        assertEquals(0x24AC, kr.getTtl());
         assertEquals(0x9832, kr.getFlags());
         assertEquals(0x12, kr.getProtocol());
         assertEquals(0x67, kr.getAlgorithm());

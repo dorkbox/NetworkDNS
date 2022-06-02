@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * AFS Data Base Record - maps a domain name to the name of an AFS cell
@@ -25,18 +24,11 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  */
+class AFSDBRecord : U16NameBase {
+    internal constructor() {}
 
-public
-class AFSDBRecord extends U16NameBase {
-
-    private static final long serialVersionUID = 3034379930729102437L;
-
-    AFSDBRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new AFSDBRecord();
-    }
+    override val `object`: DnsRecord
+        get() = AFSDBRecord()
 
     /**
      * Creates an AFSDB Record from the given data.
@@ -44,24 +36,31 @@ class AFSDBRecord extends U16NameBase {
      * @param subtype Indicates the type of service provided by the host.
      * @param host The host providing the service.
      */
-    public
-    AFSDBRecord(Name name, int dclass, long ttl, int subtype, Name host) {
-        super(name, DnsRecordType.AFSDB, dclass, ttl, subtype, "subtype", host, "host");
+    constructor(name: Name, dclass: Int, ttl: Long, subtype: Int, host: Name) : super(
+        name,
+        DnsRecordType.AFSDB,
+        dclass,
+        ttl,
+        subtype,
+        "subtype",
+        host,
+        "host"
+    ) {
     }
 
     /**
      * Gets the subtype indicating the service provided by the host.
      */
-    public
-    int getSubtype() {
-        return getU16Field();
-    }
+    val subtype: Int
+        get() = u16Field
 
     /**
      * Gets the host providing service for the domain.
      */
-    public
-    Name getHost() {
-        return getNameField();
+    val host: Name
+        get() = nameField
+
+    companion object {
+        private const val serialVersionUID = 3034379930729102437L
     }
 }

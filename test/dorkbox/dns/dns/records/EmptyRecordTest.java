@@ -20,8 +20,6 @@ import java.net.UnknownHostException;
 
 import dorkbox.dns.dns.DnsInput;
 import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.EmptyRecord;
 import dorkbox.dns.dns.utils.Tokenizer;
 import junit.framework.TestCase;
 
@@ -32,8 +30,8 @@ class EmptyRecordTest extends TestCase {
         EmptyRecord ar = new EmptyRecord();
         assertNull(ar.getName());
         assertEquals(0, ar.getType());
-        assertEquals(0, ar.getDClass());
-        assertEquals(0, ar.getTTL());
+        assertEquals(0, ar.getDclass());
+        assertEquals(0, ar.getTtl());
     }
 
     public
@@ -53,8 +51,8 @@ class EmptyRecordTest extends TestCase {
         assertEquals(3, i.readIndex());
         assertNull(er.getName());
         assertEquals(0, er.getType());
-        assertEquals(0, er.getDClass());
-        assertEquals(0, er.getTTL());
+        assertEquals(0, er.getDclass());
+        assertEquals(0, er.getTtl());
     }
 
     public
@@ -64,8 +62,8 @@ class EmptyRecordTest extends TestCase {
         er.rdataFromString(t, null);
         assertNull(er.getName());
         assertEquals(0, er.getType());
-        assertEquals(0, er.getDClass());
-        assertEquals(0, er.getTTL());
+        assertEquals(0, er.getDclass());
+        assertEquals(0, er.getTtl());
 
         assertEquals("these", t.getString());
     }

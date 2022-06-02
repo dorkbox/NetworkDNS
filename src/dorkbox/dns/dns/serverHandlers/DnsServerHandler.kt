@@ -13,46 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.serverHandlers
 
-package dorkbox.dns.dns.serverHandlers;
-
-
-import java.util.ArrayList;
-
-import org.slf4j.Logger;
-
-import dorkbox.dns.dns.records.ARecord;
-import dorkbox.dns.dns.Name;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelPipeline;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.records.ARecord
+import io.netty.channel.Channel
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelInboundHandlerAdapter
+import org.slf4j.Logger
 
 /**
  *
  */
-public
-class DnsServerHandler extends ChannelInboundHandlerAdapter {
-    protected final DnsMessageDecoder decoder;
-    private final Logger logger;
-    private DnsDecisionHandler decisionHandler;
-    private DnsMessageEncoder encoder;
+class DnsServerHandler(private val logger: Logger) : ChannelInboundHandlerAdapter() {
+    protected val decoder: DnsMessageDecoder
+    private val decisionHandler: DnsDecisionHandler
+    private val encoder: DnsMessageEncoder
 
-    public
-    DnsServerHandler(final Logger logger) {
-        this.logger = logger;
-
-        decoder = new DnsMessageDecoder(logger);
-        decisionHandler = new DnsDecisionHandler(logger);
-        encoder = new DnsMessageEncoder(logger);
+    init {
+        decoder = DnsMessageDecoder(logger)
+        decisionHandler = DnsDecisionHandler(logger)
+        encoder = DnsMessageEncoder(logger)
     }
 
-
-    public
-    void stop() {
-        decisionHandler.stop();
+    fun stop() {
+        decisionHandler.stop()
     }
-
 
     /**
      * Adds a domain name query result, so clients that request the domain name will get the ipAddress
@@ -60,24 +46,21 @@ class DnsServerHandler extends ChannelInboundHandlerAdapter {
      * @param domainName the domain name to have results for
      * @param @param aRecords the A records (can be multiple) to return for the requested domain name
      */
-    public
-    void addARecord(final Name domainName, final ArrayList<ARecord> aRecords) {
-        decisionHandler.addARecord(domainName, aRecords);
+    fun addARecord(domainName: Name, aRecords: List<ARecord>) {
+        decisionHandler.addARecord(domainName, aRecords)
     }
 
-    @Override
-    public final
-    void channelRegistered(final ChannelHandlerContext context) {
-        boolean success = false;
+    override fun channelRegistered(context: ChannelHandlerContext) {
+        var success = false
         try {
-            initChannel(context.channel());
-            context.fireChannelRegistered();
-            success = true;
-        } catch (Throwable t) {
-            logger.error("Failed to initialize a channel. Closing: {}", context.channel(), t);
+            initChannel(context.channel())
+            context.fireChannelRegistered()
+            success = true
+        } catch (t: Throwable) {
+            logger.error("Failed to initialize a channel. Closing: {}", context.channel(), t)
         } finally {
             if (!success) {
-                context.close();
+                context.close()
             }
         }
     }
@@ -85,19 +68,18 @@ class DnsServerHandler extends ChannelInboundHandlerAdapter {
     /**
      * STEP 1: Channel is first created
      */
-    protected
-    void initChannel(final Channel channel) {
-        ChannelPipeline pipeline = channel.pipeline();
+    protected fun initChannel(channel: Channel) {
+        val pipeline = channel.pipeline()
 
         ///////////////////////
         // DECODE (or upstream)
         ///////////////////////
-        pipeline.addLast("decoder", decoder);
-        pipeline.addLast("dnsDecision", decisionHandler);
+        pipeline.addLast("decoder", decoder)
+        pipeline.addLast("dnsDecision", decisionHandler)
 
         // ENCODE (or downstream)
         /////////////////////////
-        pipeline.addLast("encoder", encoder);
+        pipeline.addLast("encoder", encoder)
         // pipeline.addLast("fowarder", new ForwardingHandler(logger));
         // pipeline.addLast("fowarder", new ForwardingHandler(this.config, this.clientChannelFactory));
     }

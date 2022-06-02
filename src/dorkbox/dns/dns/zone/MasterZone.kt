@@ -13,196 +13,161 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.zone;
+package dorkbox.dns.dns.zone
 
-import java.util.HashSet;
-import java.util.NavigableSet;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ConcurrentSkipListSet;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.constants.DnsResponseCode
+import dorkbox.dns.dns.records.DnsRecord
+import dorkbox.dns.dns.records.DnsRecord.Companion.newRecord
+import dorkbox.dns.dns.records.SOARecord
+import dorkbox.dns.dns.server.CNAMEResponse
+import dorkbox.dns.dns.server.DNAMEResponse
+import dorkbox.dns.dns.server.NoErrorResponse
+import dorkbox.dns.dns.server.NotFoundResponse
+import dorkbox.dns.dns.server.ReferralResponse
+import dorkbox.dns.dns.server.Response
+import java.util.*
+import java.util.concurrent.*
 
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.constants.DnsResponseCode;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.SOARecord;
-import dorkbox.dns.dns.server.CNAMEResponse;
-import dorkbox.dns.dns.server.DNAMEResponse;
-import dorkbox.dns.dns.server.NoErrorResponse;
-import dorkbox.dns.dns.server.NotFoundResponse;
-import dorkbox.dns.dns.server.ReferralResponse;
-import dorkbox.dns.dns.server.Response;
+class MasterZone(name: Name, soaRecord: SOARecord) : AbstractZone(ZoneType.master, name) {
+    val records: ConcurrentMap<Name, ConcurrentMap<Int, NavigableSet<DnsRecord>>> = ConcurrentSkipListMap()
+    val nxDomain: Response
+    val nxRRSet: Response
 
-public
-class MasterZone extends AbstractZone {
-
-    final ConcurrentMap<Name, ConcurrentMap<Integer, NavigableSet<DnsRecord>>> records = new ConcurrentSkipListMap<Name, ConcurrentMap<Integer, NavigableSet<DnsRecord>>>();
-
-    final Response nxDomain;
-    final Response nxRRSet;
-
-    public
-    MasterZone(Name name, SOARecord soaRecord) {
-        super(ZoneType.master, name);
-
-        this.nxDomain = new NotFoundResponse(DnsResponseCode.NXDOMAIN, soaRecord);
-        this.nxRRSet = new NotFoundResponse(DnsResponseCode.NXRRSET, soaRecord);
+    init {
+        nxDomain = NotFoundResponse(DnsResponseCode.NXDOMAIN, soaRecord)
+        nxRRSet = NotFoundResponse(DnsResponseCode.NXRRSET, soaRecord)
     }
 
     // add and remove needs queuing?
     // if modify operations works on single thread, not conflict.
-    public synchronized
-    void add(DnsRecord rr) {
-
-        for (; ; ) {
-            ConcurrentMap<Integer, NavigableSet<DnsRecord>> current = this.records.get(rr.getName());
+    @Synchronized
+    fun add(rr: DnsRecord) {
+        while (true) {
+            val current = records[rr.name]
             if (current == null) {
-                ConcurrentMap<Integer, NavigableSet<DnsRecord>> newone = new ConcurrentSkipListMap<Integer, NavigableSet<DnsRecord>>();
-                NavigableSet<DnsRecord> newset = new ConcurrentSkipListSet<DnsRecord>();
-                newset.add(rr);
-                newone.put(rr.getType(), newset);
-
-                ConcurrentMap<Integer, NavigableSet<DnsRecord>> prevTypes = this.records.putIfAbsent(rr.getName(), newone);
-                if (prevTypes == null) {
-                    break;
+                val newone: ConcurrentMap<Int, NavigableSet<DnsRecord>> = ConcurrentSkipListMap()
+                val newset: NavigableSet<DnsRecord> = ConcurrentSkipListSet()
+                newset.add(rr)
+                newone[rr.type] = newset
+                val prevTypes = records.putIfAbsent(rr.name, newone) ?: break
+                synchronized(prevTypes) {
+                    val prevRecs = prevTypes.putIfAbsent(rr.type, newset) ?: return
+                    prevRecs.add(rr)
+                    return
                 }
-                synchronized (prevTypes) {
-                    Set<DnsRecord> prevRecs = prevTypes.putIfAbsent(rr.getType(), newset);
-                    if (prevRecs == null) {
-                        break;
-                    }
-                    prevRecs.add(rr);
-                    break;
-                }
-            }
-            else {
-                synchronized (current) {
-                    Set<DnsRecord> rrs = current.get(rr.getType());
+            } else {
+                synchronized(current) {
+                    val rrs: MutableSet<DnsRecord>? = current[rr.type]
                     if (rrs == null) {
-                        NavigableSet<DnsRecord> newset = new ConcurrentSkipListSet<DnsRecord>();
-                        newset.add(rr);
-                        current.put(rr.getType(), newset);
-                        break;
+                        val newset: NavigableSet<DnsRecord> = ConcurrentSkipListSet()
+                        newset.add(rr)
+                        current[rr.type] = newset
+                        return
                     }
                     if (!rrs.isEmpty()) {
-                        rrs.add(rr);
-                        break;
+                        rrs.add(rr)
+                        return
                     }
                 }
             }
         }
     }
 
-    @Override
-    public
-    Response find(Name queryName, int recordType) {
-        if (!queryName.equals(this.name)) {
-            return this.nxDomain;
+    override fun find(queryName: Name, recordType: Int): Response? {
+        if (!queryName.equals(name)) {
+            return nxDomain
         }
-
-        ConcurrentMap<Integer, NavigableSet<DnsRecord>> exactMatch = this.records.get(queryName);
-
+        val exactMatch = records[queryName]
         if (exactMatch != null) {
-            NavigableSet<DnsRecord> rrs = exactMatch.get(recordType);
-
+            var rrs = exactMatch[recordType]
             if (rrs != null) {
-                synchronized (rrs) {
-                    if (rrs.isEmpty()) {
-                        return new NoErrorResponse(rrs);
+                synchronized(rrs) {
+                    if (rrs!!.isEmpty()) {
+                        return NoErrorResponse(rrs!!)
                     }
                 }
             }
-
             if (DnsRecordType.ANY == recordType) {
-                Set<DnsRecord> newset = new HashSet<DnsRecord>();
-                for (Integer type : exactMatch.keySet()) {
-                    Set<DnsRecord> s = exactMatch.get(type);
+                val newset: MutableSet<DnsRecord> = HashSet()
+                for (type in exactMatch.keys) {
+                    val s: Set<DnsRecord>? = exactMatch[type]
                     if (s != null) {
-                        synchronized (s) {
-                            newset.addAll(s);
-                        }
+                        synchronized(s) { newset.addAll(s) }
                     }
                 }
-
                 if (newset.isEmpty()) {
-                    return null;
+                    return null
                 }
             }
-
             if (DnsRecordType.CNAME == recordType) {
-                rrs = exactMatch.get(DnsRecordType.CNAME);
-
+                rrs = exactMatch[DnsRecordType.CNAME]
                 if (rrs != null) {
-                    synchronized (rrs) {
+                    synchronized(rrs) {
                         if (!rrs.isEmpty()) {
-                            return new CNAMEResponse(rrs.first(), recordType);
+                            return CNAMEResponse(rrs.first(), recordType)
                         }
                     }
                 }
             }
-
-            return this.nxRRSet;
+            return nxRRSet
         }
-
-        for (Name qn = queryName.parent(1); !this.name()
-                                                 .equals(qn); qn = qn.parent(1)) {
-            ConcurrentMap<Integer, NavigableSet<DnsRecord>> match = this.records.get(qn);
-
-            if (match != null) {
-                synchronized (match) {
-                    if (!match.isEmpty()) {
-                        NavigableSet<DnsRecord> set = match.get(DnsRecordType.NS);
-                        if ((set != null) && (!set.isEmpty())) {
-                            return new ReferralResponse(set);
-                        }
-
-                        set = match.get(DnsRecordType.DNAME);
-                        if ((set != null) && (!set.isEmpty())) {
-                            return new DNAMEResponse(set.first(), queryName, recordType);
-                        }
-                    }
-                }
-            }
-        }
-
-        for (Name qn = queryName; !this.name()
-                                       .equals(qn); qn = qn.parent(1)) {
-            Name wild = qn.wild(1);
-
-            ConcurrentMap<Integer, NavigableSet<DnsRecord>> match = this.records.get(wild);
-            if (match != null) {
-                synchronized (match) {
-                    if (!match.isEmpty()) {
-                        Set<DnsRecord> matchSet = match.get(recordType);
-
-                        if (!matchSet.isEmpty()) {
-                            Set<DnsRecord> set = new HashSet<DnsRecord>(matchSet.size());
-                            for (DnsRecord rr : matchSet) {
-                                set.add(DnsRecord.newRecord(queryName, rr.getType(), rr.getDClass(), rr.getTTL()));
+        run {
+            var qn = queryName.parent(1)
+            while (!this.name().equals(qn)) {
+                val match = this.records[qn]
+                if (match != null) {
+                    synchronized(match) {
+                        if (!match.isEmpty()) {
+                            var set = match[DnsRecordType.NS]
+                            if (set != null && !set.isEmpty()) {
+                                return ReferralResponse(set)
                             }
-
-                            return new NoErrorResponse(set);
+                            set = match[DnsRecordType.DNAME]
+                            if (set != null && !set.isEmpty()) {
+                                return DNAMEResponse(set.first(), queryName, recordType)
+                            }
+                        }
+                    }
+                }
+                qn = qn.parent(1)
+            }
+        }
+        var qn = queryName
+        while (!name().equals(qn)) {
+            val wild = qn.wild(1)
+            val match = records[wild]
+            if (match != null) {
+                synchronized(match) {
+                    if (!match.isEmpty()) {
+                        val matchSet: Set<DnsRecord> = match[recordType]!!
+                        if (!matchSet.isEmpty()) {
+                            val set: MutableSet<DnsRecord> = HashSet(matchSet.size)
+                            for (rr in matchSet) {
+                                set.add(newRecord(queryName, rr.type, rr.dclass, rr.ttl))
+                            }
+                            return NoErrorResponse(set)
                         }
                     }
                 }
             }
+            qn = qn.parent(1)
         }
-
-        return this.nxDomain;
+        return nxDomain
     }
 
-    public synchronized
-    void remove(DnsRecord rr, boolean checkSets, boolean checkMap) {
-        ConcurrentMap<Integer, NavigableSet<DnsRecord>> current = this.records.get(rr.getName());
+    @Synchronized
+    fun remove(rr: DnsRecord, checkSets: Boolean, checkMap: Boolean) {
+        val current = records[rr.name]
         if (current != null) {
-            synchronized (current) {
-                NavigableSet<DnsRecord> sets = current.get(rr.getType());
-                sets.remove(rr);
+            synchronized(current) {
+                val sets = current[rr.type]!!
+                sets.remove(rr)
                 if (checkSets && sets.isEmpty()) {
-                    current.remove(rr.getType());
+                    current.remove(rr.type)
                     if (checkMap && current.isEmpty()) {
-                        this.records.remove(rr.getName());
+                        records.remove(rr.name)
                     }
                 }
             }

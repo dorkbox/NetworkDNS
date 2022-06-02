@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.util.BitSet;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.constants.DnsRecordType.string
+import dorkbox.dns.dns.constants.DnsRecordType.value
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
+import java.util.*
 
 /**
  * Next name - this record contains the following name in an ordered list
@@ -34,81 +34,84 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  */
+class NXTRecord : DnsRecord {
+    /**
+     * Returns the next name
+     */
+    var next: Name? = null
+        private set
 
-public
-class NXTRecord extends DnsRecord {
+    /**
+     * Returns the set of types defined for this name
+     */
+    var bitmap: BitSet? = null
+        private set
 
-    private static final long serialVersionUID = -8851454400765507520L;
+    internal constructor() {}
 
-    private Name next;
-    private BitSet bitmap;
+    override val `object`: DnsRecord
+        get() = NXTRecord()
 
-    NXTRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new NXTRecord();
-    }
-
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        next = new Name(in);
-        bitmap = new BitSet();
-        int bitmapLength = in.remaining();
-        for (int i = 0; i < bitmapLength; i++) {
-            int t = in.readU8();
-            for (int j = 0; j < 8; j++) {
-                if ((t & (1 << (7 - j))) != 0) {
-                    bitmap.set(i * 8 + j);
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        next = Name(`in`)
+        bitmap = BitSet()
+        val bitmapLength = `in`.remaining()
+        for (i in 0 until bitmapLength) {
+            val t = `in`.readU8()
+            for (j in 0..7) {
+                if (t and (1 shl 7) - j != 0) {
+                    bitmap!!.set(i * 8 + j)
                 }
             }
         }
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        next.toWire(out, null, canonical);
-        int length = bitmap.length();
-        for (int i = 0, t = 0; i < length; i++) {
-            t |= (bitmap.get(i) ? (1 << (7 - i % 8)) : 0);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        next!!.toWire(out, null, canonical)
+        val length = bitmap!!.length()
+        var i = 0
+        var t = 0
+        while (i < length) {
+            t = t or if (bitmap!![i]) 1 shl 7 - i % 8 else 0
             if (i % 8 == 7 || i == length - 1) {
-                out.writeU8(t);
-                t = 0;
+                out.writeU8(t)
+                t = 0
             }
+            i++
         }
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(next);
-        int length = bitmap.length();
-        for (short i = 0; i < length; i++) {
-            if (bitmap.get(i)) {
-                sb.append(" ");
-                sb.append(DnsRecordType.string(i));
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(next)
+        val length = bitmap!!.length()
+        for (i in 0 until length) {
+            if (bitmap!![i]) {
+                sb.append(" ")
+                sb.append(string(i))
             }
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        next = st.getName(origin);
-        bitmap = new BitSet();
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        next = st.getName(origin)
+        bitmap = BitSet()
         while (true) {
-            Tokenizer.Token t = st.get();
-            if (!t.isString()) {
-                break;
+            val t = st.get()
+            if (!t.isString) {
+                break
             }
-            int typecode = DnsRecordType.value(t.value, true);
+            val typecode = value(t.value!!, true)
             if (typecode <= 0 || typecode > 128) {
-                throw st.exception("Invalid type: " + t.value);
+                throw st.exception("Invalid type: " + t.value)
             }
-            bitmap.set(typecode);
+            bitmap!!.set(typecode)
         }
-        st.unget();
+        st.unget()
     }
 
     /**
@@ -117,27 +120,14 @@ class NXTRecord extends DnsRecord {
      * @param next The following name in an ordered list of the zone
      * @param bitmap The set of type for which records exist at this name
      */
-    public
-    NXTRecord(Name name, int dclass, long ttl, Name next, BitSet bitmap) {
-        super(name, DnsRecordType.NXT, dclass, ttl);
-        this.next = checkName("next", next);
-        this.bitmap = bitmap;
+    constructor(name: Name?, dclass: Int, ttl: Long, next: Name?, bitmap: BitSet?) : super(
+        name!!, DnsRecordType.NXT, dclass, ttl
+    ) {
+        this.next = checkName("next", next!!)
+        this.bitmap = bitmap
     }
 
-    /**
-     * Returns the next name
-     */
-    public
-    Name getNext() {
-        return next;
+    companion object {
+        private const val serialVersionUID = -8851454400765507520L
     }
-
-    /**
-     * Returns the set of types defined for this name
-     */
-    public
-    BitSet getBitmap() {
-        return bitmap;
-    }
-
 }

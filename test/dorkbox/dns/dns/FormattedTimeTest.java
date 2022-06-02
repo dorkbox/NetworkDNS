@@ -30,7 +30,7 @@ class FormattedTimeTest extends TestCase {
     void test_format() {
         GregorianCalendar cal = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
         cal.set(2005, 2, 19, 4, 4, 5);
-        String out = FormattedTime.format(cal.getTime());
+        String out = FormattedTime.INSTANCE.format(cal.getTime());
         assertEquals("20050319040405", out);
     }
 

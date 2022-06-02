@@ -13,52 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.netUtil.IPv4;
-import dorkbox.netUtil.IPv6;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.exceptions.WireParseException;
-import dorkbox.dns.dns.utils.Address;
-import dorkbox.dns.dns.utils.base16;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.exceptions.WireParseException
+import dorkbox.dns.dns.utils.Address
+import dorkbox.dns.dns.utils.Address.familyOf
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.dns.dns.utils.base16.toString
+import dorkbox.netUtil.IPv4
+import dorkbox.netUtil.IPv6
+import java.io.IOException
+import java.net.InetAddress
 
 /**
  * APL - Address Prefix List.  See RFC 3123.
  *
  * @author Brian Wellington
  */
-
 /*
  * Note: this currently uses the same constants as the Address class;
  * this could change if more constants are defined for APL records.
  */
+class APLRecord : DnsRecord {
+    private var elements: MutableList<Element>? = null
 
-public
-class APLRecord extends DnsRecord {
-
-    private static final long serialVersionUID = -1348173791712935864L;
-    private List<Element> elements;
-
-
-    public static
-    class Element {
-        public final int family;
-        public final boolean negative;
-        public final int prefixLength;
-        public final Object address;
-
+    class Element(val family: Int, val negative: Boolean, val address: Any, val prefixLength: Int) {
         /**
          * Creates an APL element corresponding to an IPv4 or IPv6 prefix.
          *
@@ -68,236 +52,174 @@ class APLRecord extends DnsRecord {
          *
          * @throws IllegalArgumentException The prefix length is invalid.
          */
-        public
-        Element(boolean negative, InetAddress address, int prefixLength) {
-            this(Address.familyOf(address), negative, address, prefixLength);
+        constructor(negative: Boolean, address: InetAddress, prefixLength: Int) : this(
+            familyOf(address),
+            negative,
+            address,
+            prefixLength
+        ) {
         }
 
-        private
-        Element(int family, boolean negative, Object address, int prefixLength) {
-            this.family = family;
-            this.negative = negative;
-            this.address = address;
-            this.prefixLength = prefixLength;
-            if (!validatePrefixLength(family, prefixLength)) {
-                throw new IllegalArgumentException("invalid prefix " + "length");
+        init {
+            require(validatePrefixLength(family, prefixLength)) { "invalid prefix " + "length" }
+        }
+
+        override fun hashCode(): Int {
+            return address.hashCode() + prefixLength + if (negative) 1 else 0
+        }
+
+        override fun equals(arg: Any?): Boolean {
+            if (arg == null || arg !is Element) {
+                return false
             }
+            val elt = arg
+            return family == elt.family && negative == elt.negative && prefixLength == elt.prefixLength && address == elt.address
         }
 
-        @Override
-        public
-        int hashCode() {
-            return address.hashCode() + prefixLength + (negative ? 1 : 0);
-        }
-
-        @Override
-        public
-        boolean equals(Object arg) {
-            if (arg == null || !(arg instanceof Element)) {
-                return false;
-            }
-            Element elt = (Element) arg;
-            return (family == elt.family && negative == elt.negative && prefixLength == elt.prefixLength && address.equals(elt.address));
-        }
-
-        @Override
-        public
-        String toString() {
-            StringBuilder sb = new StringBuilder();
+        override fun toString(): String {
+            val sb = StringBuilder()
             if (negative) {
-                sb.append("!");
+                sb.append("!")
             }
-            sb.append(family);
-            sb.append(":");
+            sb.append(family)
+            sb.append(":")
             if (family == Address.IPv4 || family == Address.IPv6) {
-                sb.append(((InetAddress) address).getHostAddress());
+                sb.append((address as InetAddress).hostAddress)
+            } else {
+                sb.append(toString((address as ByteArray)))
             }
-            else {
-                sb.append(base16.toString((byte[]) address));
-            }
-            sb.append("/");
-            sb.append(prefixLength);
-            return sb.toString();
+            sb.append("/")
+            sb.append(prefixLength)
+            return sb.toString()
         }
     }
 
-    APLRecord() {}
+    internal constructor() {}
 
-    @Override
-    DnsRecord getObject() {
-        return new APLRecord();
-    }
+    override val `object`: DnsRecord
+        get() = APLRecord()
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        elements = new ArrayList<>(1);
-        while (in.remaining() != 0) {
-            int family = in.readU16();
-            int prefix = in.readU8();
-            int length = in.readU8();
-            boolean negative = (length & 0x80) != 0;
-            length &= ~0x80;
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        elements = ArrayList(1)
 
-            byte[] data = in.readByteArray(length);
-            Element element;
+        while (`in`.remaining() != 0) {
+            val family = `in`.readU16()
+            val prefix = `in`.readU8()
+            var length = `in`.readU8()
+            val negative = length and 0x80 != 0
+            length = length and 0x80.inv()
+            var data = `in`.readByteArray(length)
+            var element: Element
             if (!validatePrefixLength(family, prefix)) {
-                throw new WireParseException("invalid prefix length");
+                throw WireParseException("invalid prefix length")
             }
-
             if (family == Address.IPv4 || family == Address.IPv6) {
-                if (family == Address.IPv4) {
-                    data = parseAddress(data, IPv4.INSTANCE.getLength());
+                data = if (family == Address.IPv4) {
+                    parseAddress(data, IPv4.length)
                 } else {
-                    data = parseAddress(data, IPv6.INSTANCE.getLength());
+                    parseAddress(data, IPv6.length)
                 }
-                InetAddress addr = InetAddress.getByAddress(data);
-                element = new Element(negative, addr, prefix);
+                val addr = InetAddress.getByAddress(data)
+                element = Element(negative, addr, prefix)
+            } else {
+                element = Element(family, negative, data, prefix)
             }
-            else {
-                element = new Element(family, negative, data, prefix);
-            }
-            elements.add(element);
-
+            elements!!.add(element)
         }
     }
 
-    private static
-    boolean validatePrefixLength(int family, int prefixLength) {
-        if (prefixLength < 0 || prefixLength >= 256) {
-            return false;
-        }
-        if ((family == Address.IPv4 && prefixLength > 32) || (family == Address.IPv6 && prefixLength > 128)) {
-            return false;
-        }
-        return true;
-    }
-
-    private static
-    byte[] parseAddress(byte[] in, int length) throws WireParseException {
-        if (in.length > length) {
-            throw new WireParseException("invalid address length");
-        }
-        if (in.length == length) {
-            return in;
-        }
-        byte[] out = new byte[length];
-        System.arraycopy(in, 0, out, 0, in.length);
-        return out;
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        for (Element element : elements) {
-            int length = 0;
-            byte[] data;
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        for (element in elements!!) {
+            var length = 0
+            var data: ByteArray
             if (element.family == Address.IPv4 || element.family == Address.IPv6) {
-                InetAddress addr = (InetAddress) element.address;
-                data = addr.getAddress();
-                length = addressLength(data);
+                val addr = element.address as InetAddress
+                data = addr.address
+                length = addressLength(data)
+            } else {
+                data = element.address as ByteArray
+                length = data.size
             }
-            else {
-                data = (byte[]) element.address;
-                length = data.length;
-            }
-            int wlength = length;
+            var wlength = length
             if (element.negative) {
-                wlength |= 0x80;
+                wlength = wlength or 0x80
             }
-            out.writeU16(element.family);
-            out.writeU8(element.prefixLength);
-            out.writeU8(wlength);
-            out.writeByteArray(data, 0, length);
+            out.writeU16(element.family)
+            out.writeU8(element.prefixLength)
+            out.writeU8(wlength)
+            out.writeByteArray(data, 0, length)
         }
     }
 
-    @Override
-    void rrToString(StringBuilder sb) {
-        for (Iterator it = elements.iterator(); it.hasNext(); ) {
-            Element element = (Element) it.next();
-            sb.append(element);
+    override fun rrToString(sb: StringBuilder) {
+        val it: Iterator<*> = elements!!.iterator()
+        while (it.hasNext()) {
+            val element = it.next() as Element
+            sb.append(element)
             if (it.hasNext()) {
-                sb.append(" ");
+                sb.append(" ")
             }
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        elements = new ArrayList<>(1);
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        elements = ArrayList(1)
         while (true) {
-            Tokenizer.Token t = st.get();
-            if (!t.isString()) {
-                break;
+            val t = st.get()
+            if (!t.isString) {
+                break
             }
-
-            boolean negative = false;
-            int family = 0;
-            int prefix = 0;
-
-            String s = t.value;
-            int start = 0;
-            if (s.startsWith("!")) {
-                negative = true;
-                start = 1;
+            var negative = false
+            var family = 0
+            var prefix = 0
+            val s = t.value
+            var start = 0
+            if (s!!.startsWith("!")) {
+                negative = true
+                start = 1
             }
-            int colon = s.indexOf(':', start);
+            val colon = s.indexOf(':', start)
             if (colon < 0) {
-                throw st.exception("invalid address prefix element");
+                throw st.exception("invalid address prefix element")
             }
-            int slash = s.indexOf('/', colon);
+            val slash = s.indexOf('/', colon)
             if (slash < 0) {
-                throw st.exception("invalid address prefix element");
+                throw st.exception("invalid address prefix element")
             }
-
-            String familyString = s.substring(start, colon);
-            String addressString = s.substring(colon + 1, slash);
-            String prefixString = s.substring(slash + 1);
-
-            try {
-                family = Integer.parseInt(familyString);
-            } catch (NumberFormatException e) {
-                throw st.exception("invalid family");
+            val familyString = s.substring(start, colon)
+            val addressString = s.substring(colon + 1, slash)
+            val prefixString = s.substring(slash + 1)
+            family = try {
+                familyString.toInt()
+            } catch (e: NumberFormatException) {
+                throw st.exception("invalid family")
             }
             if (family != Address.IPv4 && family != Address.IPv6) {
-                throw st.exception("unknown family");
+                throw st.exception("unknown family")
             }
-
-            try {
-                prefix = Integer.parseInt(prefixString);
-            } catch (NumberFormatException e) {
-                throw st.exception("invalid prefix length");
+            prefix = try {
+                prefixString.toInt()
+            } catch (e: NumberFormatException) {
+                throw st.exception("invalid prefix length")
             }
-
             if (!validatePrefixLength(family, prefix)) {
-                throw st.exception("invalid prefix length");
+                throw st.exception("invalid prefix length")
             }
-
-            byte[] bytes = null;
-            if (family == Address.IPv4) {
-                bytes = dorkbox.netUtil.IPv4.INSTANCE.toBytesOrNull(addressString);
+            var bytes: ByteArray? = null
+            bytes = if (family == Address.IPv4) {
+                IPv4.toBytesOrNull(addressString)
+            } else {
+                IPv6.toBytesOrNull(addressString)
             }
-            else {
-                bytes = dorkbox.netUtil.IPv6.INSTANCE.toBytesOrNull(addressString);
-            }
-
             if (bytes == null) {
-                throw st.exception("invalid IP address " + addressString);
+                throw st.exception("invalid IP address $addressString")
             }
-
-            InetAddress address = InetAddress.getByAddress(bytes);
-            elements.add(new Element(negative, address, prefix));
+            val address = InetAddress.getByAddress(bytes)
+            elements!!.add(Element(negative, address, prefix))
         }
-        st.unget();
-    }
-
-    private static
-    int addressLength(byte[] addr) {
-        for (int i = addr.length - 1; i >= 0; i--) {
-            if (addr[i] != 0) {
-                return i + 1;
-            }
-        }
-        return 0;
+        st.unget()
     }
 
     /**
@@ -305,30 +227,51 @@ class APLRecord extends DnsRecord {
      *
      * @param elements The list of APL elements.
      */
-    public
-    APLRecord(Name name, int dclass, long ttl, List<Element> elements) {
-        super(name, DnsRecordType.APL, dclass, ttl);
-        this.elements = new ArrayList<>(elements.size());
-
-        for (Object o : elements) {
-            if (!(o instanceof Element)) {
-                throw new IllegalArgumentException("illegal element");
-            }
-
-            Element element = (Element) o;
-            if (element.family != Address.IPv4 && element.family != Address.IPv6) {
-                throw new IllegalArgumentException("unknown family");
-            }
-
-            this.elements.add(element);
+    constructor(name: Name, dclass: Int, ttl: Long, elements: List<Element?>) : super(name, DnsRecordType.APL, dclass, ttl) {
+        this.elements = ArrayList(elements.size)
+        for (o in elements) {
+            require(o is Element) { "illegal element" }
+            require(!(o.family != Address.IPv4 && o.family != Address.IPv6)) { "unknown family" }
+            this.elements!!.add(o)
         }
     }
 
     /**
      * Returns the list of APL elements.
      */
-    public
-    List<Element> getElements() {
-        return elements;
+    fun getElements(): List<Element>? {
+        return elements
+    }
+
+    companion object {
+        private const val serialVersionUID = -1348173791712935864L
+        private fun validatePrefixLength(family: Int, prefixLength: Int): Boolean {
+            if (prefixLength < 0 || prefixLength >= 256) {
+                return false
+            }
+            return !((family == Address.IPv4 && prefixLength > 32 || family == Address.IPv6) && prefixLength > 128)
+        }
+
+        @Throws(WireParseException::class)
+        private fun parseAddress(`in`: ByteArray, length: Int): ByteArray {
+            if (`in`.size > length) {
+                throw WireParseException("invalid address length")
+            }
+            if (`in`.size == length) {
+                return `in`
+            }
+            val out = ByteArray(length)
+            System.arraycopy(`in`, 0, out, 0, `in`.size)
+            return out
+        }
+
+        private fun addressLength(addr: ByteArray): Int {
+            for (i in addr.indices.reversed()) {
+                if (addr[i].toInt() != 0) {
+                    return i + 1
+                }
+            }
+            return 0
+        }
     }
 }

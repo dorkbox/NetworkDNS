@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.records;
+package dorkbox.dns.dns.records
 
-import java.io.IOException;
-import java.util.Arrays;
-
-import dorkbox.dns.dns.Mnemonic;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.exceptions.WireParseException;
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Mnemonic
+import dorkbox.dns.dns.exceptions.WireParseException
+import java.io.IOException
+import java.util.*
 
 /**
  * DNS extension options, as described in RFC 2671.  The rdata of an OPT record
@@ -30,42 +29,39 @@ import dorkbox.dns.dns.exceptions.WireParseException;
  * @author Brian Wellington
  * @author Ming Zhou &lt;mizhou@bnivideo.com&gt;, Beaumaris Networks
  */
-public abstract
-class EDNSOption {
+abstract class EDNSOption(code: Int) {
+    /**
+     * Returns the EDNS Option's code.
+     *
+     * @return the option code
+     */
+    val code: Int
 
-    private final int code;
-
-
-    public static
-    class Code {
+    object Code {
         /**
          * Name Server Identifier, RFC 5001
          */
-        public final static int NSID = 3;
+        const val NSID = 3
+
         /**
          * Client Subnet, defined in draft-vandergaast-edns-client-subnet-02
          */
-        public final static int CLIENT_SUBNET = 8;
-        private static Mnemonic codes = new Mnemonic("EDNS Option Codes", Mnemonic.CASE_UPPER);
+        const val CLIENT_SUBNET = 8
+        private val codes = Mnemonic("EDNS Option Codes", Mnemonic.CASE_UPPER)
 
-        private
-        Code() {}
-
-        static {
-            codes.setMaximum(0xFFFF);
-            codes.setPrefix("CODE");
-            codes.setNumericAllowed(true);
-
-            codes.add(NSID, "NSID");
-            codes.add(CLIENT_SUBNET, "CLIENT_SUBNET");
+        init {
+            codes.setMaximum(0xFFFF)
+            codes.setPrefix("CODE")
+            codes.setNumericAllowed(true)
+            codes.add(NSID, "NSID")
+            codes.add(CLIENT_SUBNET, "CLIENT_SUBNET")
         }
 
         /**
          * Converts an EDNS Option Code into its textual representation
          */
-        public static
-        String string(int code) {
-            return codes.getText(code);
+        fun string(code: Int): String {
+            return codes.getText(code)
         }
 
         /**
@@ -76,73 +72,16 @@ class EDNSOption {
          *
          * @return The option code, or -1 on error.
          */
-        public static
-        int value(String s) {
-            return codes.getValue(s);
+        fun value(s: String?): Int {
+            return codes.getValue(s!!)
         }
     }
 
     /**
      * Creates an option with the given option code and data.
      */
-    public
-    EDNSOption(int code) {
-        this.code = DnsRecord.checkU16("code", code);
-    }
-
-    /**
-     * Returns the EDNS Option's code.
-     *
-     * @return the option code
-     */
-    public
-    int getCode() {
-        return code;
-    }
-
-    /**
-     * Converts the wire format of an EDNS Option (including code and length) into
-     * the type-specific format.
-     *
-     * @return The option, in wire format.
-     */
-    public static
-    EDNSOption fromWire(byte[] b) throws IOException {
-        return fromWire(new DnsInput(b));
-    }
-
-    /**
-     * Converts the wire format of an EDNS Option (including code and length) into
-     * the type-specific format.
-     *
-     * @param in The input stream.
-     */
-    static
-    EDNSOption fromWire(DnsInput in) throws IOException {
-        int code, length;
-
-        code = in.readU16();
-        length = in.readU16();
-        if (in.remaining() < length) {
-            throw new WireParseException("truncated option");
-        }
-        in.setActive(length);
-        EDNSOption option;
-        switch (code) {
-            case Code.NSID:
-                option = new NSIDOption();
-                break;
-            case Code.CLIENT_SUBNET:
-                option = new ClientSubnetOption();
-                break;
-            default:
-                option = new GenericEDNSOption(code);
-                break;
-        }
-        option.optionFromWire(in);
-        in.restoreActive();
-
-        return option;
+    init {
+        this.code = DnsRecord.checkU16("code", code)
     }
 
     /**
@@ -151,19 +90,19 @@ class EDNSOption {
      *
      * @param in The input Stream.
      */
-    abstract
-    void optionFromWire(DnsInput in) throws IOException;
+    @Throws(IOException::class)
+    abstract fun optionFromWire(`in`: DnsInput)
 
     /**
      * Converts an EDNS Option (including code and length) into wire format.
      *
      * @return The option, in wire format.
      */
-    public
-    byte[] toWire() throws IOException {
-        DnsOutput out = new DnsOutput();
-        toWire(out);
-        return out.toByteArray();
+    @Throws(IOException::class)
+    fun toWire(): ByteArray {
+        val out = DnsOutput()
+        toWire(out)
+        return out.toByteArray()
     }
 
     /**
@@ -171,13 +110,13 @@ class EDNSOption {
      *
      * @param out The output stream.
      */
-    void toWire(DnsOutput out) {
-        out.writeU16(code);
-        int lengthPosition = out.current();
-        out.writeU16(0); /* until we know better */
-        optionToWire(out);
-        int length = out.current() - lengthPosition - 2;
-        out.writeU16At(length, lengthPosition);
+    fun toWire(out: DnsOutput) {
+        out.writeU16(code)
+        val lengthPosition = out.current()
+        out.writeU16(0) /* until we know better */
+        optionToWire(out)
+        val length = out.current() - lengthPosition - 2
+        out.writeU16At(length, lengthPosition)
     }
 
     /**
@@ -185,20 +124,18 @@ class EDNSOption {
      *
      * @param out The output stream.
      */
-    abstract
-    void optionToWire(DnsOutput out);
+    abstract fun optionToWire(out: DnsOutput)
 
     /**
      * Generates a hash code based on the EDNS Option's data.
      */
-    public
-    int hashCode() {
-        byte[] array = getData();
-        int hashval = 0;
-        for (int i = 0; i < array.length; i++) {
-            hashval += ((hashval << 3) + (array[i] & 0xFF));
+    override fun hashCode(): Int {
+        val array = data
+        var hashval = 0
+        for (i in array.indices) {
+            hashval += (hashval shl 3) + (array[i].toInt() and 0xFF)
         }
-        return hashval;
+        return hashval
     }
 
     /**
@@ -208,43 +145,78 @@ class EDNSOption {
      *
      * @return true if the options are equal, false otherwise.
      */
-    public
-    boolean equals(Object arg) {
-        if (arg == null || !(arg instanceof EDNSOption)) {
-            return false;
+    override fun equals(arg: Any?): Boolean {
+        if (arg == null || arg !is EDNSOption) {
+            return false
         }
-        EDNSOption opt = (EDNSOption) arg;
-        if (code != opt.code) {
-            return false;
-        }
-        return Arrays.equals(getData(), opt.getData());
+        val opt = arg
+        return if (code != opt.code) {
+            false
+        } else Arrays.equals(data, opt.data)
     }
 
-    public
-    String toString() {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("{");
-        sb.append(EDNSOption.Code.string(code));
-        sb.append(": ");
-        sb.append(optionToString());
-        sb.append("}");
-
-        return sb.toString();
+    override fun toString(): String {
+        val sb = StringBuilder()
+        sb.append("{")
+        sb.append(Code.string(code))
+        sb.append(": ")
+        sb.append(optionToString())
+        sb.append("}")
+        return sb.toString()
     }
 
-    abstract
-    String optionToString();
+    abstract fun optionToString(): String?
 
     /**
      * Returns the EDNS Option's data, as a byte array.
      *
      * @return the option data
      */
-    byte[] getData() {
-        DnsOutput out = new DnsOutput();
-        optionToWire(out);
-        return out.toByteArray();
-    }
+    open val data: ByteArray
+        get() {
+            val out = DnsOutput()
+            optionToWire(out)
+            return out.toByteArray()
+        }
 
+    companion object {
+        /**
+         * Converts the wire format of an EDNS Option (including code and length) into
+         * the type-specific format.
+         *
+         * @return The option, in wire format.
+         */
+        @Throws(IOException::class)
+        fun fromWire(b: ByteArray?): EDNSOption {
+            return fromWire(DnsInput(b!!))
+        }
+
+        /**
+         * Converts the wire format of an EDNS Option (including code and length) into
+         * the type-specific format.
+         *
+         * @param in The input stream.
+         */
+        @JvmStatic
+        @Throws(IOException::class)
+        fun fromWire(`in`: DnsInput): EDNSOption {
+            val code: Int
+            val length: Int
+            code = `in`.readU16()
+            length = `in`.readU16()
+            if (`in`.remaining() < length) {
+                throw WireParseException("truncated option")
+            }
+            `in`.setActive(length)
+            val option: EDNSOption
+            option = when (code) {
+                Code.NSID -> NSIDOption()
+                Code.CLIENT_SUBNET -> ClientSubnetOption()
+                else -> GenericEDNSOption(code)
+            }
+            option.optionFromWire(`in`)
+            `in`.restoreActive()
+            return option
+        }
+    }
 }

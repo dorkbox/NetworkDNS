@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * A class implementing Records with no data; that is, records used in
@@ -30,31 +28,21 @@ import dorkbox.dns.dns.Name;
  *
  * @author Brian Wellington
  */
+class EmptyRecord : DnsRecord() {
+    override val `object`: DnsRecord
+        get() = EmptyRecord()
 
-class EmptyRecord extends DnsRecord {
-
-    private static final long serialVersionUID = 3601852050646429582L;
-
-    EmptyRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new EmptyRecord();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {}
+    override fun rrToString(sb: StringBuilder) {}
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-    }
-
-    @Override
-    void rrToString(StringBuilder sb) {
-    }
-
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
+    companion object {
+        private const val serialVersionUID = 3601852050646429582L
     }
 }

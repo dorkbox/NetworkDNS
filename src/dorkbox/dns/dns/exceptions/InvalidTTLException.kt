@@ -13,21 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package dorkbox.dns.dns.exceptions;
+package dorkbox.dns.dns.exceptions
 
 /**
  * An exception thrown when an invalid TTL is specified.
  *
  * @author Brian Wellington
  */
-
-public
-class InvalidTTLException extends IllegalArgumentException {
-
-    public
-    InvalidTTLException(long ttl) {
-        super("Invalid DNS TTL: " + ttl);
-    }
-
-}
+class InvalidTTLException(ttl: Long) : IllegalArgumentException("Invalid DNS TTL: $ttl")

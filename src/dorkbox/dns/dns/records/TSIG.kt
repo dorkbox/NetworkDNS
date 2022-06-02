@@ -13,26 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.security.GeneralSecurityException;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Date;
-
-import javax.crypto.Mac;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
-import dorkbox.dns.dns.utils.Options;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsClass;
-import dorkbox.dns.dns.constants.DnsResponseCode;
-import dorkbox.dns.dns.constants.DnsSection;
-import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.collections.ObjectMap;
+import dorkbox.collections.ObjectMap
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsClass
+import dorkbox.dns.dns.constants.DnsResponseCode
+import dorkbox.dns.dns.constants.DnsSection
+import dorkbox.dns.dns.exceptions.TextParseException
+import dorkbox.dns.dns.utils.Options.check
+import dorkbox.dns.dns.utils.Options.intValue
+import java.security.GeneralSecurityException
+import java.util.*
+import javax.crypto.Mac
+import javax.crypto.SecretKey
+import javax.crypto.spec.SecretKeySpec
 
 /**
  * Transaction signature handling.  This class generates and verifies
@@ -41,100 +37,10 @@ import dorkbox.collections.ObjectMap;
  * @author Brian Wellington
  * @see TSIGRecord
  */
-
-@SuppressWarnings("WeakerAccess")
-public
 class TSIG {
-
-    /**
-     * The domain name representing the HMAC-MD5 algorithm.
-     */
-    public static final Name HMAC_MD5 = Name.fromConstantString("HMAC-MD5.SIG-ALG.REG.INT.");
-
-    /**
-     * The domain name representing the HMAC-MD5 algorithm (deprecated).
-     */
-    public static final Name HMAC = HMAC_MD5;
-
-    /**
-     * The domain name representing the HMAC-SHA1 algorithm.
-     */
-    public static final Name HMAC_SHA1 = Name.fromConstantString("hmac-sha1.");
-
-    /**
-     * The domain name representing the HMAC-SHA224 algorithm.
-     * Note that SHA224 is not supported by Java out-of-the-box, this requires use
-     * of a third party provider like BouncyCastle.org.
-     */
-    public static final Name HMAC_SHA224 = Name.fromConstantString("hmac-sha224.");
-
-    /**
-     * The domain name representing the HMAC-SHA256 algorithm.
-     */
-    public static final Name HMAC_SHA256 = Name.fromConstantString("hmac-sha256.");
-
-    /**
-     * The domain name representing the HMAC-SHA384 algorithm.
-     */
-    public static final Name HMAC_SHA384 = Name.fromConstantString("hmac-sha384.");
-
-    /**
-     * The domain name representing the HMAC-SHA512 algorithm.
-     */
-    public static final Name HMAC_SHA512 = Name.fromConstantString("hmac-sha512.");
-
-    private static final ObjectMap<Name, String> algMap = new ObjectMap<Name, String>();
-
-    /**
-     * The default fudge value for outgoing packets.  Can be overridden by the
-     * tsigfudge option.
-     */
-    public static final short FUDGE = 300;
-    private Name name, alg;
-    private Mac hmac;
-
-    static {
-        algMap.put(HMAC_MD5, "HmacMD5");
-        algMap.put(HMAC_SHA1, "HmacSHA1");
-        algMap.put(HMAC_SHA224, "HmacSHA224");
-        algMap.put(HMAC_SHA256, "HmacSHA256");
-        algMap.put(HMAC_SHA384, "HmacSHA384");
-        algMap.put(HMAC_SHA512, "HmacSHA512");
-    }
-
-    /**
-     * Verifies the data (computes the secure hash and compares it to the input)
-     *
-     * @param mac The HMAC generator
-     * @param signature The signature to compare against
-     *
-     * @return true if the signature matches, false otherwise
-     */
-    private static
-    boolean verify(Mac mac, byte[] signature) {
-        return verify(mac, signature, false);
-    }
-
-    /**
-     * Verifies the data (computes the secure hash and compares it to the input)
-     *
-     * @param mac The HMAC generator
-     * @param signature The signature to compare against
-     * @param truncation_ok If true, the signature may be truncated; only the
-     *         number of bytes in the provided signature are compared.
-     *
-     * @return true if the signature matches, false otherwise
-     */
-    private static
-    boolean verify(Mac mac, byte[] signature, boolean truncation_ok) {
-        byte[] expected = mac.doFinal();
-        if (truncation_ok && signature.length < expected.length) {
-            byte[] truncated = new byte[signature.length];
-            System.arraycopy(expected, 0, truncated, 0, truncated.length);
-            expected = truncated;
-        }
-        return Arrays.equals(signature, expected);
-    }
+    private var name: Name
+    private var alg: Name
+    private var hmac: Mac? = null
 
     /**
      * Creates a new TSIG key, which can be used to sign or verify a message.
@@ -143,30 +49,19 @@ class TSIG {
      * @param name The name of the shared key.
      * @param key The shared key.
      */
-    public
-    TSIG(Name algorithm, Name name, SecretKey key) {
-        this.name = name;
-        this.alg = algorithm;
-        String macAlgorithm = nameToAlgorithm(algorithm);
-        init_hmac(macAlgorithm, key);
+    constructor(algorithm: Name, name: Name, key: SecretKey) {
+        this.name = name
+        alg = algorithm
+        val macAlgorithm = nameToAlgorithm(algorithm)
+        init_hmac(macAlgorithm, key)
     }
 
-    public static
-    String nameToAlgorithm(Name name) {
-        String alg = algMap.get(name);
-        if (alg != null) {
-            return alg;
-        }
-        throw new IllegalArgumentException("Unknown algorithm");
-    }
-
-    private
-    void init_hmac(String macAlgorithm, SecretKey key) {
+    private fun init_hmac(macAlgorithm: String, key: SecretKey) {
         try {
-            hmac = Mac.getInstance(macAlgorithm);
-            hmac.init(key);
-        } catch (GeneralSecurityException ex) {
-            throw new IllegalArgumentException("Caught security " + "exception setting up " + "HMAC.");
+            hmac = Mac.getInstance(macAlgorithm)
+            hmac!!.init(key)
+        } catch (ex: GeneralSecurityException) {
+            throw IllegalArgumentException("Caught security " + "exception setting up " + "HMAC.")
         }
     }
 
@@ -178,23 +73,10 @@ class TSIG {
      * @param mac The JCE HMAC object
      * @param name The name of the key
      */
-    public
-    TSIG(Mac mac, Name name) {
-        this.name = name;
-        this.hmac = mac;
-        this.alg = algorithmToName(mac.getAlgorithm());
-    }
-
-    public static
-    Name algorithmToName(String alg) {
-
-        // false identity check because it's string comparisons.
-        Name foundKey = algMap.findKey(alg, false);
-        if (foundKey != null) {
-            return foundKey;
-        }
-
-        throw new IllegalArgumentException("Unknown algorithm");
+    constructor(mac: Mac, name: Name) {
+        this.name = name
+        hmac = mac
+        alg = algorithmToName(mac.algorithm)
     }
 
     /**
@@ -204,10 +86,7 @@ class TSIG {
      * @param name The name of the shared key.
      * @param key The shared key's data.
      */
-    public
-    TSIG(Name name, byte[] key) {
-        this(HMAC_MD5, name, key);
-    }
+    constructor(name: Name, key: ByteArray) : this(HMAC_MD5, name, key) {}
 
     /**
      * Creates a new TSIG key, which can be used to sign or verify a message.
@@ -216,13 +95,12 @@ class TSIG {
      * @param name The name of the shared key.
      * @param keyBytes The shared key's data.
      */
-    public
-    TSIG(Name algorithm, Name name, byte[] keyBytes) {
-        this.name = name;
-        this.alg = algorithm;
-        String macAlgorithm = nameToAlgorithm(algorithm);
-        SecretKey key = new SecretKeySpec(keyBytes, macAlgorithm);
-        init_hmac(macAlgorithm, key);
+    constructor(algorithm: Name, name: Name, keyBytes: ByteArray) {
+        this.name = name
+        alg = algorithm
+        val macAlgorithm = nameToAlgorithm(algorithm)
+        val key: SecretKey = SecretKeySpec(keyBytes, macAlgorithm)
+        init_hmac(macAlgorithm, key)
     }
 
     /**
@@ -230,17 +108,14 @@ class TSIG {
      *
      * @param name The name of the shared key.
      * @param algorithm The algorithm of the shared key.  The legal values are
-     *         "hmac-md5", "hmac-sha1", "hmac-sha224", "hmac-sha256", "hmac-sha384", and
-     *         "hmac-sha512".
+     * "hmac-md5", "hmac-sha1", "hmac-sha224", "hmac-sha256", "hmac-sha384", and
+     * "hmac-sha512".
      * @param key The shared key's data represented as a base64 encoded string.
      *
      * @throws IllegalArgumentException The key name is an invalid name
      * @throws IllegalArgumentException The key data is improperly encoded
      */
-    public
-    TSIG(String algorithm, String name, String key) {
-        this(algorithmToName(algorithm), name, key);
-    }
+    constructor(algorithm: String, name: String, key: String) : this(algorithmToName(algorithm), name, key) {}
 
     /**
      * Creates a new TSIG object, which can be used to sign or verify a message.
@@ -251,23 +126,19 @@ class TSIG {
      * @throws IllegalArgumentException The key name is an invalid name
      * @throws IllegalArgumentException The key data is improperly encoded
      */
-    public
-    TSIG(Name algorithm, String name, String key) {
-        byte[] keyBytes = Base64.getDecoder().decode(key);
-
-        if (keyBytes.length == 0) {
-            throw new IllegalArgumentException("Invalid TSIG key string");
-        }
+    constructor(algorithm: Name, name: String, key: String) {
+        val keyBytes = Base64.getDecoder().decode(key)
+        require(keyBytes.size != 0) { "Invalid TSIG key string" }
 
         try {
-            this.name = Name.fromString(name, Name.root);
-        } catch (TextParseException e) {
-            throw new IllegalArgumentException("Invalid TSIG key name");
+            this.name = Name.Companion.fromString(name, Name.root)
+        } catch (e: TextParseException) {
+            throw IllegalArgumentException("Invalid TSIG key name")
         }
 
-        this.alg = algorithm;
-        String macAlgorithm = nameToAlgorithm(this.alg);
-        init_hmac(macAlgorithm, new SecretKeySpec(keyBytes, macAlgorithm));
+        alg = algorithm
+        val macAlgorithm = nameToAlgorithm(alg)
+        init_hmac(macAlgorithm, SecretKeySpec(keyBytes, macAlgorithm))
     }
 
     /**
@@ -280,38 +151,7 @@ class TSIG {
      * @throws IllegalArgumentException The key name is an invalid name
      * @throws IllegalArgumentException The key data is improperly encoded
      */
-    public
-    TSIG(String name, String key) {
-        this(HMAC_MD5, name, key);
-    }
-
-    /**
-     * Creates a new TSIG object, which can be used to sign or verify a message.
-     *
-     * @param str The TSIG key, in the form name:secret, name/secret,
-     *         alg:name:secret, or alg/name/secret.  If an algorithm is specified, it must
-     *         be "hmac-md5", "hmac-sha1", or "hmac-sha256".
-     *
-     * @throws IllegalArgumentException The string does not contain both a name
-     *         and secret.
-     * @throws IllegalArgumentException The key name is an invalid name
-     * @throws IllegalArgumentException The key data is improperly encoded
-     */
-    static public
-    TSIG fromString(String str) {
-        String[] parts = str.split("[:/]", 3);
-        if (parts.length < 2) {
-            throw new IllegalArgumentException("Invalid TSIG key " + "specification");
-        }
-        if (parts.length == 3) {
-            try {
-                return new TSIG(parts[0], parts[1], parts[2]);
-            } catch (IllegalArgumentException e) {
-                parts = str.split("[:/]", 2);
-            }
-        }
-        return new TSIG(HMAC_MD5, parts[0], parts[1]);
-    }
+    constructor(name: String, key: String) : this(HMAC_MD5, name, key) {}
 
     /**
      * Generates a TSIG record for a message and adds it to the message
@@ -319,55 +159,39 @@ class TSIG {
      * @param m The message
      * @param old If this message is a response, the TSIG from the request
      */
-    public
-    void applyStream(DnsMessage m, TSIGRecord old, boolean first) {
+    fun applyStream(m: DnsMessage, old: TSIGRecord, first: Boolean) {
         if (first) {
-            apply(m, old);
-            return;
+            apply(m, old)
+            return
         }
-        Date timeSigned = new Date();
-        int fudge;
-        hmac.reset();
-
-        fudge = Options.intValue("tsigfudge");
+        val timeSigned = Date()
+        var fudge: Int
+        hmac!!.reset()
+        fudge = intValue("tsigfudge")
         if (fudge < 0 || fudge > 0x7FFF) {
-            fudge = FUDGE;
+            fudge = FUDGE.toInt()
         }
+        var out = DnsOutput()
+        out.writeU16(old.signature.size)
+        hmac!!.update(out.toByteArray())
+        hmac!!.update(old.signature)
 
-        DnsOutput out = new DnsOutput();
-        out.writeU16(old.getSignature().length);
-        hmac.update(out.toByteArray());
-        hmac.update(old.getSignature());
-
-	/* Digest the message */
-        hmac.update(m.toWire());
-
-        out = new DnsOutput();
-        long time = timeSigned.getTime() / 1000;
-        int timeHigh = (int) (time >> 32);
-        long timeLow = (time & 0xFFFFFFFFL);
-        out.writeU16(timeHigh);
-        out.writeU32(timeLow);
-        out.writeU16(fudge);
-
-        hmac.update(out.toByteArray());
-
-        byte[] signature = hmac.doFinal();
-        byte[] other = null;
-
-        DnsRecord r = new TSIGRecord(name,
-                                     DnsClass.ANY,
-                                     0,
-                                     alg,
-                                     timeSigned,
-                                     fudge,
-                                     signature,
-                                     m.getHeader()
-                                   .getID(),
-                                     DnsResponseCode.NOERROR,
-                                     other);
-        m.addRecord(r, DnsSection.ADDITIONAL);
-        m.tsigState = DnsMessage.TSIG_SIGNED;
+        /* Digest the message */hmac!!.update(m.toWire())
+        out = DnsOutput()
+        val time = timeSigned.time / 1000
+        val timeHigh = (time shr 32).toInt()
+        val timeLow = time and 0xFFFFFFFFL
+        out.writeU16(timeHigh)
+        out.writeU32(timeLow)
+        out.writeU16(fudge)
+        hmac!!.update(out.toByteArray())
+        val signature = hmac!!.doFinal()
+        val other: ByteArray? = null
+        val r: DnsRecord = TSIGRecord(
+            name, DnsClass.ANY, 0, alg, timeSigned, fudge, signature, m.header.iD, DnsResponseCode.NOERROR, other
+        )
+        m.addRecord(r, DnsSection.ADDITIONAL)
+        m.tsigState = DnsMessage.TSIG_SIGNED
     }
 
     /**
@@ -376,9 +200,8 @@ class TSIG {
      * @param m The message
      * @param old If this message is a response, the TSIG from the request
      */
-    public
-    void apply(DnsMessage m, TSIGRecord old) {
-        apply(m, DnsResponseCode.NOERROR, old);
+    fun apply(m: DnsMessage, old: TSIGRecord?) {
+        apply(m, DnsResponseCode.NOERROR, old)
     }
 
     /**
@@ -389,11 +212,10 @@ class TSIG {
      * @param error The error
      * @param old If this message is a response, the TSIG from the request
      */
-    public
-    void apply(DnsMessage m, int error, TSIGRecord old) {
-        DnsRecord r = generate(m, m.toWire(), error, old);
-        m.addRecord(r, DnsSection.ADDITIONAL);
-        m.tsigState = DnsMessage.TSIG_SIGNED;
+    fun apply(m: DnsMessage, error: Int, old: TSIGRecord?) {
+        val r: DnsRecord = generate(m, m.toWire(), error, old)
+        m.addRecord(r, DnsSection.ADDITIONAL)
+        m.tsigState = DnsMessage.TSIG_SIGNED
     }
 
     /**
@@ -407,90 +229,70 @@ class TSIG {
      *
      * @return The TSIG record to be added to the message
      */
-    public
-    TSIGRecord generate(DnsMessage m, byte[] b, int error, TSIGRecord old) {
-        Date timeSigned;
-        if (error != DnsResponseCode.BADTIME) {
-            timeSigned = new Date();
+    fun generate(m: DnsMessage, b: ByteArray?, error: Int, old: TSIGRecord?): TSIGRecord {
+        val timeSigned: Date
+        timeSigned = if (error != DnsResponseCode.BADTIME) {
+            Date()
+        } else {
+            old!!.timeSigned
         }
-        else {
-            timeSigned = old.getTimeSigned();
-        }
-        int fudge;
-        boolean signing = false;
+        var fudge: Int
+        var signing = false
         if (error == DnsResponseCode.NOERROR || error == DnsResponseCode.BADTIME) {
-            signing = true;
-            hmac.reset();
+            signing = true
+            hmac!!.reset()
         }
-
-        fudge = Options.intValue("tsigfudge");
+        fudge = intValue("tsigfudge")
         if (fudge < 0 || fudge > 0x7FFF) {
-            fudge = FUDGE;
+            fudge = FUDGE.toInt()
         }
-
         if (old != null) {
-            DnsOutput out = new DnsOutput();
-            out.writeU16(old.getSignature().length);
+            val out = DnsOutput()
+            out.writeU16(old.signature.size)
             if (signing) {
-                hmac.update(out.toByteArray());
-                hmac.update(old.getSignature());
+                hmac!!.update(out.toByteArray())
+                hmac!!.update(old.signature)
             }
         }
 
-	/* Digest the message */
+        /* Digest the message */if (signing) {
+            hmac!!.update(b)
+        }
+        var out = DnsOutput()
+        name!!.toWireCanonical(out)
+        out.writeU16(DnsClass.ANY) /* class */
+        out.writeU32(0) /* ttl */
+        alg.toWireCanonical(out)
+        var time = timeSigned.time / 1000
+        var timeHigh = (time shr 32).toInt()
+        var timeLow = time and 0xFFFFFFFFL
+        out.writeU16(timeHigh)
+        out.writeU32(timeLow)
+        out.writeU16(fudge)
+        out.writeU16(error)
+        out.writeU16(0) /* No other data */
         if (signing) {
-            hmac.update(b);
+            hmac!!.update(out.toByteArray())
         }
-
-        DnsOutput out = new DnsOutput();
-        name.toWireCanonical(out);
-        out.writeU16(DnsClass.ANY);	/* class */
-        out.writeU32(0);		/* ttl */
-        alg.toWireCanonical(out);
-        long time = timeSigned.getTime() / 1000;
-        int timeHigh = (int) (time >> 32);
-        long timeLow = (time & 0xFFFFFFFFL);
-        out.writeU16(timeHigh);
-        out.writeU32(timeLow);
-        out.writeU16(fudge);
-
-        out.writeU16(error);
-        out.writeU16(0); /* No other data */
-
-        if (signing) {
-            hmac.update(out.toByteArray());
+        val signature: ByteArray
+        signature = if (signing) {
+            hmac!!.doFinal()
+        } else {
+            ByteArray(0)
         }
-
-        byte[] signature;
-        if (signing) {
-            signature = hmac.doFinal();
-        }
-        else {
-            signature = new byte[0];
-        }
-
-        byte[] other = null;
+        var other: ByteArray? = null
         if (error == DnsResponseCode.BADTIME) {
-            out = new DnsOutput();
-            time = new Date().getTime() / 1000;
-            timeHigh = (int) (time >> 32);
-            timeLow = (time & 0xFFFFFFFFL);
-            out.writeU16(timeHigh);
-            out.writeU32(timeLow);
-            other = out.toByteArray();
+            out = DnsOutput()
+            time = Date().time / 1000
+            timeHigh = (time shr 32).toInt()
+            timeLow = time and 0xFFFFFFFFL
+            out.writeU16(timeHigh)
+            out.writeU32(timeLow)
+            other = out.toByteArray()
         }
-
-        return (new TSIGRecord(name,
-                               DnsClass.ANY,
-                               0,
-                               alg,
-                               timeSigned,
-                               fudge,
-                               signature,
-                               m.getHeader()
-                                .getID(),
-                               error,
-                               other));
+        return TSIGRecord(
+            name, DnsClass.ANY, 0, alg, timeSigned, fudge, signature, m.header.iD, error, other
+        )
     }
 
     /**
@@ -501,17 +303,16 @@ class TSIG {
      *
      * @param m The message
      * @param b The message in unparsed form.  This is necessary since TSIG
-     *         signs the message in wire format, and we can't recreate the exact wire
-     *         format (with the same name compression).
+     * signs the message in wire format, and we can't recreate the exact wire
+     * format (with the same name compression).
      * @param old If this message is a response, the TSIG from the request
      *
      * @return The result of the verification (as an DnsResponseCode)
      *
      * @see DnsResponseCode
      */
-    public
-    int verify(DnsMessage m, byte[] b, TSIGRecord old) {
-        return verify(m, b, b.length, old);
+    fun verify(m: DnsMessage, b: ByteArray, old: TSIGRecord?): Int {
+        return verify(m, b, b.size, old).toInt()
     }
 
     /**
@@ -522,8 +323,8 @@ class TSIG {
      *
      * @param m The message
      * @param b An array containing the message in unparsed form.  This is
-     *         necessary since TSIG signs the message in wire format, and we can't
-     *         recreate the exact wire format (with the same name compression).
+     * necessary since TSIG signs the message in wire format, and we can't
+     * recreate the exact wire format (with the same name compression).
      * @param length The length of the message in the array.
      * @param old If this message is a response, the TSIG from the request
      *
@@ -531,109 +332,85 @@ class TSIG {
      *
      * @see DnsResponseCode
      */
-    public
-    byte verify(DnsMessage m, byte[] b, int length, TSIGRecord old) {
-        m.tsigState = DnsMessage.TSIG_FAILED;
-        TSIGRecord tsig = m.getTSIG();
-        hmac.reset();
+    fun verify(m: DnsMessage, b: ByteArray?, length: Int, old: TSIGRecord?): Byte {
+        m.tsigState = DnsMessage.TSIG_FAILED
+        val tsig = m.tSIG
+        hmac!!.reset()
         if (tsig == null) {
-            return DnsResponseCode.FORMERR;
+            return DnsResponseCode.FORMERR.toByte()
         }
-
-        if (!tsig.getName()
-                 .equals(name) || !tsig.getAlgorithm()
-                                       .equals(alg)) {
-            if (Options.check("verbose")) {
-                System.err.println("BADKEY failure");
+        if (!tsig.name.equals(name) || !tsig.algorithm.equals(alg)) {
+            if (check("verbose")) {
+                System.err.println("BADKEY failure")
             }
-            return DnsResponseCode.BADKEY;
+            return DnsResponseCode.BADKEY.toByte()
         }
-        long now = System.currentTimeMillis();
-        long then = tsig.getTimeSigned()
-                        .getTime();
-        long fudge = tsig.getFudge();
+        val now = System.currentTimeMillis()
+        val then = tsig.timeSigned.time
+        val fudge = tsig.fudge.toLong()
         if (Math.abs(now - then) > fudge * 1000) {
-            if (Options.check("verbose")) {
-                System.err.println("BADTIME failure");
+            if (check("verbose")) {
+                System.err.println("BADTIME failure")
             }
-            return DnsResponseCode.BADTIME;
+            return DnsResponseCode.BADTIME.toByte()
         }
-
-        if (old != null && tsig.getError() != DnsResponseCode.BADKEY && tsig.getError() != DnsResponseCode.BADSIG) {
-            DnsOutput out = new DnsOutput();
-            out.writeU16(old.getSignature().length);
-            hmac.update(out.toByteArray());
-            hmac.update(old.getSignature());
+        if (old != null && tsig.error != DnsResponseCode.BADKEY && tsig.error != DnsResponseCode.BADSIG) {
+            val out = DnsOutput()
+            out.writeU16(old.signature.size)
+            hmac!!.update(out.toByteArray())
+            hmac!!.update(old.signature)
         }
-        m.getHeader()
-         .decCount(DnsSection.ADDITIONAL);
-        byte[] header = m.getHeader()
-                         .toWire();
-        m.getHeader()
-         .incCount(DnsSection.ADDITIONAL);
-        hmac.update(header);
-
-        int len = m.tsigstart - header.length;
-        hmac.update(b, header.length, len);
-
-        DnsOutput out = new DnsOutput();
-        tsig.getName()
-            .toWireCanonical(out);
-        out.writeU16(tsig.dclass);
-        out.writeU32(tsig.ttl);
-        tsig.getAlgorithm()
-            .toWireCanonical(out);
-        long time = tsig.getTimeSigned()
-                        .getTime() / 1000;
-        int timeHigh = (int) (time >> 32);
-        long timeLow = (time & 0xFFFFFFFFL);
-        out.writeU16(timeHigh);
-        out.writeU32(timeLow);
-        out.writeU16(tsig.getFudge());
-        out.writeU16(tsig.getError());
-        if (tsig.getOther() != null) {
-            out.writeU16(tsig.getOther().length);
-            out.writeByteArray(tsig.getOther());
+        m.header.decCount(DnsSection.ADDITIONAL)
+        val header = m.header.toWire()
+        m.header.incCount(DnsSection.ADDITIONAL)
+        hmac!!.update(header)
+        val len = m.tsigstart - header.size
+        hmac!!.update(b, header.size, len)
+        val out = DnsOutput()
+        tsig.name.toWireCanonical(out)
+        out.writeU16(tsig.dclass)
+        out.writeU32(tsig.ttl)
+        tsig.algorithm.toWireCanonical(out)
+        val time = tsig.timeSigned.time / 1000
+        val timeHigh = (time shr 32).toInt()
+        val timeLow = time and 0xFFFFFFFFL
+        out.writeU16(timeHigh)
+        out.writeU32(timeLow)
+        out.writeU16(tsig.fudge)
+        out.writeU16(tsig.error)
+        if (tsig.other != null) {
+            out.writeU16(tsig.other!!.size)
+            out.writeByteArray(tsig.other!!)
+        } else {
+            out.writeU16(0)
         }
-        else {
-            out.writeU16(0);
+        hmac!!.update(out.toByteArray())
+        val signature = tsig.signature
+        val digestLength = hmac!!.macLength
+        val minDigestLength: Int
+        minDigestLength = if (hmac!!.algorithm.lowercase(Locale.getDefault()).contains("md5")) {
+            10
+        } else {
+            digestLength / 2
         }
-
-        hmac.update(out.toByteArray());
-
-        byte[] signature = tsig.getSignature();
-        int digestLength = hmac.getMacLength();
-        int minDigestLength;
-        if (hmac.getAlgorithm()
-                .toLowerCase()
-                .contains("md5")) {
-            minDigestLength = 10;
-        }
-        else {
-            minDigestLength = digestLength / 2;
-        }
-
-        if (signature.length > digestLength) {
-            if (Options.check("verbose")) {
-                System.err.println("BADSIG: signature too long");
+        if (signature.size > digestLength) {
+            if (check("verbose")) {
+                System.err.println("BADSIG: signature too long")
             }
-            return DnsResponseCode.BADSIG;
-        }
-        else if (signature.length < minDigestLength) {
-            if (Options.check("verbose")) {
-                System.err.println("BADSIG: signature too short");
+            return DnsResponseCode.BADSIG.toByte()
+        } else if (signature.size < minDigestLength) {
+            if (check("verbose")) {
+                System.err.println("BADSIG: signature too short")
             }
-            return DnsResponseCode.BADSIG;
-        }
-        else if (!verify(hmac, signature, true)) {
-            if (Options.check("verbose")) {
-                System.err.println("BADSIG: signature verification");
+            return DnsResponseCode.BADSIG.toByte()
+        } else if (!verify(hmac, signature, true)) {
+            if (check("verbose")) {
+                System.err.println("BADSIG: signature verification")
             }
-            return DnsResponseCode.BADSIG;
+            return DnsResponseCode.BADSIG.toByte()
         }
-
-        m.tsigState = DnsMessage.TSIG_VERIFIED;
-        return DnsResponseCode.NOERROR;
+        m.tsigState = DnsMessage.TSIG_VERIFIED
+        return DnsResponseCode.NOERROR.toByte()
     }
 
     /**
@@ -641,35 +418,31 @@ class TSIG {
      *
      * @see TSIGRecord
      */
-    public
-    int recordLength() {
-        return (name.length() + 10 + alg.length() + 8 +    // time signed, fudge
-                18 +    // 2 byte MAC length, 16 byte MAC
-                4 +    // original id, error
-                8);    // 2 byte error length, 6 byte max error field.
+    fun recordLength(): Int {
+        return name!!.length() + 10 + alg.length() + 8 +  // time signed, fudge
+                18 +  // 2 byte MAC length, 16 byte MAC
+                4 +  // original id, error
+                8 // 2 byte error length, 6 byte max error field.
     }
 
-    public static
-    class StreamVerifier {
+    class StreamVerifier(
         /**
          * A helper class for verifying multiple message responses.
          */
-
-        private TSIG key;
-        private Mac verifier;
-        private int nresponses;
-        private int lastsigned;
-        private TSIGRecord lastTSIG;
+        private val key: TSIG, old: TSIGRecord?
+    ) {
+        private val verifier: Mac?
+        private var nresponses: Int
+        private var lastsigned = 0
+        private var lastTSIG: TSIGRecord?
 
         /**
          * Creates an object to verify a multiple message response
          */
-        public
-        StreamVerifier(TSIG tsig, TSIGRecord old) {
-            key = tsig;
-            verifier = tsig.hmac;
-            nresponses = 0;
-            lastTSIG = old;
+        init {
+            verifier = key.hmac
+            nresponses = 0
+            lastTSIG = old
         }
 
         /**
@@ -687,99 +460,208 @@ class TSIG {
          *
          * @see DnsResponseCode
          */
-        public
-        int verify(DnsMessage m, byte[] b) {
-            TSIGRecord tsig = m.getTSIG();
-
-            nresponses++;
-
+        fun verify(m: DnsMessage, b: ByteArray): Int {
+            val tsig = m.tSIG
+            nresponses++
             if (nresponses == 1) {
-                int result = key.verify(m, b, lastTSIG);
+                val result = key.verify(m, b, lastTSIG)
                 if (result == DnsResponseCode.NOERROR) {
-                    byte[] signature = tsig.getSignature();
-                    DnsOutput out = new DnsOutput();
-                    out.writeU16(signature.length);
-                    verifier.update(out.toByteArray());
-                    verifier.update(signature);
+                    val signature = tsig!!.signature
+                    val out = DnsOutput()
+                    out.writeU16(signature.size)
+                    verifier!!.update(out.toByteArray())
+                    verifier.update(signature)
                 }
-                lastTSIG = tsig;
-                return result;
+                lastTSIG = tsig
+                return result
             }
-
             if (tsig != null) {
-                m.getHeader()
-                 .decCount(DnsSection.ADDITIONAL);
+                m.header.decCount(DnsSection.ADDITIONAL)
             }
-            byte[] header = m.getHeader()
-                             .toWire();
+            val header = m.header.toWire()
             if (tsig != null) {
-                m.getHeader()
-                 .incCount(DnsSection.ADDITIONAL);
+                m.header.incCount(DnsSection.ADDITIONAL)
             }
-            verifier.update(header);
-
-            int len;
-            if (tsig == null) {
-                len = b.length - header.length;
+            verifier!!.update(header)
+            val len: Int
+            len = if (tsig == null) {
+                b.size - header.size
+            } else {
+                m.tsigstart - header.size
             }
-            else {
-                len = m.tsigstart - header.length;
-            }
-            verifier.update(b, header.length, len);
-
+            verifier.update(b, header.size, len)
             if (tsig != null) {
-                lastsigned = nresponses;
-                lastTSIG = tsig;
-            }
-            else {
-                boolean required = (nresponses - lastsigned >= 100);
-                if (required) {
-                    m.tsigState = DnsMessage.TSIG_FAILED;
-                    return DnsResponseCode.FORMERR;
-                }
-                else {
-                    m.tsigState = DnsMessage.TSIG_INTERMEDIATE;
-                    return DnsResponseCode.NOERROR;
+                lastsigned = nresponses
+                lastTSIG = tsig
+            } else {
+                val required = nresponses - lastsigned >= 100
+                return if (required) {
+                    m.tsigState = DnsMessage.TSIG_FAILED
+                    DnsResponseCode.FORMERR
+                } else {
+                    m.tsigState = DnsMessage.TSIG_INTERMEDIATE
+                    DnsResponseCode.NOERROR
                 }
             }
-
-            if (!tsig.getName()
-                     .equals(key.name) || !tsig.getAlgorithm()
-                                               .equals(key.alg)) {
-                if (Options.check("verbose")) {
-                    System.err.println("BADKEY failure");
+            if (!tsig.name.equals(key.name) || !tsig.algorithm.equals(key.alg)) {
+                if (check("verbose")) {
+                    System.err.println("BADKEY failure")
                 }
-                m.tsigState = DnsMessage.TSIG_FAILED;
-                return DnsResponseCode.BADKEY;
+                m.tsigState = DnsMessage.TSIG_FAILED
+                return DnsResponseCode.BADKEY
             }
-
-            DnsOutput out = new DnsOutput();
-            long time = tsig.getTimeSigned()
-                            .getTime() / 1000;
-            int timeHigh = (int) (time >> 32);
-            long timeLow = (time & 0xFFFFFFFFL);
-            out.writeU16(timeHigh);
-            out.writeU32(timeLow);
-            out.writeU16(tsig.getFudge());
-            verifier.update(out.toByteArray());
-
-            if (TSIG.verify(verifier, tsig.getSignature()) == false) {
-                if (Options.check("verbose")) {
-                    System.err.println("BADSIG failure");
+            var out = DnsOutput()
+            val time = tsig.timeSigned.time / 1000
+            val timeHigh = (time shr 32).toInt()
+            val timeLow = time and 0xFFFFFFFFL
+            out.writeU16(timeHigh)
+            out.writeU32(timeLow)
+            out.writeU16(tsig.fudge)
+            verifier.update(out.toByteArray())
+            if (verify(verifier, tsig.signature) == false) {
+                if (check("verbose")) {
+                    System.err.println("BADSIG failure")
                 }
-                m.tsigState = DnsMessage.TSIG_FAILED;
-                return DnsResponseCode.BADSIG;
+                m.tsigState = DnsMessage.TSIG_FAILED
+                return DnsResponseCode.BADSIG
             }
-
-            verifier.reset();
-            out = new DnsOutput();
-            out.writeU16(tsig.getSignature().length);
-            verifier.update(out.toByteArray());
-            verifier.update(tsig.getSignature());
-
-            m.tsigState = DnsMessage.TSIG_VERIFIED;
-            return DnsResponseCode.NOERROR;
+            verifier.reset()
+            out = DnsOutput()
+            out.writeU16(tsig.signature.size)
+            verifier.update(out.toByteArray())
+            verifier.update(tsig.signature)
+            m.tsigState = DnsMessage.TSIG_VERIFIED
+            return DnsResponseCode.NOERROR
         }
     }
 
+    companion object {
+        val regex = "[:/]".toRegex()
+
+        /**
+         * The domain name representing the HMAC-MD5 algorithm.
+         */
+        val HMAC_MD5 = Name.fromConstantString("HMAC-MD5.SIG-ALG.REG.INT.")
+
+        /**
+         * The domain name representing the HMAC-MD5 algorithm (deprecated).
+         */
+        val HMAC = HMAC_MD5
+
+        /**
+         * The domain name representing the HMAC-SHA1 algorithm.
+         */
+        val HMAC_SHA1 = Name.fromConstantString("hmac-sha1.")
+
+        /**
+         * The domain name representing the HMAC-SHA224 algorithm.
+         * Note that SHA224 is not supported by Java out-of-the-box, this requires use
+         * of a third party provider like BouncyCastle.org.
+         */
+        val HMAC_SHA224 = Name.fromConstantString("hmac-sha224.")
+
+        /**
+         * The domain name representing the HMAC-SHA256 algorithm.
+         */
+        @JvmStatic
+        val HMAC_SHA256 = Name.fromConstantString("hmac-sha256.")
+
+        /**
+         * The domain name representing the HMAC-SHA384 algorithm.
+         */
+        val HMAC_SHA384 = Name.fromConstantString("hmac-sha384.")
+
+        /**
+         * The domain name representing the HMAC-SHA512 algorithm.
+         */
+        val HMAC_SHA512 = Name.fromConstantString("hmac-sha512.")
+        private val algMap = ObjectMap<Name, String>()
+
+        /**
+         * The default fudge value for outgoing packets.  Can be overridden by the
+         * tsigfudge option.
+         */
+        const val FUDGE: Short = 300
+
+        init {
+            algMap.put(HMAC_MD5, "HmacMD5")
+            algMap.put(HMAC_SHA1, "HmacSHA1")
+            algMap.put(HMAC_SHA224, "HmacSHA224")
+            algMap.put(HMAC_SHA256, "HmacSHA256")
+            algMap.put(HMAC_SHA384, "HmacSHA384")
+            algMap.put(HMAC_SHA512, "HmacSHA512")
+        }
+        /**
+         * Verifies the data (computes the secure hash and compares it to the input)
+         *
+         * @param mac The HMAC generator
+         * @param signature The signature to compare against
+         * @param truncation_ok If true, the signature may be truncated; only the
+         * number of bytes in the provided signature are compared.
+         *
+         * @return true if the signature matches, false otherwise
+         */
+        /**
+         * Verifies the data (computes the secure hash and compares it to the input)
+         *
+         * @param mac The HMAC generator
+         * @param signature The signature to compare against
+         *
+         * @return true if the signature matches, false otherwise
+         */
+        private fun verify(mac: Mac?, signature: ByteArray, truncation_ok: Boolean = false): Boolean {
+            var expected = mac!!.doFinal()
+            if (truncation_ok && signature.size < expected.size) {
+                val truncated = ByteArray(signature.size)
+                System.arraycopy(expected, 0, truncated, 0, truncated.size)
+                expected = truncated
+            }
+            return Arrays.equals(signature, expected)
+        }
+
+        fun nameToAlgorithm(name: Name): String {
+            val alg = algMap[name]
+            if (alg != null) {
+                return alg
+            }
+            throw IllegalArgumentException("Unknown algorithm")
+        }
+
+        fun algorithmToName(alg: String?): Name {
+
+            // false identity check because it's string comparisons.
+            val foundKey = algMap.findKey(alg, false)
+            if (foundKey != null) {
+                return foundKey
+            }
+            throw IllegalArgumentException("Unknown algorithm")
+        }
+
+        /**
+         * Creates a new TSIG object, which can be used to sign or verify a message.
+         *
+         * @param str The TSIG key, in the form name:secret, name/secret,
+         * alg:name:secret, or alg/name/secret.  If an algorithm is specified, it must
+         * be "hmac-md5", "hmac-sha1", or "hmac-sha256".
+         *
+         * @throws IllegalArgumentException The string does not contain both a name
+         * and secret.
+         * @throws IllegalArgumentException The key name is an invalid name
+         * @throws IllegalArgumentException The key data is improperly encoded
+         */
+        fun fromString(str: String): TSIG {
+
+            var parts: Array<String> = str.split(regex, limit = 3).toTypedArray()
+            require(parts.size >= 2) { "Invalid TSIG key " + "specification" }
+
+            if (parts.size == 3) {
+                parts = try {
+                    return TSIG(parts[0], parts[1], parts[2])
+                } catch (e: IllegalArgumentException) {
+                    str.split(regex, limit = 2).toTypedArray()
+                }
+            }
+            return TSIG(HMAC_MD5, parts[0], parts[1])
+        }
+    }
 }

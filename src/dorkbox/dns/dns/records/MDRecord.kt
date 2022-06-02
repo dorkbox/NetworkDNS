@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * Mail Destination Record  - specifies a mail agent which delivers mail
@@ -25,41 +24,36 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  */
-@Deprecated
-public
-class MDRecord extends SingleNameBase {
+@Deprecated("")
+class MDRecord : SingleNameBase {
+    internal constructor() {}
 
-    private static final long serialVersionUID = 5268878603762942202L;
-
-    MDRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new MDRecord();
-    }
-
-    @Override
-    public
-    Name getAdditionalName() {
-        return getSingleName();
-    }
+    override val `object`: DnsRecord
+        get() = MDRecord()
 
     /**
      * Creates a new MD Record with the given data
      *
      * @param mailAgent The mail agent that delivers mail for the domain.
      */
-    public
-    MDRecord(Name name, int dclass, long ttl, Name mailAgent) {
-        super(name, DnsRecordType.MD, dclass, ttl, mailAgent, "mail agent");
+    constructor(name: Name, dclass: Int, ttl: Long, mailAgent: Name) : super(
+        name,
+        DnsRecordType.MD,
+        dclass,
+        ttl,
+        mailAgent,
+        "mail agent"
+    ) {
+        additionalName = singleName
     }
 
     /**
      * Gets the mail agent for the domain
      */
-    public
-    Name getMailAgent() {
-        return getSingleName();
-    }
+    val mailAgent: Name
+        get() = singleName
 
+    companion object {
+        private const val serialVersionUID = 5268878603762942202L
+    }
 }

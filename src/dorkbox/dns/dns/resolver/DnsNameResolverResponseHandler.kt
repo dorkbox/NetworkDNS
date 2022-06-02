@@ -13,55 +13,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver;
+package dorkbox.dns.dns.resolver
 
-import dorkbox.dns.dns.clientHandlers.DnsResponse;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.util.concurrent.Promise;
+import dorkbox.dns.dns.clientHandlers.DnsResponse
+import io.netty.channel.Channel
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelInboundHandlerAdapter
+import io.netty.util.concurrent.Promise
 
-final
-class DnsNameResolverResponseHandler extends ChannelInboundHandlerAdapter {
-
-    private DnsNameResolver dnsNameResolver;
-    private final Promise<Channel> channelActivePromise;
-
-    DnsNameResolverResponseHandler(final DnsNameResolver dnsNameResolver, Promise<Channel> channelActivePromise) {
-        this.dnsNameResolver = dnsNameResolver;
-        this.channelActivePromise = channelActivePromise;
+internal class DnsNameResolverResponseHandler(
+    private val dnsNameResolver: DnsNameResolver,
+    private val channelActivePromise: Promise<Channel>
+) : ChannelInboundHandlerAdapter() {
+    @Throws(Exception::class)
+    override fun channelActive(ctx: ChannelHandlerContext) {
+        super.channelActive(ctx)
+        channelActivePromise.setSuccess(ctx.channel())
     }
 
-    @Override
-    public
-    void channelActive(ChannelHandlerContext ctx) throws Exception {
-        super.channelActive(ctx);
-        channelActivePromise.setSuccess(ctx.channel());
-    }
-
-    @Override
-    public
-    void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        final DnsResponse response = (DnsResponse) msg;
-
-        final int queryId = response.getHeader().getID();
-
-        if (DnsNameResolver.logger.isDebugEnabled()) {
-            DnsNameResolver.logger.debug("{} RECEIVED: [{}: {}], {}", dnsNameResolver.ch, queryId, response.sender(), response);
+    @Throws(Exception::class)
+    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+        val response = msg as DnsResponse
+        val queryId = response.header.iD
+        if (DnsNameResolver.logger.isDebugEnabled) {
+            DnsNameResolver.logger.debug("{} RECEIVED: [{}: {}], {}", dnsNameResolver.ch, queryId, response.sender(), response)
         }
-
-        final DnsQueryContext qCtx = dnsNameResolver.queryContextManager.get(response.sender(), queryId);
+        val qCtx = dnsNameResolver.queryContextManager[response.sender()!!, queryId]
         if (qCtx == null) {
-            DnsNameResolver.logger.warn("{} Received a DNS response with an unknown ID: {}", dnsNameResolver.ch, queryId);
-            return;
+            DnsNameResolver.logger.warn("{} Received a DNS response with an unknown ID: {}", dnsNameResolver.ch, queryId)
+            return
         }
-
-        qCtx.finish(response);
+        qCtx.finish(response)
     }
 
-    @Override
-    public
-    void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        DnsNameResolver.logger.warn("{} Unexpected exception: ", dnsNameResolver.ch, cause);
+    @Throws(Exception::class)
+    override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
+        DnsNameResolver.logger.warn("{} Unexpected exception: ", dnsNameResolver.ch, cause)
     }
 }

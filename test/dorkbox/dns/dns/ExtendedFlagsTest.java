@@ -26,18 +26,18 @@ class ExtendedFlagsTest extends TestCase {
         assertEquals("do", ExtendedFlags.DO.string());
 
         // one that doesn't exist
-        assertTrue(ExtendedFlags.string(1)
+        assertTrue(ExtendedFlags.Companion.string(1)
                                 .startsWith("flag"));
 
         try {
-            ExtendedFlags.string(-1);
+            ExtendedFlags.Companion.string(-1);
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
 
         //  (max is 0xFFFF)
         try {
-            ExtendedFlags.string(0x10000);
+            ExtendedFlags.Companion.string(0x10000);
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
@@ -46,18 +46,18 @@ class ExtendedFlagsTest extends TestCase {
     public
     void test_value() {
         // regular one
-        assertEquals(ExtendedFlags.DO.value(), ExtendedFlags.value("do"));
+        assertEquals(ExtendedFlags.DO.value(), ExtendedFlags.Companion.value("do"));
 
         // one thats undefined but within range
-        assertEquals(16, ExtendedFlags.value("FLAG16"));
+        assertEquals(16, ExtendedFlags.Companion.value("FLAG16"));
 
         // one thats undefined but out of range
-        assertEquals(-1, ExtendedFlags.value("FLAG" + 0x10000));
+        assertEquals(-1, ExtendedFlags.Companion.value("FLAG" + 0x10000));
 
         // something that unknown
-        assertEquals(-1, ExtendedFlags.value("THIS IS DEFINITELY UNKNOWN"));
+        assertEquals(-1, ExtendedFlags.Companion.value("THIS IS DEFINITELY UNKNOWN"));
 
         // empty string
-        assertEquals(-1, ExtendedFlags.value(""));
+        assertEquals(-1, ExtendedFlags.Companion.value(""));
     }
 }

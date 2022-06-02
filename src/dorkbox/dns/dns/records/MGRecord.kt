@@ -13,47 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * Mail Group Record  - specifies a mailbox which is a member of a mail group.
  *
  * @author Brian Wellington
  */
+class MGRecord : SingleNameBase {
+    internal constructor() {}
 
-public
-class MGRecord extends SingleNameBase {
-
-    private static final long serialVersionUID = -3980055550863644582L;
-
-    MGRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new MGRecord();
-    }
+    override val `object`: DnsRecord
+        get() = MGRecord()
 
     /**
      * Creates a new MG Record with the given data
      *
      * @param mailbox The mailbox that is a member of the group specified by the
-     *         domain.
+     * domain.
      */
-    public
-    MGRecord(Name name, int dclass, long ttl, Name mailbox) {
-        super(name, DnsRecordType.MG, dclass, ttl, mailbox, "mailbox");
-    }
+    constructor(name: Name, dclass: Int, ttl: Long, mailbox: Name) : super(name, DnsRecordType.MG, dclass, ttl, mailbox, "mailbox") {}
 
     /**
      * Gets the mailbox in the mail group specified by the domain
      */
-    public
-    Name getMailbox() {
-        return getSingleName();
-    }
+    val mailbox: Name
+        get() = singleName
 
+    companion object {
+        private const val serialVersionUID = -3980055550863644582L
+    }
 }

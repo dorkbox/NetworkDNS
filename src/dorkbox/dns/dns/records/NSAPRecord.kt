@@ -13,63 +13,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.utils.base16;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.dns.dns.utils.base16.toString
+import java.io.ByteArrayOutputStream
+import java.io.IOException
 
 /**
  * NSAP Address Record.
  *
  * @author Brian Wellington
  */
+class NSAPRecord : DnsRecord {
+    private lateinit var address: ByteArray
 
-public
-class NSAPRecord extends DnsRecord {
+    internal constructor()
 
-    private static final long serialVersionUID = -1037209403185658593L;
+    override val `object`: DnsRecord
+        get() = NSAPRecord()
 
-    private byte[] address;
-
-    NSAPRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new NSAPRecord();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        address = `in`.readByteArray()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        address = in.readByteArray();
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeByteArray(address)
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeByteArray(address);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append("0x").append(toString(address))
     }
 
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append("0x")
-          .append(base16.toString(address));
-    }
-
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        String addr = st.getString();
-        this.address = checkAndConvertAddress(addr);
-        if (this.address == null) {
-            throw st.exception("invalid NSAP address " + addr);
-        }
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        address = checkAndConvertAddress(st.getString())
     }
 
     /**
@@ -79,56 +63,48 @@ class NSAPRecord extends DnsRecord {
      *
      * @throws IllegalArgumentException The address is not a valid NSAP address.
      */
-    public
-    NSAPRecord(Name name, int dclass, long ttl, String address) {
-        super(name, DnsRecordType.NSAP, dclass, ttl);
-        this.address = checkAndConvertAddress(address);
-        if (this.address == null) {
-            throw new IllegalArgumentException("invalid NSAP address " + address);
-        }
-    }
-
-    private static
-    byte[] checkAndConvertAddress(String address) {
-        if (!address.substring(0, 2)
-                    .equalsIgnoreCase("0x")) {
-            return null;
-        }
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        boolean partial = false;
-        int current = 0;
-        for (int i = 2; i < address.length(); i++) {
-            char c = address.charAt(i);
-            if (c == '.') {
-                continue;
-            }
-            int value = Character.digit(c, 16);
-            if (value == -1) {
-                return null;
-            }
-            if (partial) {
-                current += value;
-                bytes.write(current);
-                partial = false;
-            }
-            else {
-                current = value << 4;
-                partial = true;
-            }
-
-        }
-        if (partial) {
-            return null;
-        }
-        return bytes.toByteArray();
+    constructor(name: Name?, dclass: Int, ttl: Long, address: String) : super(name!!, DnsRecordType.NSAP, dclass, ttl) {
+        this.address = checkAndConvertAddress(address)
     }
 
     /**
      * Returns the NSAP address.
      */
-    public
-    String getAddress() {
-        return byteArrayToString(address, false);
+    fun getAddress(): String {
+        return byteArrayToString(address, false)
     }
 
+    companion object {
+        private const val serialVersionUID = -1037209403185658593L
+        private fun checkAndConvertAddress(address: String): ByteArray {
+            if (!address.substring(0, 2).equals("0x", ignoreCase = true)) {
+                throw IllegalArgumentException("invalid NSAP address $address")
+            }
+            val bytes = ByteArrayOutputStream()
+            var partial = false
+            var current = 0
+            for (i in 2 until address.length) {
+                val c = address[i]
+                if (c == '.') {
+                    continue
+                }
+                val value = c.digitToIntOrNull(16) ?: -1
+                if (value == -1) {
+                    throw IllegalArgumentException("invalid NSAP address $address")
+                }
+                if (partial) {
+                    current += value
+                    bytes.write(current)
+                    partial = false
+                } else {
+                    current = value shl 4
+                    partial = true
+                }
+            }
+
+            return if (partial) {
+                throw IllegalArgumentException("invalid NSAP address $address")
+            } else bytes.toByteArray()
+        }
+    }
 }

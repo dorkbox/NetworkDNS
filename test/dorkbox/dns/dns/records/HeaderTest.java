@@ -22,7 +22,6 @@ import dorkbox.dns.dns.DnsOutput;
 import dorkbox.dns.dns.constants.DnsOpCode;
 import dorkbox.dns.dns.constants.DnsResponseCode;
 import dorkbox.dns.dns.constants.Flags;
-import dorkbox.dns.dns.records.Header;
 import junit.framework.TestCase;
 
 public
@@ -147,23 +146,23 @@ class HeaderTest extends TestCase {
 
     public
     void test_flags() {
-        m_h.setFlag(Flags.toFlag(0));
-        m_h.setFlag(Flags.toFlag(5));
-        assertTrue(m_h.getFlag(Flags.toFlag(0)));
+        m_h.setFlag(Flags.Companion.toFlag(0));
+        m_h.setFlag(Flags.Companion.toFlag(5));
+        assertTrue(m_h.getFlag(Flags.Companion.toFlag(0)));
         assertTrue(m_h.getFlags()[0]);
-        assertTrue(m_h.getFlag(Flags.toFlag(5)));
+        assertTrue(m_h.getFlag(Flags.Companion.toFlag(5)));
         assertTrue(m_h.getFlags()[5]);
 
-        m_h.unsetFlag(Flags.toFlag(0));
-        assertFalse(m_h.getFlag(Flags.toFlag(0)));
+        m_h.unsetFlag(Flags.Companion.toFlag(0));
+        assertFalse(m_h.getFlag(Flags.Companion.toFlag(0)));
         assertFalse(m_h.getFlags()[0]);
-        assertTrue(m_h.getFlag(Flags.toFlag(5)));
+        assertTrue(m_h.getFlag(Flags.Companion.toFlag(5)));
         assertTrue(m_h.getFlags()[5]);
 
-        m_h.unsetFlag(Flags.toFlag(5));
-        assertFalse(m_h.getFlag(Flags.toFlag(0)));
+        m_h.unsetFlag(Flags.Companion.toFlag(5));
+        assertFalse(m_h.getFlag(Flags.Companion.toFlag(0)));
         assertFalse(m_h.getFlags()[0]);
-        assertFalse(m_h.getFlag(Flags.toFlag(5)));
+        assertFalse(m_h.getFlag(Flags.Companion.toFlag(5)));
         assertFalse(m_h.getFlags()[5]);
 
         boolean[] flags = m_h.getFlags();
@@ -178,47 +177,47 @@ class HeaderTest extends TestCase {
     public
     void test_flags_invalid() {
         try {
-            m_h.setFlag(Flags.toFlag(-1));
+            m_h.setFlag(Flags.Companion.toFlag(-1));
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
         try {
-            m_h.setFlag(Flags.toFlag(1));
+            m_h.setFlag(Flags.Companion.toFlag(1));
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
         try {
-            m_h.setFlag(Flags.toFlag(16));
+            m_h.setFlag(Flags.Companion.toFlag(16));
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
         try {
-            m_h.unsetFlag(Flags.toFlag(-1));
+            m_h.unsetFlag(Flags.Companion.toFlag(-1));
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
         try {
-            m_h.unsetFlag(Flags.toFlag(13));
+            m_h.unsetFlag(Flags.Companion.toFlag(13));
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
         try {
-            m_h.unsetFlag(Flags.toFlag(16));
+            m_h.unsetFlag(Flags.Companion.toFlag(16));
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
         try {
-            m_h.getFlag(Flags.toFlag(-1));
+            m_h.getFlag(Flags.Companion.toFlag(-1));
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
         try {
-            m_h.getFlag(Flags.toFlag(4));
+            m_h.getFlag(Flags.Companion.toFlag(4));
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
         try {
-            m_h.getFlag(Flags.toFlag(16));
+            m_h.getFlag(Flags.Companion.toFlag(16));
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
@@ -262,7 +261,7 @@ class HeaderTest extends TestCase {
             if ((i > 0 && i < 5) || i > 11) {
                 continue;
             }
-            assertFalse(m_h.getFlag(Flags.toFlag(i)));
+            assertFalse(m_h.getFlag(Flags.Companion.toFlag(i)));
         }
     }
 
@@ -287,9 +286,9 @@ class HeaderTest extends TestCase {
         m_h.setOpcode(0xE); // 1110
         assertEquals(0xE, m_h.getOpcode());
 
-        assertFalse(m_h.getFlag(Flags.toFlag(0)));
+        assertFalse(m_h.getFlag(Flags.Companion.toFlag(0)));
         for (int i = 5; i < 12; ++i) {
-            assertFalse(m_h.getFlag(Flags.toFlag(i)));
+            assertFalse(m_h.getFlag(Flags.Companion.toFlag(i)));
         }
         assertEquals(0, m_h.getRcode());
     }
@@ -428,7 +427,7 @@ class HeaderTest extends TestCase {
             if ((i > 0 && i < 5) || i > 11) {
                 continue;
             }
-            assertEquals(m_h.getFlag(Flags.toFlag(i)), h2.getFlag(Flags.toFlag(i)));
+            assertEquals(m_h.getFlag(Flags.Companion.toFlag(i)), h2.getFlag(Flags.Companion.toFlag(i)));
         }
         for (int i = 0; i < 4; ++i) {
             assertEquals(m_h.getCount(i), h2.getCount(i));

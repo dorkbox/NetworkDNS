@@ -13,53 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver.cache;
+package dorkbox.dns.dns.resolver.cache
 
-import java.net.InetAddress;
-import java.util.Collections;
-import java.util.List;
-
-import io.netty.channel.EventLoop;
-import io.netty.util.internal.UnstableApi;
+import io.netty.channel.EventLoop
+import io.netty.util.internal.UnstableApi
+import java.net.InetAddress
 
 /**
  * A noop DNS cache that actually never caches anything.
  */
 @UnstableApi
-public final class NoopDnsCache implements DnsCache {
-
-    public static final NoopDnsCache INSTANCE = new NoopDnsCache();
-
-    /**
-     * Private singleton constructor.
-     */
-    private NoopDnsCache() {
+class NoopDnsCache
+/**
+ * Private singleton constructor.
+ */
+private constructor() : DnsCache {
+    override fun clear() {}
+    override fun clear(hostname: String): Boolean {
+        return false
     }
 
-    @Override
-    public void clear() {
+    override fun get(hostname: String): MutableList<DnsCacheEntry>? {
+        return mutableListOf<DnsCacheEntry>()
     }
 
-    @Override
-    public boolean clear(String hostname) {
-        return false;
+    override fun cache(hostname: String, address: InetAddress, originalTtl: Long, loop: EventLoop) {}
+    override fun cache(hostname: String, cause: Throwable, loop: EventLoop) {}
+    override fun toString(): String {
+        return NoopDnsCache::class.java.simpleName
     }
 
-    @Override
-    public List<DnsCacheEntry> get(String hostname) {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public void cache(String hostname, InetAddress address, long originalTtl, EventLoop loop) {
-    }
-
-    @Override
-    public void cache(String hostname, Throwable cause, EventLoop loop) {
-    }
-
-    @Override
-    public String toString() {
-        return NoopDnsCache.class.getSimpleName();
+    companion object {
+        val INSTANCE = NoopDnsCache()
     }
 }

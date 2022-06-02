@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.security.PublicKey;
-import java.util.StringTokenizer;
-
-import dorkbox.dns.dns.Mnemonic;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Mnemonic
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.records.DNSSEC.Algorithm.value
+import dorkbox.dns.dns.records.DNSSEC.fromPublicKey
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
+import java.security.PublicKey
+import java.util.*
 
 /**
  * Key - contains a cryptographic public key.  The data can be converted
@@ -32,114 +32,56 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  * @author Brian Wellington
  * @see DNSSEC
  */
-
-public
-class KEYRecord extends KEYBase {
-
-    private static final long serialVersionUID = 6385613447571488906L;
-    /**
-     * This key cannot be used for confidentiality (encryption)
-     */
-    public static final int FLAG_NOCONF = Flags.NOCONF;
-    /**
-     * This key cannot be used for authentication
-     */
-    public static final int FLAG_NOAUTH = Flags.NOAUTH;
-
-/* flags */
-    /**
-     * This key cannot be used for authentication or confidentiality
-     */
-    public static final int FLAG_NOKEY = Flags.NOKEY;
-    /**
-     * A zone key
-     */
-    public static final int OWNER_ZONE = Flags.ZONE;
-    /**
-     * A host/end entity key
-     */
-    public static final int OWNER_HOST = Flags.HOST;
-    /**
-     * A user key
-     */
-    public static final int OWNER_USER = Flags.USER;
-    /**
-     * Key was created for use with transaction level security
-     */
-    public static final int PROTOCOL_TLS = Protocol.TLS;
-    /**
-     * Key was created for use with email
-     */
-    public static final int PROTOCOL_EMAIL = Protocol.EMAIL;
-
-/* protocols */
-    /**
-     * Key was created for use with DNSSEC
-     */
-    public static final int PROTOCOL_DNSSEC = Protocol.DNSSEC;
-    /**
-     * Key was created for use with IPSEC
-     */
-    public static final int PROTOCOL_IPSEC = Protocol.IPSEC;
-    /**
-     * Key was created for use with any protocol
-     */
-    public static final int PROTOCOL_ANY = Protocol.ANY;
-
-
-    public static
-    class Protocol {
+class KEYRecord : KEYBase {
+    object Protocol {
         /**
          * No defined protocol.
          */
-        public static final int NONE = 0;
+        const val NONE = 0
+
         /**
          * Transaction Level Security
          */
-        public static final int TLS = 1;
+        const val TLS = 1
+
         /**
          * Email
          */
-        public static final int EMAIL = 2;
+        const val EMAIL = 2
+
         /**
          * DNSSEC
          */
-        public static final int DNSSEC = 3;
+        const val DNSSEC = 3
+
         /**
          * IPSEC Control
          */
-        public static final int IPSEC = 4;
+        const val IPSEC = 4
+
         /**
          * Any protocol
          */
-        public static final int ANY = 255;
-        private static Mnemonic protocols = new Mnemonic("KEY protocol", Mnemonic.CASE_UPPER);
+        const val ANY = 255
+        private val protocols = Mnemonic("KEY protocol", Mnemonic.CASE_UPPER)
 
-        /**
-         * KEY protocol identifiers.
-         */
-
-        private
-        Protocol() {}
-
-        static {
-            protocols.setMaximum(0xFF);
-            protocols.setNumericAllowed(true);
-
-            protocols.add(NONE, "NONE");
-            protocols.add(TLS, "TLS");
-            protocols.add(EMAIL, "EMAIL");
-            protocols.add(DNSSEC, "DNSSEC");
-            protocols.add(IPSEC, "IPSEC");
-            protocols.add(ANY, "ANY");
+        init {
+            protocols.setMaximum(0xFF)
+            protocols.setNumericAllowed(true)
+            protocols.add(NONE, "NONE")
+            protocols.add(TLS, "TLS")
+            protocols.add(EMAIL, "EMAIL")
+            protocols.add(DNSSEC, "DNSSEC")
+            protocols.add(IPSEC, "IPSEC")
+            protocols.add(ANY, "ANY")
         }
 
         /**
          * Converts an KEY protocol value into its textual representation
          */
-        public static
-        String string(int type) {
-            return protocols.getText(type);
+        @JvmStatic
+        fun string(type: Int): String {
+            return protocols.getText(type)
         }
 
         /**
@@ -150,191 +92,213 @@ class KEYRecord extends KEYBase {
          *
          * @return The protocol code, or -1 on error.
          */
-        public static
-        int value(String s) {
-            return protocols.getValue(s);
+        @JvmStatic
+        fun value(s: String?): Int {
+            return protocols.getValue(s!!)
         }
     }
 
-
-    public static
-    class Flags {
+    object Flags {
         /**
          * KEY cannot be used for confidentiality
          */
-        public static final int NOCONF = 0x4000;
+        const val NOCONF = 0x4000
+
         /**
          * KEY cannot be used for authentication
          */
-        public static final int NOAUTH = 0x8000;
+        const val NOAUTH = 0x8000
+
         /**
          * No key present
          */
-        public static final int NOKEY = 0xC000;
+        const val NOKEY = 0xC000
+
         /**
          * Bitmask of the use fields
          */
-        public static final int USE_MASK = 0xC000;
+        const val USE_MASK = 0xC000
+
         /**
          * Flag 2 (unused)
          */
-        public static final int FLAG2 = 0x2000;
+        const val FLAG2 = 0x2000
+
         /**
          * Flags extension
          */
-        public static final int EXTEND = 0x1000;
+        const val EXTEND = 0x1000
+
         /**
          * Flag 4 (unused)
          */
-        public static final int FLAG4 = 0x0800;
+        const val FLAG4 = 0x0800
+
         /**
          * Flag 5 (unused)
          */
-        public static final int FLAG5 = 0x0400;
+        const val FLAG5 = 0x0400
+
         /**
          * Key is owned by a user.
          */
-        public static final int USER = 0x0000;
+        const val USER = 0x0000
+
         /**
          * Key is owned by a zone.
          */
-        public static final int ZONE = 0x0100;
+        const val ZONE = 0x0100
+
         /**
          * Key is owned by a host.
          */
-        public static final int HOST = 0x0200;
+        const val HOST = 0x0200
+
         /**
          * Key owner type 3 (reserved).
          */
-        public static final int NTYP3 = 0x0300;
+        const val NTYP3 = 0x0300
+
         /**
          * Key owner bitmask.
          */
-        public static final int OWNER_MASK = 0x0300;
+        const val OWNER_MASK = 0x0300
+
         /**
          * Flag 8 (unused)
          */
-        public static final int FLAG8 = 0x0080;
+        const val FLAG8 = 0x0080
+
         /**
          * Flag 9 (unused)
          */
-        public static final int FLAG9 = 0x0040;
+        const val FLAG9 = 0x0040
+
         /**
          * Flag 10 (unused)
          */
-        public static final int FLAG10 = 0x0020;
+        const val FLAG10 = 0x0020
+
         /**
          * Flag 11 (unused)
          */
-        public static final int FLAG11 = 0x0010;
+        const val FLAG11 = 0x0010
+
         /**
          * Signatory value 0
          */
-        public static final int SIG0 = 0;
+        const val SIG0 = 0
+
         /**
          * Signatory value 1
          */
-        public static final int SIG1 = 1;
+        const val SIG1 = 1
+
         /**
          * Signatory value 2
          */
-        public static final int SIG2 = 2;
+        const val SIG2 = 2
+
         /**
          * Signatory value 3
          */
-        public static final int SIG3 = 3;
+        const val SIG3 = 3
+
         /**
          * Signatory value 4
          */
-        public static final int SIG4 = 4;
+        const val SIG4 = 4
+
         /**
          * Signatory value 5
          */
-        public static final int SIG5 = 5;
+        const val SIG5 = 5
+
         /**
          * Signatory value 6
          */
-        public static final int SIG6 = 6;
+        const val SIG6 = 6
+
         /**
          * Signatory value 7
          */
-        public static final int SIG7 = 7;
+        const val SIG7 = 7
+
         /**
          * Signatory value 8
          */
-        public static final int SIG8 = 8;
+        const val SIG8 = 8
+
         /**
          * Signatory value 9
          */
-        public static final int SIG9 = 9;
+        const val SIG9 = 9
+
         /**
          * Signatory value 10
          */
-        public static final int SIG10 = 10;
+        const val SIG10 = 10
+
         /**
          * Signatory value 11
          */
-        public static final int SIG11 = 11;
+        const val SIG11 = 11
+
         /**
          * Signatory value 12
          */
-        public static final int SIG12 = 12;
+        const val SIG12 = 12
+
         /**
          * Signatory value 13
          */
-        public static final int SIG13 = 13;
+        const val SIG13 = 13
+
         /**
          * Signatory value 14
          */
-        public static final int SIG14 = 14;
+        const val SIG14 = 14
+
         /**
          * Signatory value 15
          */
-        public static final int SIG15 = 15;
-        private static Mnemonic flags = new Mnemonic("KEY flags", Mnemonic.CASE_UPPER);
+        const val SIG15 = 15
+        private val flags = Mnemonic("KEY flags", Mnemonic.CASE_UPPER)
 
-        /**
-         * KEY flags identifiers.
-         */
-
-        private
-        Flags() {}
-
-        static {
-            flags.setMaximum(0xFFFF);
-            flags.setNumericAllowed(false);
-
-            flags.add(NOCONF, "NOCONF");
-            flags.add(NOAUTH, "NOAUTH");
-            flags.add(NOKEY, "NOKEY");
-            flags.add(FLAG2, "FLAG2");
-            flags.add(EXTEND, "EXTEND");
-            flags.add(FLAG4, "FLAG4");
-            flags.add(FLAG5, "FLAG5");
-            flags.add(USER, "USER");
-            flags.add(ZONE, "ZONE");
-            flags.add(HOST, "HOST");
-            flags.add(NTYP3, "NTYP3");
-            flags.add(FLAG8, "FLAG8");
-            flags.add(FLAG9, "FLAG9");
-            flags.add(FLAG10, "FLAG10");
-            flags.add(FLAG11, "FLAG11");
-            flags.add(SIG0, "SIG0");
-            flags.add(SIG1, "SIG1");
-            flags.add(SIG2, "SIG2");
-            flags.add(SIG3, "SIG3");
-            flags.add(SIG4, "SIG4");
-            flags.add(SIG5, "SIG5");
-            flags.add(SIG6, "SIG6");
-            flags.add(SIG7, "SIG7");
-            flags.add(SIG8, "SIG8");
-            flags.add(SIG9, "SIG9");
-            flags.add(SIG10, "SIG10");
-            flags.add(SIG11, "SIG11");
-            flags.add(SIG12, "SIG12");
-            flags.add(SIG13, "SIG13");
-            flags.add(SIG14, "SIG14");
-            flags.add(SIG15, "SIG15");
+        init {
+            flags.setMaximum(0xFFFF)
+            flags.setNumericAllowed(false)
+            flags.add(NOCONF, "NOCONF")
+            flags.add(NOAUTH, "NOAUTH")
+            flags.add(NOKEY, "NOKEY")
+            flags.add(FLAG2, "FLAG2")
+            flags.add(EXTEND, "EXTEND")
+            flags.add(FLAG4, "FLAG4")
+            flags.add(FLAG5, "FLAG5")
+            flags.add(USER, "USER")
+            flags.add(ZONE, "ZONE")
+            flags.add(HOST, "HOST")
+            flags.add(NTYP3, "NTYP3")
+            flags.add(FLAG8, "FLAG8")
+            flags.add(FLAG9, "FLAG9")
+            flags.add(FLAG10, "FLAG10")
+            flags.add(FLAG11, "FLAG11")
+            flags.add(SIG0, "SIG0")
+            flags.add(SIG1, "SIG1")
+            flags.add(SIG2, "SIG2")
+            flags.add(SIG3, "SIG3")
+            flags.add(SIG4, "SIG4")
+            flags.add(SIG5, "SIG5")
+            flags.add(SIG6, "SIG6")
+            flags.add(SIG7, "SIG7")
+            flags.add(SIG8, "SIG8")
+            flags.add(SIG9, "SIG9")
+            flags.add(SIG10, "SIG10")
+            flags.add(SIG11, "SIG11")
+            flags.add(SIG12, "SIG12")
+            flags.add(SIG13, "SIG13")
+            flags.add(SIG14, "SIG14")
+            flags.add(SIG15, "SIG15")
         }
 
         /**
@@ -345,60 +309,57 @@ class KEYRecord extends KEYBase {
          *
          * @return The protocol code, or -1 on error.
          */
-        public static
-        int value(String s) {
-            int value;
+        @JvmStatic
+        fun value(s: String): Int {
+            var value: Int
             try {
-                value = Integer.parseInt(s);
-                if (value >= 0 && value <= 0xFFFF) {
-                    return value;
-                }
-                return -1;
-            } catch (NumberFormatException e) {
+                value = s.toInt()
+                return if (value >= 0 && value <= 0xFFFF) {
+                    value
+                } else -1
+            } catch (e: NumberFormatException) {
             }
-            StringTokenizer st = new StringTokenizer(s, "|");
-            value = 0;
+            val st = StringTokenizer(s, "|")
+            value = 0
             while (st.hasMoreTokens()) {
-                int val = flags.getValue(st.nextToken());
-                if (val < 0) {
-                    return -1;
+                val `val` = flags.getValue(st.nextToken())
+                if (`val` < 0) {
+                    return -1
                 }
-                value |= val;
+                value = value or `val`
             }
-            return value;
+            return value
         }
     }
 
-    KEYRecord() {}
+    internal constructor() {}
 
-    @Override
-    DnsRecord getObject() {
-        return new KEYRecord();
-    }
+    override val `object`: DnsRecord
+        get() = KEYRecord()
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        String flagString = st.getIdentifier();
-        flags = Flags.value(flagString);
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        val flagString = st.getIdentifier()
+        flags = Flags.value(flagString)
         if (flags < 0) {
-            throw st.exception("Invalid flags: " + flagString);
+            throw st.exception("Invalid flags: $flagString")
         }
-        String protoString = st.getIdentifier();
-        proto = Protocol.value(protoString);
-        if (proto < 0) {
-            throw st.exception("Invalid protocol: " + protoString);
+        val protoString = st.getIdentifier()
+        protocol = Protocol.value(protoString)
+        if (protocol < 0) {
+            throw st.exception("Invalid protocol: $protoString")
         }
-        String algString = st.getIdentifier();
-        alg = DNSSEC.Algorithm.value(algString);
-        if (alg < 0) {
-            throw st.exception("Invalid algorithm: " + algString);
+        val algString = st.getIdentifier()
+        algorithm = value(algString)
+        if (algorithm < 0) {
+            throw st.exception("Invalid algorithm: $algString")
         }
-    /* If this is a null KEY, there's no key data */
-        if ((flags & Flags.USE_MASK) == Flags.NOKEY) {
-            key = null;
-        }
-        else {
-            key = st.getBase64();
+
+        /* If this is a null KEY, there's no key data */
+        key = if (flags and Flags.USE_MASK == Flags.NOKEY) {
+            byteArrayOf()
+        } else {
+            st.base64!!
         }
     }
 
@@ -410,10 +371,9 @@ class KEYRecord extends KEYBase {
      * @param alg The key's algorithm
      * @param key Binary data representing the key
      */
-    public
-    KEYRecord(Name name, int dclass, long ttl, int flags, int proto, int alg, byte[] key) {
-        super(name, DnsRecordType.KEY, dclass, ttl, flags, proto, alg, key);
-    }
+    constructor(name: Name, dclass: Int, ttl: Long, flags: Int, proto: Int, alg: Int, key: ByteArray?) : super(
+        name, DnsRecordType.KEY, dclass, ttl, flags, proto, alg, key!!
+    )
 
     /**
      * Creates a KEY Record from the given data
@@ -424,12 +384,68 @@ class KEYRecord extends KEYBase {
      * @param key The key as a PublicKey
      *
      * @throws DNSSEC.DNSSECException The PublicKey could not be converted into DNS
-     *         format.
+     * format.
      */
-    public
-    KEYRecord(Name name, int dclass, long ttl, int flags, int proto, int alg, PublicKey key) throws DNSSEC.DNSSECException {
-        super(name, DnsRecordType.KEY, dclass, ttl, flags, proto, alg, DNSSEC.fromPublicKey(key, alg));
-        publicKey = key;
-    }
+    constructor(name: Name, dclass: Int, ttl: Long, flags: Int, proto: Int, alg: Int, key: PublicKey) : super(
+        name, DnsRecordType.KEY, dclass, ttl, flags, proto, alg, fromPublicKey(key, alg)
+    )
 
+    companion object {
+        private const val serialVersionUID = 6385613447571488906L
+
+        /**
+         * This key cannot be used for confidentiality (encryption)
+         */
+        const val FLAG_NOCONF = Flags.NOCONF
+
+        /**
+         * This key cannot be used for authentication
+         */
+        const val FLAG_NOAUTH = Flags.NOAUTH
+        /* flags */
+        /**
+         * This key cannot be used for authentication or confidentiality
+         */
+        const val FLAG_NOKEY = Flags.NOKEY
+
+        /**
+         * A zone key
+         */
+        const val OWNER_ZONE = Flags.ZONE
+
+        /**
+         * A host/end entity key
+         */
+        const val OWNER_HOST = Flags.HOST
+
+        /**
+         * A user key
+         */
+        const val OWNER_USER = Flags.USER
+
+        /**
+         * Key was created for use with transaction level security
+         */
+        const val PROTOCOL_TLS = Protocol.TLS
+
+        /**
+         * Key was created for use with email
+         */
+        const val PROTOCOL_EMAIL = Protocol.EMAIL
+        /* protocols */
+        /**
+         * Key was created for use with DNSSEC
+         */
+        const val PROTOCOL_DNSSEC = Protocol.DNSSEC
+
+        /**
+         * Key was created for use with IPSEC
+         */
+        const val PROTOCOL_IPSEC = Protocol.IPSEC
+
+        /**
+         * Key was created for use with any protocol
+         */
+        const val PROTOCOL_ANY = Protocol.ANY
+    }
 }

@@ -17,7 +17,6 @@ package dorkbox.dns.dns;
 
 import java.io.IOException;
 
-import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.exceptions.InvalidDClassException;
 import dorkbox.dns.dns.exceptions.InvalidTTLException;
 import dorkbox.dns.dns.exceptions.InvalidTypeException;
@@ -62,7 +61,7 @@ class ExceptionTest extends TestCase {
         IllegalArgumentException e = new RelativeNameException("This is my relative name");
         assertEquals("This is my relative name", e.getMessage());
 
-        e = new RelativeNameException(Name.fromString("relative"));
+        e = new RelativeNameException(Name.Companion.fromString("relative"));
         assertEquals("'relative' is not an absolute name", e.getMessage());
     }
 

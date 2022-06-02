@@ -19,8 +19,6 @@ import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.CNAMERecord;
-import dorkbox.dns.dns.records.DnsRecord;
 import junit.framework.TestCase;
 
 public
@@ -35,14 +33,14 @@ class CNAMERecordTest extends TestCase {
 
     public
     void test_ctor_4arg() throws TextParseException {
-        Name n = Name.fromString("my.name.");
-        Name a = Name.fromString("my.alias.");
+        Name n = Name.Companion.fromString("my.name.", null);
+        Name a = Name.Companion.fromString("my.alias.", null);
 
         CNAMERecord d = new CNAMERecord(n, DnsClass.IN, 0xABCDEL, a);
         assertEquals(n, d.getName());
         assertEquals(DnsRecordType.CNAME, d.getType());
-        assertEquals(DnsClass.IN, d.getDClass());
-        assertEquals(0xABCDEL, d.getTTL());
+        assertEquals(DnsClass.IN, d.getDclass());
+        assertEquals(0xABCDEL, d.getTtl());
         assertEquals(a, d.getTarget());
         assertEquals(a, d.getAlias());
     }

@@ -13,30 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.server;
+package dorkbox.dns.dns.server
 
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsResponseCode
+import dorkbox.dns.dns.records.DnsMessage
+import dorkbox.dns.dns.records.DnsRecord
 
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsResponseCode;
-import dorkbox.dns.dns.records.DnsMessage;
-import dorkbox.dns.dns.records.DnsRecord;
+class CNAMEResponse(cname: DnsRecord, queryType: Int) : DefaultResponse(DnsResponseCode.NOERROR) {
+    val cname: Name
+    val qtype: Int
 
-public class CNAMEResponse extends DefaultResponse {
-	final Name cname;
-	final int qtype;
+    init {
+        this.cname = cname.name
+        qtype = queryType
+    }
 
-	public CNAMEResponse(DnsRecord cname, int queryType) {
-		super(DnsResponseCode.NOERROR);
-		this.cname = cname.getName();
-		this.qtype = queryType;
-	}
+    override fun postProcess(message: DnsMessage) {
+        System.err.println("WHAT?")
 
-	@Override
-	public void postProcess(DnsMessage message) {
-        System.err.println("WHAT?");
-
-		// context.response().answer().add(this.cname);
-		// Response r = context.resolve(this.cname.oneName(), this.qtype);
-		// r.postProcess(context);
-	}
+        // context.response().answer().add(this.cname);
+        // Response r = context.resolve(this.cname.oneName(), this.qtype);
+        // r.postProcess(context);
+    }
 }

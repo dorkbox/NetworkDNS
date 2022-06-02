@@ -28,9 +28,9 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
+import dorkbox.dns.dns.utils.Address;
 import dorkbox.netUtil.IPv4;
 import dorkbox.netUtil.IPv6;
-import dorkbox.dns.dns.utils.Address;
 import junit.framework.TestCase;
 
 public
@@ -261,23 +261,23 @@ class AddressTest extends TestCase {
 
     public
     void test_getByName() throws UnknownHostException {
-        InetAddress out = Address.getByName("128.145.198.231");
+        InetAddress out = Address.INSTANCE.getByName("128.145.198.231");
         assertEquals("128.145.198.231", out.getHostAddress());
 
-        out = Address.getByName("a.root-servers.net");
+        out = Address.INSTANCE.getByName("a.root-servers.net");
         assertEquals("198.41.0.4", out.getHostAddress());
     }
 
     public
     void test_getByName_invalid() throws UnknownHostException {
         try {
-            Address.getByName("example.invalid");
+            Address.INSTANCE.getByName("example.invalid");
             fail("UnknownHostException not thrown");
         } catch (UnknownHostException ignored) {
         }
 
         try {
-            InetAddress byName = Address.getByName("");
+            InetAddress byName = Address.INSTANCE.getByName("");
             assertEquals("127.0.0.1", byName.getHostAddress());
         } catch (UnknownHostException ignored) {
             fail("UnknownHostException thrown");
@@ -288,16 +288,16 @@ class AddressTest extends TestCase {
     void test_getAllByName() throws UnknownHostException {
         InetAddress[] out;
 
-        out = Address.getAllByName("128.145.198.231");
+        out = Address.INSTANCE.getAllByName("128.145.198.231");
         assertEquals(1, out.length);
         assertEquals("128.145.198.231", out[0].getHostAddress());
 
-        out = Address.getAllByName("a.root-servers.net");
+        out = Address.INSTANCE.getAllByName("a.root-servers.net");
         assertTrue(out.length == 2);
         assertEquals("198.41.0.4", out[0].getHostAddress());
         assertEquals("2001:503:ba3e:0:0:0:2:30", out[1].getHostAddress());
 
-        out = Address.getAllByName("cnn.com");
+        out = Address.INSTANCE.getAllByName("cnn.com");
         assertTrue(out.length > 1);
         for (int i = 0; i < out.length; ++i) {
             String hostName = out[i].getHostName();
@@ -308,13 +308,13 @@ class AddressTest extends TestCase {
     public
     void test_getAllByName_invalid() throws UnknownHostException {
         try {
-            Address.getAllByName("example.invalid");
+            Address.INSTANCE.getAllByName("example.invalid");
             fail("UnknownHostException not thrown");
         } catch (UnknownHostException ignored) {
         }
 
         try {
-            InetAddress[] byName = Address.getAllByName("");
+            InetAddress[] byName = Address.INSTANCE.getAllByName("");
             assertEquals("127.0.0.1", byName[0].getHostAddress());
             assertEquals("0:0:0:0:0:0:0:1", byName[1].getHostAddress());
         } catch (UnknownHostException ignored) {
@@ -337,11 +337,11 @@ class AddressTest extends TestCase {
     public
     void test_getHostName() throws UnknownHostException {
         InetAddress byName = InetAddress.getByName("198.41.0.4");
-        String out = Address.getHostName(byName);
+        String out = Address.INSTANCE.getHostName(byName);
         assertEquals("a.root-servers.net.", out);
 
         try {
-            Address.getHostName(InetAddress.getByName("192.168.1.1"));
+            Address.INSTANCE.getHostName(InetAddress.getByName("192.168.1.1"));
             fail("UnknownHostException not thrown");
         } catch (UnknownHostException ignored) {
         }

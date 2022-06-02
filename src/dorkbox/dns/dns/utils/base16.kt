@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.utils
 
-package dorkbox.dns.dns.utils;
-
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
+import java.io.IOException
 
 /**
  * Routines for converting between Strings of hex-encoded data and arrays of
@@ -26,14 +25,8 @@ import java.io.IOException;
  *
  * @author Brian Wellington
  */
-
-public
-class base16 {
-
-    private static final String Base16 = "0123456789ABCDEF";
-
-    private
-    base16() {}
+object base16 {
+    private const val Base16 = "0123456789ABCDEF"
 
     /**
      * Convert binary data to a hex-encoded String
@@ -42,18 +35,19 @@ class base16 {
      *
      * @return A String containing the encoded data
      */
-    public static
-    String toString(byte[] b) {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
+    @JvmStatic
+    fun toString(b: ByteArray): String {
+        val os = ByteArrayOutputStream()
+        for (i in b.indices) {
+            val value = (b[i].toInt() and 0xFF).toShort()
+            val high = (value.toInt() shr 4).toByte()
+            val low = (value.toInt() and 0xF).toByte()
 
-        for (int i = 0; i < b.length; i++) {
-            short value = (short) (b[i] & 0xFF);
-            byte high = (byte) (value >> 4);
-            byte low = (byte) (value & 0xF);
-            os.write(Base16.charAt(high));
-            os.write(Base16.charAt(low));
+            os.write(Base16[high.toInt()].code)
+            os.write(Base16[low.toInt()].code)
         }
-        return new String(os.toByteArray());
+
+        return String(os.toByteArray())
     }
 
     /**
@@ -63,32 +57,36 @@ class base16 {
      *
      * @return An array containing the binary data, or null if the string is invalid
      */
-    public static
-    byte[] fromString(String str) {
-        ByteArrayOutputStream bs = new ByteArrayOutputStream();
-        byte[] raw = str.getBytes();
-        for (int i = 0; i < raw.length; i++) {
-            if (!Character.isWhitespace((char) raw[i])) {
-                bs.write(raw[i]);
+    fun fromString(str: String): ByteArray? {
+        val bs = ByteArrayOutputStream()
+        val raw = str.toByteArray()
+        for (i in raw.indices) {
+            if (!Character.isWhitespace(Char(raw[i].toUShort()))) {
+                bs.write(raw[i].toInt())
             }
         }
-        byte[] in = bs.toByteArray();
-        if (in.length % 2 != 0) {
-            return null;
+
+        val `in` = bs.toByteArray()
+        if (`in`.size % 2 != 0) {
+            return null
         }
+        bs.reset()
 
-        bs.reset();
-        DataOutputStream ds = new DataOutputStream(bs);
 
-        for (int i = 0; i < in.length; i += 2) {
-            byte high = (byte) Base16.indexOf(Character.toUpperCase((char) in[i]));
-            byte low = (byte) Base16.indexOf(Character.toUpperCase((char) in[i + 1]));
+        val ds = DataOutputStream(bs)
+        var i = 0
+
+        while (i < `in`.size) {
+            val high = Base16.indexOf(Char(`in`[i].toUShort()).uppercaseChar()).toByte()
+            val low = Base16.indexOf(Char(`in`[i + 1].toUShort()).uppercaseChar()).toByte()
+
             try {
-                ds.writeByte((high << 4) + low);
-            } catch (IOException e) {
+                ds.writeByte((high.toInt() shl 4) + low)
+            } catch (ignored: IOException) {
             }
-        }
-        return bs.toByteArray();
-    }
 
+            i += 2
+        }
+        return bs.toByteArray()
+    }
 }

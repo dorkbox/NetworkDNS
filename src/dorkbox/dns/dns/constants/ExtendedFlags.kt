@@ -13,69 +13,60 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.constants
 
-package dorkbox.dns.dns.constants;
-
-import dorkbox.dns.dns.Mnemonic;
+import dorkbox.dns.dns.Mnemonic
 
 /**
  * Constants and functions relating to EDNS flags.
  *
  * @author Brian Wellington
  */
-
-public
-enum ExtendedFlags {
-
-
+enum class ExtendedFlags(flagValue: Int, textValue: String) {
     /**
      * dnssec ok
      */
     DO(0x8000, "do");
 
-    private static Mnemonic extflags = new Mnemonic("EDNS Flag", Mnemonic.CASE_LOWER);
-    static {
-        extflags.setMaximum(0xFFFF);
-        extflags.setPrefix("FLAG");
-        extflags.setNumericAllowed(true);
+    private val flagValue: Byte
+    private val textValue: String
 
-        extflags.add(DO.flagValue, "do");
+    init {
+        this.flagValue = flagValue.toByte()
+        this.textValue = textValue
     }
 
-
-    private final byte flagValue;
-    private final String textValue;
-
-    ExtendedFlags(final int flagValue, final String textValue) {
-        this.flagValue = (byte) flagValue;
-        this.textValue = textValue;
+    fun value(): Byte {
+        return flagValue
     }
 
-    public
-    byte value() {
-        return flagValue;
+    fun string(): String {
+        return textValue
     }
 
-    public
-    String string() {
-        return textValue;
-    }
+    companion object {
+        private val extflags = Mnemonic("EDNS Flag", Mnemonic.CASE_LOWER)
 
-    /**
-     * Converts a numeric extended flag into a String
-     */
-    public static
-    String string(int i) {
-        return extflags.getText(i);
-    }
+        init {
+            extflags.setMaximum(0xFFFF)
+            extflags.setPrefix("FLAG")
+            extflags.setNumericAllowed(true)
+            extflags.add(DO.flagValue.toInt(), "do")
+        }
 
-    /**
-     * Converts a textual representation of an extended flag into its numeric
-     * value
-     */
-    public static
-    int value(String s) {
-        return extflags.getValue(s);
-    }
+        /**
+         * Converts a numeric extended flag into a String
+         */
+        fun string(i: Int): String {
+            return extflags.getText(i)
+        }
 
+        /**
+         * Converts a textual representation of an extended flag into its numeric
+         * value
+         */
+        fun value(s: String): Int {
+            return extflags.getValue(s)
+        }
+    }
 }

@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.utils
 
-package dorkbox.dns.dns.utils;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
-import dorkbox.netUtil.IPv4;
-import dorkbox.netUtil.IPv6;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.exceptions.TextParseException;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.exceptions.TextParseException
+import dorkbox.netUtil.IPv4
+import dorkbox.netUtil.IPv6
+import java.net.InetAddress
+import java.net.UnknownHostException
 
 /**
  * A set functions designed to deal with DNS names used in reverse mappings.
@@ -31,16 +29,9 @@ import dorkbox.dns.dns.exceptions.TextParseException;
  *
  * @author Brian Wellington
  */
-
-public final
-class ReverseMap {
-
-    private static Name inaddr4 = Name.fromConstantString("in-addr.arpa.");
-    private static Name inaddr6 = Name.fromConstantString("ip6.arpa.");
-
-    /* Otherwise the class could be instantiated */
-    private
-    ReverseMap() {}
+object ReverseMap {
+    private val inaddr4 = Name.fromConstantString("in-addr.arpa.")
+    private val inaddr6 = Name.fromConstantString("ip6.arpa.")
 
     /**
      * Creates a reverse map name corresponding to an address contained in
@@ -51,16 +42,13 @@ class ReverseMap {
      *
      * @return The name corresponding to the address in the reverse map.
      */
-    public static
-    Name fromAddress(int[] addr) {
-        byte[] bytes = new byte[addr.length];
-        for (int i = 0; i < addr.length; i++) {
-            if (addr[i] < 0 || addr[i] > 0xFF) {
-                throw new IllegalArgumentException("array must " + "contain values " + "between 0 and 255");
-            }
-            bytes[i] = (byte) addr[i];
+    fun fromAddress(addr: IntArray): Name {
+        val bytes = ByteArray(addr.size)
+        for (i in addr.indices) {
+            require(!(addr[i] < 0 || addr[i] > 0xFF)) { "array must " + "contain values " + "between 0 and 255" }
+            bytes[i] = addr[i].toByte()
         }
-        return fromAddress(bytes);
+        return fromAddress(bytes)
     }
 
     /**
@@ -71,44 +59,37 @@ class ReverseMap {
      *
      * @return The name corresponding to the address in the reverse map.
      */
-    public static
-    Name fromAddress(byte[] addr) {
-        if (addr.length != 4 && addr.length != 16) {
-            throw new IllegalArgumentException("array must contain " + "4 or 16 elements");
-        }
-
-        StringBuilder sb = new StringBuilder();
-        if (addr.length == 4) {
-            for (int i = addr.length - 1; i >= 0; i--) {
-                sb.append(addr[i] & 0xFF);
+    fun fromAddress(addr: ByteArray): Name {
+        require(!(addr.size != 4 && addr.size != 16)) { "array must contain " + "4 or 16 elements" }
+        val sb = StringBuilder()
+        if (addr.size == 4) {
+            for (i in addr.indices.reversed()) {
+                sb.append(addr[i].toInt() and 0xFF)
                 if (i > 0) {
-                    sb.append(".");
+                    sb.append(".")
                 }
             }
-        }
-        else {
-            int[] nibbles = new int[2];
-            for (int i = addr.length - 1; i >= 0; i--) {
-                nibbles[0] = (addr[i] & 0xFF) >> 4;
-                nibbles[1] = (addr[i] & 0xFF) & 0xF;
-                for (int j = nibbles.length - 1; j >= 0; j--) {
-                    sb.append(Integer.toHexString(nibbles[j]));
+        } else {
+            val nibbles = IntArray(2)
+            for (i in addr.indices.reversed()) {
+                nibbles[0] = addr[i].toInt() and 0xFF shr 4
+                nibbles[1] = addr[i].toInt() and 0xFF and 0xF
+                for (j in nibbles.indices.reversed()) {
+                    sb.append(Integer.toHexString(nibbles[j]))
                     if (i > 0 || j > 0) {
-                        sb.append(".");
+                        sb.append(".")
                     }
                 }
             }
         }
-
-        try {
-            if (addr.length == 4) {
-                return Name.fromString(sb.toString(), inaddr4);
+        return try {
+            if (addr.size == 4) {
+                Name.Companion.fromString(sb.toString(), inaddr4)
+            } else {
+                Name.Companion.fromString(sb.toString(), inaddr6)
             }
-            else {
-                return Name.fromString(sb.toString(), inaddr6);
-            }
-        } catch (TextParseException e) {
-            throw new IllegalStateException("name cannot be invalid");
+        } catch (e: TextParseException) {
+            throw IllegalStateException("name cannot be invalid")
         }
     }
 
@@ -120,9 +101,8 @@ class ReverseMap {
      *
      * @return The name corresponding to the address in the reverse map.
      */
-    public static
-    Name fromAddress(InetAddress addr) {
-        return fromAddress(addr.getAddress());
+    fun fromAddress(addr: InetAddress): Name {
+        return fromAddress(addr.address)
     }
 
     /**
@@ -135,15 +115,14 @@ class ReverseMap {
      *
      * @throws UnknownHostException The string does not contain a valid address.
      */
-    public static
-    Name fromAddress(String addr, int family) throws UnknownHostException {
-        if (family == Address.IPv4 && IPv4.INSTANCE.isValid(addr)) {
-            return fromAddress(IPv4.INSTANCE.toBytes(addr));
+    @Throws(UnknownHostException::class)
+    fun fromAddress(addr: String?, family: Int): Name {
+        if (family == Address.IPv4 && IPv4.isValid(addr!!)) {
+            return fromAddress(IPv4.toBytes(addr))
+        } else if (family == Address.IPv6 && IPv6.isValid(addr!!)) {
+            return fromAddress(IPv6.toBytes(addr))
         }
-        else if (family == Address.IPv6 && IPv6.INSTANCE.isValid(addr)) {
-            return fromAddress(IPv6.INSTANCE.toBytes(addr));
-        }
-        throw new UnknownHostException("Invalid IP address");
+        throw UnknownHostException("Invalid IP address")
     }
 
     /**
@@ -156,19 +135,18 @@ class ReverseMap {
      *
      * @throws UnknownHostException The string does not contain a valid address.
      */
-    public static
-    Name fromAddress(String addr) throws UnknownHostException {
-        byte[] array = null;
-        if (IPv4.INSTANCE.isValid(addr)) {
-            array = IPv4.INSTANCE.toBytes(addr);
-        } else if (IPv6.INSTANCE.isValid(addr)) {
-            array = IPv6.INSTANCE.toBytes(addr);
+    @JvmStatic
+    @Throws(UnknownHostException::class)
+    fun fromAddress(addr: String?): Name {
+        var array: ByteArray? = null
+        if (IPv4.isValid(addr!!)) {
+            array = IPv4.toBytes(addr)
+        } else if (IPv6.isValid(addr)) {
+            array = IPv6.toBytes(addr)
         }
-
         if (array == null) {
-            throw new UnknownHostException("Invalid IP address");
+            throw UnknownHostException("Invalid IP address")
         }
-        return fromAddress(array);
+        return fromAddress(array)
     }
-
 }

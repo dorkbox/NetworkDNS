@@ -13,47 +13,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * Mailbox Rename Record  - specifies a rename of a mailbox.
  *
  * @author Brian Wellington
  */
+class MRRecord : SingleNameBase {
+    internal constructor() {}
 
-public
-class MRRecord extends SingleNameBase {
+    override val `object`: DnsRecord
+        get() = MRRecord()
 
-    private static final long serialVersionUID = -5617939094209927533L;
-
-    MRRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new MRRecord();
-    }
-
-    /**
-     * Creates a new MR Record with the given data
-     *
-     * @param newName The new name of the mailbox specified by the domain.
-     *         domain.
-     */
-    public
-    MRRecord(Name name, int dclass, long ttl, Name newName) {
-        super(name, DnsRecordType.MR, dclass, ttl, newName, "new name");
-    }
 
     /**
      * Gets the new name of the mailbox specified by the domain
      */
-    public
-    Name getNewName() {
-        return getSingleName();
+    val newName: Name
+        get() = singleName
+    
+    /**
+     * Creates a new MR Record with the given data
+     *
+     * @param newName The new name of the mailbox specified by the domain.
+     * domain.
+     */
+    constructor(name: Name, dclass: Int, ttl: Long, newName: Name) : super(
+        name,
+        DnsRecordType.MR,
+        dclass,
+        ttl,
+        newName,
+        "new name"
+    ) {
     }
 
+    companion object {
+        private const val serialVersionUID = -5617939094209927533L
+    }
 }

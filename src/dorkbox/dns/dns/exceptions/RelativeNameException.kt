@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.exceptions
 
-package dorkbox.dns.dns.exceptions;
-
-import dorkbox.dns.dns.Name;
+import dorkbox.dns.dns.Name
 
 /**
  * An exception thrown when a relative name is passed as an argument to
@@ -24,18 +23,7 @@ import dorkbox.dns.dns.Name;
  *
  * @author Brian Wellington
  */
-
-public
-class RelativeNameException extends IllegalArgumentException {
-
-    public
-    RelativeNameException(Name name) {
-        super("'" + name + "' is not an absolute name");
-    }
-
-    public
-    RelativeNameException(String s) {
-        super(s);
-    }
-
+class RelativeNameException : IllegalArgumentException {
+    constructor(name: Name) : super("'$name' is not an absolute name")
+    constructor(s: String) : super(s)
 }

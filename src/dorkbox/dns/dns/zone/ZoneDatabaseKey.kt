@@ -13,83 +13,56 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.zone;
+package dorkbox.dns.dns.zone
 
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.records.DnsRecord;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.records.DnsRecord
 
 /**
  *
  */
-class ZoneDatabaseKey implements Comparable<ZoneDatabaseKey> {
-    Name name;
-    int dnsclass;
+class ZoneDatabaseKey(var name: Name, var dnsclass: Int) : Comparable<ZoneDatabaseKey> {
+    constructor(z: Zone) : this(z.name(), z.dnsClass()) {}
+    constructor(rr: DnsRecord) : this(rr.name, rr.dclass) {}
 
-    public
-    ZoneDatabaseKey(Zone z) {
-        this(z.name(), z.dnsClass());
-    }
-
-    public
-    ZoneDatabaseKey(DnsRecord rr) {
-        this(rr.getName(), rr.getDClass());
-    }
-
-    public
-    ZoneDatabaseKey(Name name, int dnsclass) {
-        this.name = name;
-        this.dnsclass = dnsclass;
-    }
-
-    @Override
-    public
-    int compareTo(ZoneDatabaseKey o) {
+    override fun compareTo(o: ZoneDatabaseKey): Int {
         if (o == null) {
-            return 1;
+            return 1
         }
-        if (equals(o)) {
-            return 0;
-        }
-        return this.hashCode() - o.hashCode();
+        return if (equals(o)) {
+            0
+        } else this.hashCode() - o.hashCode()
     }
 
-    public
-    boolean equals(ZoneDatabaseKey other) {
-        return (this.dnsclass == other.dnsclass) && this.name.equals(other.name);
+    fun equals(other: ZoneDatabaseKey): Boolean {
+        return dnsclass == other.dnsclass && name.equals(other.name)
     }
 
-    @Override
-    public
-    boolean equals(Object other) {
-        if (this == other) {
-            return true;
+    override fun equals(other: Any?): Boolean {
+        if (this === other) {
+            return true
         }
         if (other == null) {
-            return false;
+            return false
         }
-        if (getClass() != other.getClass()) {
-            return false;
-        }
-        return equals((ZoneDatabaseKey) other);
+        return if (javaClass != other.javaClass) {
+            false
+        } else equals(other as ZoneDatabaseKey)
     }
 
-    @Override
-    public
-    int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + this.dnsclass;
-        result = prime * result + this.name.hashCode();
-        return result;
+    override fun hashCode(): Int {
+        val prime = 31
+        var result = 1
+        result = prime * result + dnsclass
+        result = prime * result + name.hashCode()
+        return result
     }
 
-    public
-    Name name() {
-        return this.name;
+    fun name(): Name {
+        return name
     }
 
-    public
-    void name(Name name) {
-        this.name = name;
+    fun name(name: Name) {
+        this.name = name
     }
 }

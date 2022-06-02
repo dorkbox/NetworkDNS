@@ -13,71 +13,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.resolver.cache
 
-package dorkbox.dns.dns.resolver.cache;
-
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
-
-import java.net.InetAddress;
-import java.util.concurrent.TimeUnit;
-
-import io.netty.channel.EventLoop;
-import io.netty.util.concurrent.ScheduledFuture;
-import io.netty.util.internal.UnstableApi;
+import io.netty.channel.EventLoop
+import io.netty.util.concurrent.ScheduledFuture
+import io.netty.util.internal.ObjectUtil
+import io.netty.util.internal.UnstableApi
+import java.net.InetAddress
+import java.util.concurrent.*
 
 /**
- * Entry in {@link DnsCache}.
+ * Entry in [DnsCache].
  */
 @UnstableApi
-public final class DnsCacheEntry {
+class DnsCacheEntry {
+    private val hostname: String
+    private val address: InetAddress?
+    private val cause: Throwable?
 
-    private final String hostname;
-    private final InetAddress address;
-    private final Throwable cause;
-    private volatile ScheduledFuture<?> expirationFuture;
+    @Volatile
+    private var expirationFuture: ScheduledFuture<*>? = null
 
-    public DnsCacheEntry(String hostname, InetAddress address) {
-        this.hostname = checkNotNull(hostname, "hostname");
-        this.address = checkNotNull(address, "address");
-        cause = null;
+    constructor(hostname: String, address: InetAddress) {
+        this.hostname = ObjectUtil.checkNotNull(hostname, "hostname")
+        this.address = ObjectUtil.checkNotNull(address, "address")
+        cause = null
     }
 
-    public DnsCacheEntry(String hostname, Throwable cause) {
-        this.hostname = checkNotNull(hostname, "hostname");
-        this.cause = checkNotNull(cause, "cause");
-        address = null;
+    constructor(hostname: String, cause: Throwable) {
+        this.hostname = ObjectUtil.checkNotNull(hostname, "hostname")
+        this.cause = ObjectUtil.checkNotNull(cause, "cause")
+        address = null
     }
 
-    public String hostname() {
-        return hostname;
+    fun hostname(): String {
+        return hostname
     }
 
-    public InetAddress address() {
-        return address;
+    fun address(): InetAddress? {
+        return address
     }
 
-    public Throwable cause() {
-        return cause;
+    fun cause(): Throwable? {
+        return cause
     }
 
-    void scheduleExpiration(EventLoop loop, Runnable task, long delay, TimeUnit unit) {
-        assert expirationFuture == null: "expiration task scheduled already";
-        expirationFuture = loop.schedule(task, delay, unit);
+    fun scheduleExpiration(loop: EventLoop, task: Runnable?, delay: Long, unit: TimeUnit?) {
+        assert(expirationFuture == null) { "expiration task scheduled already" }
+        expirationFuture = loop.schedule(task, delay, unit)
     }
 
-    void cancelExpiration() {
-        ScheduledFuture<?> expirationFuture = this.expirationFuture;
-        if (expirationFuture != null) {
-            expirationFuture.cancel(false);
-        }
+    fun cancelExpiration() {
+        val expirationFuture = expirationFuture
+        expirationFuture?.cancel(false)
     }
 
-    @Override
-    public String toString() {
-        if (cause != null) {
-            return hostname + '/' + cause;
+    override fun toString(): String {
+        return if (cause != null) {
+            "$hostname/$cause"
         } else {
-            return address.toString();
+            address.toString()
         }
     }
 }

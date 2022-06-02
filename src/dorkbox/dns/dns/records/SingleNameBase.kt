@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.DnsOutput;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * Implements common functionality for the many record types whose format
@@ -30,51 +28,34 @@ import dorkbox.dns.dns.DnsOutput;
  *
  * @author Brian Wellington
  */
+abstract class SingleNameBase : DnsRecord {
+    var singleName: Name = Name.empty
 
-abstract
-class SingleNameBase extends DnsRecord {
-
-    private static final long serialVersionUID = -18595042501413L;
-
-    protected Name singleName;
-
-    protected
-    SingleNameBase() {}
-
-    protected
-    SingleNameBase(Name name, int type, int dclass, long ttl) {
-        super(name, type, dclass, ttl);
+    protected constructor()
+    protected constructor(name: Name, type: Int, dclass: Int, ttl: Long) : super(name, type, dclass, ttl)
+    protected constructor(name: Name, type: Int, dclass: Int, ttl: Long, singleName: Name, description: String) : super(name, type, dclass, ttl) {
+        this.singleName = checkName(description, singleName)
     }
 
-    protected
-    SingleNameBase(Name name, int type, int dclass, long ttl, Name singleName, String description) {
-        super(name, type, dclass, ttl);
-        this.singleName = checkName(description, singleName);
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        singleName = Name(`in`)
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        singleName = new Name(in);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        singleName.toWire(out, null, canonical)
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        singleName.toWire(out, null, canonical);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(singleName.toString())
     }
 
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(singleName.toString());
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        singleName = st.getName(origin)
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        singleName = st.getName(origin);
+    companion object {
+        private const val serialVersionUID = -18595042501413L
     }
-
-    protected
-    Name getSingleName() {
-        return singleName;
-    }
-
 }

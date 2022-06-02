@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * The NULL Record.  This has no defined purpose, but can be used to
@@ -31,39 +29,34 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  */
+class NULLRecord : DnsRecord {
+    /**
+     * Returns the contents of this record.
+     */
+    lateinit var data: ByteArray
+        private set
 
-public
-class NULLRecord extends DnsRecord {
+    internal constructor() {}
 
-    private static final long serialVersionUID = -5796493183235216538L;
+    override val `object`: DnsRecord
+        get() = NULLRecord()
 
-    private byte[] data;
-
-    NULLRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new NULLRecord();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        data = `in`.readByteArray()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        data = in.readByteArray();
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeByteArray(data)
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeByteArray(data);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(unknownToString(data))
     }
 
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(unknownToString(data));
-    }
-
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        throw st.exception("no defined text format for NULL records");
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        throw st.exception("no defined text format for NULL records")
     }
 
     /**
@@ -71,22 +64,12 @@ class NULLRecord extends DnsRecord {
      *
      * @param data The contents of the record.
      */
-    public
-    NULLRecord(Name name, int dclass, long ttl, byte[] data) {
-        super(name, DnsRecordType.NULL, dclass, ttl);
-
-        if (data.length > 0xFFFF) {
-            throw new IllegalArgumentException("data must be <65536 bytes");
-        }
-        this.data = data;
+    constructor(name: Name?, dclass: Int, ttl: Long, data: ByteArray) : super(name!!, DnsRecordType.NULL, dclass, ttl) {
+        require(data.size <= 0xFFFF) { "data must be <65536 bytes" }
+        this.data = data
     }
 
-    /**
-     * Returns the contents of this record.
-     */
-    public
-    byte[] getData() {
-        return data;
+    companion object {
+        private const val serialVersionUID = -5796493183235216538L
     }
-
 }

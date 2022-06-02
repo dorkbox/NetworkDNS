@@ -13,35 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.resolver.addressProvider
 
-package dorkbox.dns.dns.resolver.addressProvider;
-
-import java.net.InetSocketAddress;
+import java.net.InetSocketAddress
 
 /**
  * An infinite stream of DNS server addresses.
  */
-public
 interface DnsServerAddressStream {
     /**
      * Retrieves the next DNS server address from the stream.
      */
-    InetSocketAddress next();
+    operator fun next(): InetSocketAddress
 
     /**
-     * Get the number of times {@link #next()} will return a distinct element before repeating or terminating.
+     * Get the number of times [.next] will return a distinct element before repeating or terminating.
      *
-     * @return the number of times {@link #next()} will return a distinct element before repeating or terminating.
+     * @return the number of times [.next] will return a distinct element before repeating or terminating.
      */
-    int size();
+    fun size(): Int
 
     /**
-     * Duplicate this object. The result of this should be able to be independently iterated over via {@link #next()}.
-     * <p>
-     * Note that {@link #clone()} isn't used because it may make sense for some implementations to have the following
-     * relationship {@code x.duplicate() == x}.
+     * Duplicate this object. The result of this should be able to be independently iterated over via [.next].
+     *
+     *
+     * Note that [.clone] isn't used because it may make sense for some implementations to have the following
+     * relationship `x.duplicate() == x`.
      *
      * @return A duplicate of this object.
      */
-    DnsServerAddressStream duplicate();
+    fun duplicate(): DnsServerAddressStream
 }

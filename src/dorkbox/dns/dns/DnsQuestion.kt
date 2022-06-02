@@ -13,191 +13,140 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns
 
-package dorkbox.dns.dns;
-
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Locale;
-
-import dorkbox.dns.dns.constants.DnsClass;
-import dorkbox.dns.dns.constants.DnsOpCode;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.constants.DnsSection;
-import dorkbox.dns.dns.constants.Flags;
-import dorkbox.dns.dns.records.DnsRecord;
-import io.netty.channel.AddressedEnvelope;
-import io.netty.util.internal.StringUtil;
+import dorkbox.dns.dns.constants.DnsClass
+import dorkbox.dns.dns.constants.DnsOpCode
+import dorkbox.dns.dns.constants.DnsRecordType.ensureFQDN
+import dorkbox.dns.dns.constants.DnsSection
+import dorkbox.dns.dns.constants.Flags
+import dorkbox.dns.dns.records.DnsRecord
+import io.netty.channel.AddressedEnvelope
+import io.netty.util.internal.StringUtil
+import java.net.IDN
+import java.net.InetSocketAddress
+import java.net.SocketAddress
 
 /**
  *
  */
-public
-class DnsQuestion extends DnsEnvelope {
-    public static
-    DnsQuestion newResolveQuestion(final String inetHost, final int type, final boolean isRecursionDesired) {
-        return newQuestion(inetHost, type, isRecursionDesired, true);
+class DnsQuestion
+/**
+ * Creates a new instance.
+ *
+ * @param isResolveQuestion true if it's a resolve question, which means we ALSO are going to keep resolving names until we get an IP
+ * address.
+ */ private constructor(val isResolveQuestion: Boolean) : DnsEnvelope() {
+
+    fun init(id: Int, recipient: InetSocketAddress?) {
+        header.id = id
+        setRemoteAddress(recipient)
     }
 
-    public static
-    DnsQuestion newQuery(final String inetHost, final int type, final boolean isRecursionDesired) {
-        return newQuestion(inetHost, type, isRecursionDesired, false);
-    }
-
-    public static
-    Name createName(String hostName, final int type) {
-        // Convert to ASCII which will also check that the length is not too big. Throws null pointer if null.
-        // See:
-        //   - https://github.com/netty/netty/issues/4937
-        //   - https://github.com/netty/netty/issues/4935
-        hostName = hostNameAsciiFix(checkNotNull(hostName, "hostname"));
-
-        if (hostName == null) {
-            // hostNameAsciiFix can throw a TextParseException if it fails to parse
-            return null;
-        }
-
-        hostName = hostName.toLowerCase(Locale.US);
-
-
-        // NOTE: have to make sure that the hostname is a FQDN name
-        hostName = DnsRecordType.ensureFQDN(type, hostName);
-
-        try {
-            return Name.fromString(hostName);
-        } catch (Exception e) {
-            // Name.fromString may throw a TextParseException if it fails to parse
-            return null;
-        }
-    }
-
-
-    private static
-    DnsQuestion newQuestion(final String inetHost, final int type, final boolean isRecursionDesired, boolean isResolveQuestion) {
-
-        Name name = createName(inetHost, type);
-
-        try {
-            DnsRecord questionRecord = DnsRecord.newRecord(name, type, DnsClass.IN);
-            DnsQuestion question = new DnsQuestion(isResolveQuestion);
-            question.getHeader()
-                    .setOpcode(DnsOpCode.QUERY);
-
-            if (isRecursionDesired) {
-                question.getHeader()
-                        .setFlag(Flags.RD);
-            }
-            question.addRecord(questionRecord, DnsSection.QUESTION);
-
-            // keep the question around so we can compare the response to it.
-            question.retain();
-
-            return question;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    public static
-    String hostNameAsciiFix(String inetHost) {
-        try {
-            String hostName = java.net.IDN.toASCII(inetHost); // can throw IllegalArgumentException
-
-            // Check for http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6894622
-            if (StringUtil.endsWith(inetHost, '.') && !StringUtil.endsWith(hostName, '.')) {
-                return hostName + '.';
-            }
-
-            return hostName;
-        } catch (Exception e) {
-            // java.net.IDN.toASCII(...) may throw an IllegalArgumentException if it fails to parse the hostname
-        }
-
-        return null;
-    }
-
-
-
-    private final boolean isResolveQuestion;
-
-
-    /**
-     * Creates a new instance.
-     *
-     * @param isResolveQuestion true if it's a resolve question, which means we ALSO are going to keep resolving names until we get an IP
-     *         address.
-     */
-    private
-    DnsQuestion(final boolean isResolveQuestion) {
-        super();
-
-        this.isResolveQuestion = isResolveQuestion;
-    }
-
-    public
-    boolean isResolveQuestion() {
-        return isResolveQuestion;
-    }
-
-    public
-    void init(int id, InetSocketAddress recipient) {
-        getHeader().setID(id);
-        setRemoteAddress(recipient);
-    }
-
-    @Override
-    public
-    int hashCode() {
-        int hashCode = super.hashCode();
+    override fun hashCode(): Int {
+        var hashCode = super.hashCode()
         if (sender() != null) {
-            hashCode = hashCode * 31 + sender().hashCode();
+            hashCode = hashCode * 31 + sender().hashCode()
         }
         if (recipient() != null) {
-            hashCode = hashCode * 31 + recipient().hashCode();
+            hashCode = hashCode * 31 + recipient().hashCode()
         }
-        return hashCode;
+        return hashCode
     }
 
-    @Override
-    public
-    boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
+    override fun equals(obj: Any?): Boolean {
+        if (this === obj) {
+            return true
+        }
+        if (obj == null) {
+            return false
         }
 
         if (!super.equals(obj)) {
-            return false;
+            return false
         }
-
-        if (!(obj instanceof AddressedEnvelope)) {
-            return false;
+        if (obj !is AddressedEnvelope<*, *>) {
+            return false
         }
-
-        @SuppressWarnings("unchecked")
-        final AddressedEnvelope<?, SocketAddress> that = (AddressedEnvelope<?, SocketAddress>) obj;
+        val that = obj as AddressedEnvelope<*, SocketAddress?>
         if (sender() == null) {
             if (that.sender() != null) {
-                return false;
+                return false
             }
+        } else if (sender() != that.sender()) {
+            return false
         }
-        else if (!sender().equals(that.sender())) {
-            return false;
-        }
-
         if (recipient() == null) {
             if (that.recipient() != null) {
-                return false;
+                return false
+            }
+        } else if (recipient() != that.recipient()) {
+            return false
+        }
+        return true
+    }
+
+    companion object {
+        @JvmStatic
+        fun newResolveQuestion(inetHost: String, type: Int, isRecursionDesired: Boolean): DnsQuestion? {
+            return newQuestion(inetHost, type, isRecursionDesired, true)
+        }
+
+        fun newQuery(inetHost: String, type: Int, isRecursionDesired: Boolean): DnsQuestion {
+            return newQuestion(inetHost, type, isRecursionDesired, false)
+        }
+
+        fun createName(hostName: String, type: Int): Name {
+            // Convert to ASCII which will also check that the length is not too big. Throws null pointer if null.
+            // See:
+            //   - https://github.com/netty/netty/issues/4937
+            //   - https://github.com/netty/netty/issues/4935
+            // hostNameAsciiFix can throw a TextParseException if it fails to parse
+            var hostName = hostNameAsciiFix(hostName) ?: throw IllegalArgumentException("Hostname '$hostName' is invalid!")
+            hostName = hostName.lowercase()
+
+            // NOTE: have to make sure that the hostname is a FQDN name
+            hostName = ensureFQDN(type, hostName)
+            return try {
+                Name.Companion.fromString(hostName)
+            } catch (e: Exception) {
+                // Name.fromString may throw a TextParseException if it fails to parse
+                throw IllegalArgumentException("Hostname '$hostName' is invalid!")
             }
         }
-        else if (!recipient().equals(that.recipient())) {
-            return false;
+
+        private fun newQuestion(inetHost: String, type: Int, isRecursionDesired: Boolean, isResolveQuestion: Boolean): DnsQuestion {
+            val name = createName(inetHost, type)
+            try {
+                val questionRecord = DnsRecord.newRecord(name!!, type, DnsClass.IN)
+                val question = DnsQuestion(isResolveQuestion)
+                question.header.opcode = DnsOpCode.QUERY
+                if (isRecursionDesired) {
+                    question.header.setFlag(Flags.RD)
+                }
+                question.addRecord(questionRecord, DnsSection.QUESTION)
+
+                // keep the question around so we can compare the response to it.
+                question.retain()
+                return question
+            } catch (e: Exception) {
+                throw IllegalArgumentException("Unable to create a question for $inetHost", e)
+            }
         }
 
-        return true;
+        @JvmStatic
+        fun hostNameAsciiFix(inetHost: String): String? {
+            try {
+                val hostName = IDN.toASCII(inetHost) // can throw IllegalArgumentException
+
+                // Check for http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6894622
+                return if (StringUtil.endsWith(inetHost, '.') && !StringUtil.endsWith(hostName, '.')) {
+                    "$hostName."
+                } else hostName
+            } catch (e: Exception) {
+                // java.net.IDN.toASCII(...) may throw an IllegalArgumentException if it fails to parse the hostname
+            }
+            return null
+        }
     }
 }
-

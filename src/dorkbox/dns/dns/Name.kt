@@ -13,18 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns
 
-package dorkbox.dns.dns;
-
-import java.io.IOException;
-import java.io.Serializable;
-import java.text.DecimalFormat;
-
-import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DNAMERecord;
-import dorkbox.dns.dns.utils.Options;
-import dorkbox.dns.dns.exceptions.NameTooLongException;
-import dorkbox.dns.dns.exceptions.WireParseException;
+import dorkbox.dns.dns.exceptions.NameTooLongException
+import dorkbox.dns.dns.exceptions.TextParseException
+import dorkbox.dns.dns.exceptions.WireParseException
+import dorkbox.dns.dns.records.DNAMERecord
+import dorkbox.dns.dns.utils.Options
+import java.io.Serializable
+import java.text.DecimalFormat
 
 /**
  * A representation of a domain name.  It may either be absolute (fully
@@ -32,202 +29,153 @@ import dorkbox.dns.dns.exceptions.WireParseException;
  *
  * @author Brian Wellington
  */
+class Name : Comparable<Any?>, Serializable {
+    companion object {
+        private const val serialVersionUID = -7257019940971525644L
+        private const val LABEL_NORMAL = 0
+        private const val LABEL_COMPRESSION = 0xC0
+        private const val LABEL_MASK = 0xC0
 
-public
-class Name implements Comparable, Serializable {
+        private val emptyLabel = byteArrayOf(0.toByte())
+        private val wildLabel = byteArrayOf(1.toByte(), '*'.code.toByte())
 
-    private static final long serialVersionUID = -7257019940971525644L;
+        /**
+         * The root name
+         */
+        @JvmStatic
+        val root = Name()
 
-    private static final int LABEL_NORMAL = 0;
-    private static final int LABEL_COMPRESSION = 0xC0;
-    private static final int LABEL_MASK = 0xC0;
+        /**
+         * The root name
+         */
+        @JvmStatic
+        val empty = Name()
 
-    /* The name data */
-    private byte[] name;
+        /**
+         * The maximum length of a Name
+         */
+        private const val MAXNAME = 255
 
-    /*
-     * Effectively an 8 byte array, where the low order byte stores the number
-     * of labels and the 7 higher order bytes store per-label offsets.
-     */
-    private long offsets;
+        /**
+         * The maximum length of a label a Name
+         */
+        private const val MAXLABEL = 63
 
-    /* Precomputed hashcode. */
-    private int hashcode;
+        /**
+         * The maximum number of labels in a Name
+         */
+        private const val MAXLABELS = 128
 
-    private static final byte[] emptyLabel = new byte[] {(byte) 0};
-    private static final byte[] wildLabel = new byte[] {(byte) 1, (byte) '*'};
+        /**
+         * The maximum number of cached offsets
+         */
+        private const val MAXOFFSETS = 7
 
-    /**
-     * The root name
-     */
-    public static final Name root;
+        /* Used for printing non-printable characters */
+        private val byteFormat = DecimalFormat()
 
-    /**
-     * The root name
-     */
-    public static final Name empty;
+        /* Used to efficiently convert bytes to lowercase */
+        private val lowercase = ByteArray(256)
 
-    /**
-     * The maximum length of a Name
-     */
-    private static final int MAXNAME = 255;
+        /* Used in wildcard names. */
+        private val wild = Name()
 
-    /**
-     * The maximum length of a label a Name
-     */
-    private static final int MAXLABEL = 63;
-
-    /**
-     * The maximum number of labels in a Name
-     */
-    private static final int MAXLABELS = 128;
-
-    /**
-     * The maximum number of cached offsets
-     */
-    private static final int MAXOFFSETS = 7;
-
-    /* Used for printing non-printable characters */
-    private static final DecimalFormat byteFormat = new DecimalFormat();
-
-    /* Used to efficiently convert bytes to lowercase */
-    private static final byte lowercase[] = new byte[256];
-
-    /* Used in wildcard names. */
-    private static final Name wild;
-
-    static {
-        byteFormat.setMinimumIntegerDigits(3);
-        for (int i = 0; i < lowercase.length; i++) {
-            if (i < 'A' || i > 'Z') {
-                lowercase[i] = (byte) i;
+        init {
+            byteFormat.minimumIntegerDigits = 3
+            for (i in lowercase.indices) {
+                if (i < 'A'.code || i > 'Z'.code) {
+                    lowercase[i] = i.toByte()
+                } else {
+                    lowercase[i] = (i - 'A'.code + 'a'.code).toByte()
+                }
             }
-            else {
-                lowercase[i] = (byte) (i - 'A' + 'a');
+
+            root.appendSafe(emptyLabel, 0, 1)
+            empty.name = ByteArray(0)
+            wild.appendSafe(wildLabel, 0, 1)
+        }
+
+        private fun copy(src: Name?, dst: Name) {
+            if (src!!.offset(0) == 0) {
+                dst.name = src.name
+                dst.offsets = src.offsets
+            } else {
+                val offset0 = src.offset(0)
+                val namelen = src.name.size - offset0
+                val labels = src.labels()
+                dst.name = ByteArray(namelen)
+                System.arraycopy(src.name, offset0, dst.name, 0, namelen)
+                var i = 0
+                while (i < labels && i < MAXOFFSETS) {
+                    dst.setoffset(i, src.offset(i) - offset0)
+                    i++
+                }
+                dst.setlabels(labels)
             }
         }
-        root = new Name();
-        root.appendSafe(emptyLabel, 0, 1);
-        empty = new Name();
-        empty.name = new byte[0];
-        wild = new Name();
-        wild.appendSafe(wildLabel, 0, 1);
-    }
+        @Throws(TextParseException::class)
+        private fun parseException(str: String, message: String): TextParseException {
+            return TextParseException("'$str': $message")
+        }
 
-    private
-    Name() {
-    }
-
-    private
-    void setoffset(int n, int offset) {
-        if (n >= MAXOFFSETS) {
-            return;
-        }
-        int shift = 8 * (7 - n);
-        offsets &= (~(0xFFL << shift));
-        offsets |= ((long) offset << shift);
-    }
-
-    private
-    int offset(int n) {
-        if (n == 0 && getlabels() == 0) {
-            return 0;
-        }
-        if (n < 0 || n >= getlabels()) {
-            throw new IllegalArgumentException("label out of range");
-        }
-        if (n < MAXOFFSETS) {
-            int shift = 8 * (7 - n);
-            return ((int) (offsets >>> shift) & 0xFF);
-        }
-        else {
-            int pos = offset(MAXOFFSETS - 1);
-            for (int i = MAXOFFSETS - 1; i < n; i++) {
-                pos += (name[pos] + 1);
+        /**
+         * Create a new name from a string and an origin.  This does not automatically
+         * make the name absolute; it will be absolute if it has a trailing dot or an
+         * absolute origin is appended.  This is identical to the constructor, except
+         * that it will avoid creating new objects in some cases.
+         *
+         * @param s The string to be converted
+         * @param origin If the name is not absolute, the origin to be appended.
+         *
+         * @throws TextParseException The name is invalid.
+         */
+        @JvmOverloads
+        @Throws(TextParseException::class)
+        fun fromString(s: String, origin: Name? = null): Name {
+            if (s == "@" && origin != null) {
+                return origin
+            } else if (s == ".") {
+                return root
             }
-            return (pos);
+            return Name(s, origin)
         }
-    }
 
-    private
-    void setlabels(int labels) {
-        offsets &= ~(0xFF);
-        offsets |= labels;
-    }
-
-    private static
-    void copy(Name src, Name dst) {
-        if (src.offset(0) == 0) {
-            dst.name = src.name;
-            dst.offsets = src.offsets;
-        }
-        else {
-            int offset0 = src.offset(0);
-            int namelen = src.name.length - offset0;
-            int labels = src.labels();
-            dst.name = new byte[namelen];
-            System.arraycopy(src.name, offset0, dst.name, 0, namelen);
-            for (int i = 0; i < labels && i < MAXOFFSETS; i++) {
-                dst.setoffset(i, src.offset(i) - offset0);
+        /**
+         * Create a new name from a constant string.  This should only be used when
+         * the name is known to be good - that is, when it is constant.
+         *
+         * @param s The string to be converted
+         *
+         * @throws IllegalArgumentException The name is invalid.
+         */
+        @Throws(IllegalArgumentException::class)
+        fun fromConstantString(s: String): Name {
+            return try {
+                fromString(s, null)
+            } catch (e: TextParseException) {
+                throw IllegalArgumentException("Invalid name '$s'")
             }
-            dst.setlabels(labels);
         }
-    }
 
-    private
-    void append(byte[] array, int start, int n) throws NameTooLongException {
-        int length = (name == null ? 0 : (name.length - offset(0)));
-        int alength = 0;
-        for (int i = 0, pos = start; i < n; i++) {
-            int len = array[pos];
-            if (len > MAXLABEL) {
-                throw new IllegalStateException("invalid label");
+        /**
+         * Creates a new name by concatenating two existing names.
+         *
+         * @param prefix The prefix name.
+         * @param suffix The suffix name.
+         *
+         * @return The concatenated name.
+         *
+         * @throws NameTooLongException The name is too long.
+         */
+        @Throws(NameTooLongException::class)
+        fun concatenate(prefix: Name, suffix: Name): Name {
+            if (prefix.isAbsolute) {
+                return prefix
             }
-            len++;
-            pos += len;
-            alength += len;
-        }
-        int newlength = length + alength;
-        if (newlength > MAXNAME) {
-            throw new NameTooLongException();
-        }
-        int labels = getlabels();
-        int newlabels = labels + n;
-        if (newlabels > MAXLABELS) {
-            throw new IllegalStateException("too many labels");
-        }
-        byte[] newname = new byte[newlength];
-        if (length != 0) {
-            System.arraycopy(name, offset(0), newname, 0, length);
-        }
-        System.arraycopy(array, start, newname, length, alength);
-        name = newname;
-        for (int i = 0, pos = length; i < n; i++) {
-            setoffset(labels + i, pos);
-            pos += (newname[pos] + 1);
-        }
-        setlabels(newlabels);
-    }
-
-    private static
-    TextParseException parseException(String str, String message) {
-        return new TextParseException("'" + str + "': " + message);
-    }
-
-    private
-    void appendFromString(String fullName, byte[] array, int start, int n) throws TextParseException {
-        try {
-            append(array, start, n);
-        } catch (NameTooLongException e) {
-            throw parseException(fullName, "Name too long");
-        }
-    }
-
-    private
-    void appendSafe(byte[] array, int start, int n) {
-        try {
-            append(array, start, n);
-        } catch (NameTooLongException e) {
+            val newname = Name()
+            copy(prefix, newname)
+            newname.append(suffix.name, suffix.offset(0), suffix.getlabels())
+            return newname
         }
     }
 
@@ -241,164 +189,90 @@ class Name implements Comparable, Serializable {
      *
      * @throws TextParseException The name is invalid.
      */
-    public
-    Name(String s, Name origin) throws TextParseException {
-        if (s.equals("")) {
-            throw parseException(s, "empty name");
-        }
-        else if (s.equals("@")) {
+    @JvmOverloads
+    @Throws(TextParseException::class)
+    constructor(s: String, origin: Name? = null) {
+        if (s == "") {
+            throw parseException(s, "empty name")
+        } else if (s == "@") {
             if (origin == null) {
-                copy(empty, this);
+                copy(empty, this)
+            } else {
+                copy(origin, this)
             }
-            else {
-                copy(origin, this);
-            }
-            return;
+            return
+        } else if (s == ".") {
+            copy(root, this)
+            return
         }
-        else if (s.equals(".")) {
-            copy(root, this);
-            return;
-        }
-        int labelstart = -1;
-        int pos = 1;
-        byte[] label = new byte[MAXLABEL + 1];
-        boolean escaped = false;
-        int digits = 0;
-        int intval = 0;
-        boolean absolute = false;
-        for (int i = 0; i < s.length(); i++) {
-            byte b = (byte) s.charAt(i);
+
+        var labelstart = -1
+        var pos = 1
+        val label = ByteArray(MAXLABEL + 1)
+        var escaped = false
+        var digits = 0
+        var intval = 0
+        var absolute = false
+        for (i in 0 until s.length) {
+            var b = s[i].code.toByte()
             if (escaped) {
-                if (b >= '0' && b <= '9' && digits < 3) {
-                    digits++;
-                    intval *= 10;
-                    intval += (b - '0');
+                if (b >= '0'.code.toByte() && b <= '9'.code.toByte() && digits < 3) {
+                    digits++
+                    intval *= 10
+                    intval += b - '0'.code.toByte()
                     if (intval > 255) {
-                        throw parseException(s, "bad escape");
+                        throw parseException(s, "bad escape")
                     }
                     if (digits < 3) {
-                        continue;
+                        continue
                     }
-                    b = (byte) intval;
-                }
-                else if (digits > 0 && digits < 3) {
-                    throw parseException(s, "bad escape");
-                }
-                if (pos > MAXLABEL) {
-                    throw parseException(s, "label too long");
-                }
-                labelstart = pos;
-                label[pos++] = b;
-                escaped = false;
-            }
-            else if (b == '\\') {
-                escaped = true;
-                digits = 0;
-                intval = 0;
-            }
-            else if (b == '.') {
-                if (labelstart == -1) {
-                    throw parseException(s, "invalid empty label");
-                }
-                label[0] = (byte) (pos - 1);
-                appendFromString(s, label, 0, 1);
-                labelstart = -1;
-                pos = 1;
-            }
-            else {
-                if (labelstart == -1) {
-                    labelstart = i;
+                    b = intval.toByte()
+                } else if (digits > 0 && digits < 3) {
+                    throw parseException(s, "bad escape")
                 }
                 if (pos > MAXLABEL) {
-                    throw parseException(s, "label too long");
+                    throw parseException(s, "label too long")
                 }
-                label[pos++] = b;
+                labelstart = pos
+                label[pos++] = b
+                escaped = false
+            } else if (b == '\\'.code.toByte()) {
+                escaped = true
+                digits = 0
+                intval = 0
+            } else if (b == '.'.code.toByte()) {
+                if (labelstart == -1) {
+                    throw parseException(s, "invalid empty label")
+                }
+                label[0] = (pos - 1).toByte()
+                appendFromString(s, label, 0, 1)
+                labelstart = -1
+                pos = 1
+            } else {
+                if (labelstart == -1) {
+                    labelstart = i
+                }
+                if (pos > MAXLABEL) {
+                    throw parseException(s, "label too long")
+                }
+                label[pos++] = b
             }
         }
         if (digits > 0 && digits < 3) {
-            throw parseException(s, "bad escape");
+            throw parseException(s, "bad escape")
         }
         if (escaped) {
-            throw parseException(s, "bad escape");
+            throw parseException(s, "bad escape")
         }
         if (labelstart == -1) {
-            appendFromString(s, emptyLabel, 0, 1);
-            absolute = true;
-        }
-        else {
-            label[0] = (byte) (pos - 1);
-            appendFromString(s, label, 0, 1);
+            appendFromString(s, emptyLabel, 0, 1)
+            absolute = true
+        } else {
+            label[0] = (pos - 1).toByte()
+            appendFromString(s, label, 0, 1)
         }
         if (origin != null && !absolute) {
-            appendFromString(s, origin.name, origin.offset(0), origin.getlabels());
-        }
-    }
-
-    /**
-     * Create a new name from a string.  This does not automatically make the name
-     * absolute; it will be absolute if it has a trailing dot.
-     *
-     * @param s The string to be converted
-     *
-     * @throws TextParseException The name is invalid.
-     */
-    public
-    Name(String s) throws TextParseException {
-        this(s, null);
-    }
-
-    /**
-     * Create a new name from a string.  This does not automatically make the name
-     * absolute; it will be absolute if it has a trailing dot.  This is identical
-     * to the constructor, except that it will avoid creating new objects in some
-     * cases.
-     *
-     * @param s The string to be converted
-     *
-     * @throws TextParseException The name is invalid.
-     */
-    public static
-    Name fromString(String s) throws TextParseException {
-        return fromString(s, null);
-    }
-
-    /**
-     * Create a new name from a string and an origin.  This does not automatically
-     * make the name absolute; it will be absolute if it has a trailing dot or an
-     * absolute origin is appended.  This is identical to the constructor, except
-     * that it will avoid creating new objects in some cases.
-     *
-     * @param s The string to be converted
-     * @param origin If the name is not absolute, the origin to be appended.
-     *
-     * @throws TextParseException The name is invalid.
-     */
-    public static
-    Name fromString(String s, Name origin) throws TextParseException {
-        if (s.equals("@") && origin != null) {
-            return origin;
-        }
-        else if (s.equals(".")) {
-            return (root);
-        }
-
-        return new Name(s, origin);
-    }
-
-    /**
-     * Create a new name from a constant string.  This should only be used when
-     * the name is known to be good - that is, when it is constant.
-     *
-     * @param s The string to be converted
-     *
-     * @throws IllegalArgumentException The name is invalid.
-     */
-    public static
-    Name fromConstantString(String s) {
-        try {
-            return fromString(s, null);
-        } catch (TextParseException e) {
-            throw new IllegalArgumentException("Invalid name '" + s + "'");
+            appendFromString(s, origin.name, origin.offset(0), origin.getlabels())
         }
     }
 
@@ -406,57 +280,55 @@ class Name implements Comparable, Serializable {
      * Create a new name from DNS a wire format message
      *
      * @param in A stream containing the DNS message which is currently
-     *         positioned at the start of the name to be read.
+     * positioned at the start of the name to be read.
      */
-    public
-    Name(DnsInput in) throws WireParseException {
-        int len, pos;
-        boolean done = false;
-        byte[] label = new byte[MAXLABEL + 1];
-        boolean savedState = false;
+    @Throws(WireParseException::class)
+    constructor(`in`: DnsInput) {
+        var len: Int
+        var pos: Int
+        var done = false
+        val label = ByteArray(MAXLABEL + 1)
+        var savedState = false
 
         while (!done) {
-            len = in.readU8();
-            switch (len & LABEL_MASK) {
-                case LABEL_NORMAL:
+            len = `in`.readU8()
+            when (len and LABEL_MASK) {
+                LABEL_NORMAL -> {
                     if (getlabels() >= MAXLABELS) {
-                        throw new WireParseException("too many labels");
+                        throw WireParseException("too many labels")
                     }
                     if (len == 0) {
-                        append(emptyLabel, 0, 1);
-                        done = true;
+                        append(emptyLabel, 0, 1)
+                        done = true
+                    } else {
+                        label[0] = len.toByte()
+                        `in`.readByteArray(label, 1, len)
+                        append(label, 0, 1)
                     }
-                    else {
-                        label[0] = (byte) len;
-                        in.readByteArray(label, 1, len);
-                        append(label, 0, 1);
-                    }
-                    break;
-                case LABEL_COMPRESSION:
-                    pos = in.readU8();
-                    pos += ((len & ~LABEL_MASK) << 8);
+                }
+                LABEL_COMPRESSION -> {
+                    pos = `in`.readU8()
+                    pos += len and LABEL_MASK.inv() shl 8
                     if (Options.check("verbosecompression")) {
-                        System.err.println("currently " + in.readIndex() + ", pointer to " + pos);
+                        System.err.println("currently " + `in`.readIndex() + ", pointer to " + pos)
                     }
-
-                    if (pos >= in.readIndex() - 2) {
-                        throw new WireParseException("bad compression");
+                    if (pos >= `in`.readIndex() - 2) {
+                        throw WireParseException("bad compression")
                     }
                     if (!savedState) {
-                        in.save();
-                        savedState = true;
+                        `in`.save()
+                        savedState = true
                     }
-                    in.jump(pos);
+                    `in`.jump(pos)
                     if (Options.check("verbosecompression")) {
-                        System.err.println("current name '" + this + "', seeking to " + pos);
+                        System.err.println("current name '$this', seeking to $pos")
                     }
-                    break;
-                default:
-                    throw new WireParseException("bad label type");
+                }
+                else -> throw WireParseException("bad label type")
             }
         }
         if (savedState) {
-            in.restore();
+            `in`.restore()
         }
     }
 
@@ -465,10 +337,8 @@ class Name implements Comparable, Serializable {
      *
      * @param b A byte array containing the wire format of the name.
      */
-    public
-    Name(byte[] b) throws IOException {
-        this(new DnsInput(b));
-    }
+    @Throws(WireParseException::class)
+    constructor(b: ByteArray) : this(DnsInput(b)) {}
 
     /**
      * Create a new name by removing labels from the beginning of an existing Name
@@ -476,38 +346,121 @@ class Name implements Comparable, Serializable {
      * @param src An existing Name
      * @param n The number of labels to remove from the beginning in the copy
      */
-    public
-    Name(Name src, int n) {
-        int slabels = src.labels();
-        if (n > slabels) {
-            throw new IllegalArgumentException("attempted to remove too " + "many labels");
-        }
-        name = src.name;
-        setlabels(slabels - n);
-        for (int i = 0; i < MAXOFFSETS && i < slabels - n; i++) {
-            setoffset(i, src.offset(i + n));
+    constructor(src: Name, n: Int) {
+        val slabels = src.labels()
+        require(n <= slabels) { "attempted to remove too " + "many labels" }
+        name = src.name
+        setlabels(slabels - n)
+        var i = 0
+        while (i < MAXOFFSETS && i < slabels - n) {
+            setoffset(i, src.offset(i + n))
+            i++
         }
     }
 
+    /** The name data */
+    private var name = ByteArray(0)
+
     /**
-     * Creates a new name by concatenating two existing names.
-     *
-     * @param prefix The prefix name.
-     * @param suffix The suffix name.
-     *
-     * @return The concatenated name.
-     *
-     * @throws NameTooLongException The name is too long.
+     * Effectively an 8 byte array, where the low order byte stores the number
+     * of labels and the 7 higher order bytes store per-label offsets.
      */
-    public static
-    Name concatenate(Name prefix, Name suffix) throws NameTooLongException {
-        if (prefix.isAbsolute()) {
-            return (prefix);
+    private var offsets: Long = 0
+
+    /* Precomputed hashcode. */
+    private var hashcode = 0
+
+    private constructor()
+
+    private fun setoffset(n: Int, offset: Int) {
+        if (n >= MAXOFFSETS) {
+            return
         }
-        Name newname = new Name();
-        copy(prefix, newname);
-        newname.append(suffix.name, suffix.offset(0), suffix.getlabels());
-        return newname;
+        val shift = 8 * (7 - n)
+        offsets = offsets and (0xFFL shl shift).inv()
+        offsets = offsets or (offset.toLong() shl shift)
+    }
+
+    private fun offset(n: Int): Int {
+        if (n == 0 && getlabels() == 0) {
+            return 0
+        }
+        require(!(n < 0 || n >= getlabels())) { "label out of range" }
+        return if (n < MAXOFFSETS) {
+            val shift = 8 * (7 - n)
+            (offsets ushr shift).toInt() and 0xFF
+        } else {
+            var pos = offset(MAXOFFSETS - 1)
+            for (i in MAXOFFSETS - 1 until n) {
+                pos += name[pos] + 1
+            }
+            pos
+        }
+    }
+
+    private fun setlabels(labels: Int) {
+        offsets = offsets and 0xFF.toLong().inv()
+        offsets = offsets or labels.toLong()
+    }
+
+    @Throws(NameTooLongException::class)
+    private fun append(array: ByteArray, start: Int, n: Int) {
+        val length = name.size - offset(0)
+        var alength = 0
+        run {
+            var i = 0
+            var pos = start
+            while (i < n) {
+                var len = array[pos].toInt()
+                check(len <= MAXLABEL) { "invalid label" }
+                len++
+                pos += len
+                alength += len
+                i++
+            }
+        }
+
+        val newlength = length + alength
+        if (newlength > MAXNAME) {
+            throw NameTooLongException()
+        }
+
+        val labels = getlabels()
+        val newlabels = labels + n
+        check(newlabels <= MAXLABELS) { "too many labels" }
+
+        val newname = ByteArray(newlength)
+        if (length != 0) {
+            System.arraycopy(name, offset(0), newname, 0, length)
+        }
+        System.arraycopy(array, start, newname, length, alength)
+        name = newname
+
+        var i = 0
+        var pos = length
+        while (i < n) {
+            setoffset(labels + i, pos)
+            pos += newname[pos] + 1
+            i++
+        }
+
+        setlabels(newlabels)
+    }
+
+    @Throws(TextParseException::class)
+    private fun appendFromString(fullName: String, array: ByteArray, start: Int, n: Int) {
+        try {
+            append(array, start, n)
+        } catch (e: NameTooLongException) {
+            throw parseException(fullName, "Name too long")
+        }
+    }
+
+    private fun appendSafe(array: ByteArray, start: Int, n: Int) {
+        try {
+            append(array, start, n)
+        } catch (ignored: NameTooLongException) {
+        }
     }
 
     /**
@@ -518,19 +471,18 @@ class Name implements Comparable, Serializable {
      *
      * @return The possibly relativized name.
      */
-    public
-    Name relativize(Name origin) {
+    fun relativize(origin: Name?): Name {
         if (origin == null || !subdomain(origin)) {
-            return this;
+            return this
         }
-        Name newname = new Name();
-        copy(this, newname);
-        int length = length() - origin.length();
-        int labels = newname.labels() - origin.labels();
-        newname.setlabels(labels);
-        newname.name = new byte[length];
-        System.arraycopy(name, offset(0), newname.name, 0, length);
-        return newname;
+        val newname = Name()
+        copy(this, newname)
+        val length = length() - origin.length()
+        val labels = newname.labels() - origin.labels()
+        newname.setlabels(labels)
+        newname.name = ByteArray(length)
+        System.arraycopy(name, offset(0), newname.name, 0, length)
+        return newname
     }
 
     /**
@@ -538,17 +490,15 @@ class Name implements Comparable, Serializable {
      *
      * @return The parent name
      */
-    public
-    Name parent(final int n) {
-        if (n < 1) {
-            throw new IllegalArgumentException("must remove 1 or more " + "labels");
-        }
-        try {
-            Name newname = new Name();
-            newname.append(name, offset(n), getlabels() - n);
-            return newname;
-        } catch (NameTooLongException e) {
-            throw new IllegalStateException("Name.subdomain: concatenate failed");
+    fun parent(n: Int): Name {
+        require(n >= 1) { "must remove 1 or more " + "labels" }
+
+        return try {
+            val newname = Name()
+            newname.append(name, offset(n), getlabels() - n)
+            newname
+        } catch (e: NameTooLongException) {
+            throw IllegalStateException("Name.subdomain: concatenate failed")
         }
     }
 
@@ -557,18 +507,16 @@ class Name implements Comparable, Serializable {
      *
      * @return The wildcard name
      */
-    public
-    Name wild(int n) {
-        if (n < 1) {
-            throw new IllegalArgumentException("must replace 1 or more " + "labels");
-        }
-        try {
-            Name newname = new Name();
-            copy(wild, newname);
-            newname.append(name, offset(n), getlabels() - n);
-            return newname;
-        } catch (NameTooLongException e) {
-            throw new IllegalStateException("Name.wild: concatenate failed");
+    fun wild(n: Int): Name {
+        require(n >= 1) { "must replace 1 or more " + "labels" }
+
+        return try {
+            val newname = Name()
+            copy(wild, newname)
+            newname.append(name, offset(n), getlabels() - n)
+            newname
+        } catch (e: NameTooLongException) {
+            throw IllegalStateException("Name.wild: concatenate failed")
         }
     }
 
@@ -576,26 +524,25 @@ class Name implements Comparable, Serializable {
      * Returns a canonicalized version of the Name (all lowercase).  This may be
      * the same name, if the input Name is already canonical.
      */
-    public
-    Name canonicalize() {
-        boolean canonical = true;
-        for (int i = 0; i < name.length; i++) {
-            if (lowercase[name[i] & 0xFF] != name[i]) {
-                canonical = false;
-                break;
+    fun canonicalize(): Name {
+        var canonical = true
+        for (i in name.indices) {
+            if (lowercase[name[i].toInt() and 0xFF] != name[i]) {
+                canonical = false
+                break
             }
         }
         if (canonical) {
-            return this;
+            return this
         }
 
-        Name newname = new Name();
-        newname.appendSafe(name, offset(0), getlabels());
-        for (int i = 0; i < newname.name.length; i++) {
-            newname.name[i] = lowercase[newname.name[i] & 0xFF];
+        val newname = Name()
+        newname.appendSafe(name, offset(0), getlabels())
+        for (i in newname.name.indices) {
+            newname.name[i] = lowercase[newname.name[i].toInt() and 0xFF]
         }
 
-        return newname;
+        return newname
     }
 
     /**
@@ -607,122 +554,110 @@ class Name implements Comparable, Serializable {
      *
      * @throws NameTooLongException The resulting name is too long.
      */
-    public
-    Name fromDNAME(DNAMERecord dname) throws NameTooLongException {
-        Name dnameowner = dname.getName();
-        Name dnametarget = dname.getTarget();
+    @Throws(NameTooLongException::class)
+    fun fromDNAME(dname: DNAMERecord): Name? {
+        val dnameowner = dname.name
+        val dnametarget = dname.target
         if (!subdomain(dnameowner)) {
-            return null;
+            return null
         }
 
-        int plabels = labels() - dnameowner.labels();
-        int plength = length() - dnameowner.length();
-        int pstart = offset(0);
-
-        int dlabels = dnametarget.labels();
-        int dlength = dnametarget.length();
+        val plabels = labels() - dnameowner.labels()
+        val plength = length() - dnameowner.length()
+        val pstart = offset(0)
+        val dlabels = dnametarget.labels()
+        val dlength = dnametarget.length().toInt()
 
         if (plength + dlength > MAXNAME) {
-            throw new NameTooLongException();
+            throw NameTooLongException()
         }
 
-        Name newname = new Name();
-        newname.setlabels(plabels + dlabels);
-        newname.name = new byte[plength + dlength];
-        System.arraycopy(name, pstart, newname.name, 0, plength);
-        System.arraycopy(dnametarget.name, 0, newname.name, plength, dlength);
+        val newname = Name()
+        newname.setlabels(plabels + dlabels)
+        newname.name = ByteArray(plength + dlength)
+        System.arraycopy(name, pstart, newname.name, 0, plength)
+        System.arraycopy(dnametarget.name, 0, newname.name, plength, dlength)
 
-        for (int i = 0, pos = 0; i < MAXOFFSETS && i < plabels + dlabels; i++) {
-            newname.setoffset(i, pos);
-            pos += (newname.name[pos] + 1);
+        var i = 0
+        var pos = 0
+        while (i < MAXOFFSETS && i < plabels + dlabels) {
+            newname.setoffset(i, pos)
+            pos += newname.name[pos] + 1
+            i++
         }
-        return newname;
+        return newname
     }
 
     /**
      * Is this name a wildcard?
      */
-    public
-    boolean isWild() {
-        if (labels() == 0) {
-            return false;
-        }
-        return (name[0] == (byte) 1 && name[1] == (byte) '*');
-    }
+    val isWild: Boolean
+        get() = if (labels() == 0) {
+            false
+        } else name[0] == 1.toByte() && name[1] == '*'.code.toByte()
 
     /**
      * The number of labels in the name.
      */
-    public
-    int labels() {
-        return getlabels();
+    fun labels(): Int {
+        return getlabels()
     }
 
-    private
-    int getlabels() {
-        return (int) (offsets & 0xFF);
+    private fun getlabels(): Int {
+        return (offsets and 0xFFL).toInt()
     }
 
     /**
      * Is this name absolute?
      */
-    public
-    boolean isAbsolute() {
-        int nlabels = labels();
-        if (nlabels == 0) {
-            return false;
+    val isAbsolute: Boolean
+        get() {
+            val nlabels = labels()
+            return if (nlabels == 0) {
+                false
+            } else name[offset(nlabels - 1)].toInt() == 0
         }
-        return name[offset(nlabels - 1)] == 0;
-    }
 
     /**
      * The length of the name.
      */
-    public
-    short length() {
-        if (getlabels() == 0) {
-            return 0;
-        }
-        return (short) (name.length - offset(0));
+    fun length(): Short {
+        return if (getlabels() == 0) {
+            0
+        } else (name.size - offset(0)).toShort()
     }
 
     /**
      * Is the current Name a subdomain of the specified name?
      */
-    public
-    boolean subdomain(Name domain) {
-        int labels = labels();
-        int dlabels = domain.labels();
+    fun subdomain(domain: Name): Boolean {
+        val labels = labels()
+        val dlabels = domain.labels()
         if (dlabels > labels) {
-            return false;
+            return false
         }
-        if (dlabels == labels) {
-            return equals(domain);
-        }
-        return domain.equals(name, offset(labels - dlabels));
+        return if (dlabels == labels) {
+            equals(domain)
+        } else domain.equals(name, offset(labels - dlabels))
     }
 
-    private
-    String byteString(byte[] array, int pos) {
-        StringBuilder sb = new StringBuilder();
-        int len = array[pos++];
-
-        for (int i = pos; i < pos + len; i++) {
-            int b = array[i] & 0xFF;
+    private fun byteString(array: ByteArray, pos: Int): String {
+        var pos = pos
+        val sb = StringBuilder()
+        val len = array[pos++].toInt()
+        for (i in pos until pos + len) {
+            val b = array[i].toInt() and 0xFF
             if (b <= 0x20 || b >= 0x7f) {
-                sb.append('\\');
-                sb.append(byteFormat.format(b));
-            }
-            else if (b == '"' || b == '(' || b == ')' || b == '.' || b == ';' || b == '\\' || b == '@' || b == '$') {
-                sb.append('\\');
-                sb.append((char) b);
-            }
-            else {
-                sb.append((char) b);
+                sb.append('\\')
+                sb.append(byteFormat.format(b.toLong()))
+            } else if (b == '"'.code || b == '('.code || b == ')'.code || b == '.'.code || b == ';'.code || b == '\\'.code || b == '@'.code || b == '$'.code) {
+                sb.append('\\')
+                sb.append(b.toChar())
+            } else {
+                sb.append(b.toChar())
             }
         }
-
-        return sb.toString();
+        return sb.toString()
     }
 
     /**
@@ -732,36 +667,34 @@ class Name implements Comparable, Serializable {
      *
      * @return The representation of this name as a (printable) String.
      */
-    public
-    String toString(boolean omitFinalDot) {
-        int labels = labels();
+    fun toString(omitFinalDot: Boolean): String {
+        val labels = labels()
         if (labels == 0) {
-            return "@";
+            return "@"
+        } else if (labels == 1 && name[offset(0)].toInt() == 0) {
+            return "."
         }
-        else if (labels == 1 && name[offset(0)] == 0) {
-            return ".";
-        }
-        StringBuilder sb = new StringBuilder();
+        val sb = StringBuilder()
 
-        for (int i = 0, pos = offset(0); i < labels; i++) {
-            int len = name[pos];
-            if (len > MAXLABEL) {
-                throw new IllegalStateException("invalid label");
-            }
+        var i = 0
+        var pos = offset(0)
+        while (i < labels) {
+            val len = name[pos].toInt()
+            check(len <= MAXLABEL) { "invalid label" }
             if (len == 0) {
                 if (!omitFinalDot) {
-                    sb.append('.');
+                    sb.append('.')
                 }
-                break;
+                break
             }
             if (i > 0) {
-                sb.append('.');
+                sb.append('.')
             }
-            sb.append(byteString(name, pos));
-            pos += (1 + len);
+            sb.append(byteString(name, pos))
+            pos += 1 + len
+            i++
         }
-
-        return sb.toString();
+        return sb.toString()
     }
 
     /**
@@ -770,25 +703,23 @@ class Name implements Comparable, Serializable {
      *
      * @param n The label to be retrieved.  The first label is 0.
      */
-    public
-    byte[] getLabel(int n) {
-        int pos = offset(n);
-        byte len = (byte) (name[pos] + 1);
-        byte[] label = new byte[len];
-        System.arraycopy(name, pos, label, 0, len);
-        return label;
+    fun getLabel(n: Int): ByteArray {
+        val pos = offset(n)
+        val len = (name[pos] + 1).toByte()
+        val label = ByteArray(len.toInt())
+        System.arraycopy(name, pos, label, 0, len.toInt())
+        return label
     }
 
     /**
      * Convert the nth label in a Name to a String
      *
      * @param n The label to be converted to a (printable) String.  The first
-     *         label is 0.
+     * label is 0.
      */
-    public
-    String getLabelString(int n) {
-        int pos = offset(n);
-        return byteString(name, pos);
+    fun getLabelString(n: Int): String {
+        val pos = offset(n)
+        return byteString(name, pos)
     }
 
     /**
@@ -799,39 +730,33 @@ class Name implements Comparable, Serializable {
      *
      * @throws IllegalArgumentException The name is not absolute.
      */
-    public
-    void toWire(DnsOutput out, Compression c) {
-        if (!isAbsolute()) {
-            throw new IllegalArgumentException("toWire() called on " + "non-absolute name");
-        }
+    @kotlin.jvm.Throws(IllegalArgumentException::class)
+    fun toWire(out: DnsOutput, c: Compression?) {
+        require(isAbsolute) { "toWire() called on " + "non-absolute name" }
 
-        int labels = labels();
-        for (int i = 0; i < labels - 1; i++) {
-            Name tname;
-            if (i == 0) {
-                tname = this;
+        val labels = labels()
+        for (i in 0 until labels - 1) {
+            var tname: Name
+            tname = if (i == 0) {
+                this
+            } else {
+                Name(this, i)
             }
-            else {
-                tname = new Name(this, i);
-            }
-            int pos = -1;
+            var pos = -1
             if (c != null) {
-                pos = c.get(tname);
+                pos = c[tname]
             }
             if (pos >= 0) {
-                pos |= (LABEL_MASK << 8);
-                out.writeU16(pos);
-                return;
-            }
-            else {
-                if (c != null) {
-                    c.add(out.current(), tname);
-                }
-                int off = offset(i);
-                out.writeByteArray(name, off, name[off] + 1);
+                pos = pos or (LABEL_MASK shl 8)
+                out.writeU16(pos)
+                return
+            } else {
+                c?.add(out.current(), tname)
+                val off = offset(i)
+                out.writeByteArray(name, off, name[off] + 1)
             }
         }
-        out.writeU8(0);
+        out.writeU8(0)
     }
 
     /**
@@ -839,11 +764,10 @@ class Name implements Comparable, Serializable {
      *
      * @throws IllegalArgumentException The name is not absolute.
      */
-    public
-    byte[] toWire() {
-        DnsOutput out = new DnsOutput();
-        toWire(out, null);
-        return out.toByteArray();
+    fun toWire(): ByteArray {
+        val out = DnsOutput()
+        toWire(out, null)
+        return out.toByteArray()
     }
 
     /**
@@ -851,10 +775,9 @@ class Name implements Comparable, Serializable {
      *
      * @param out The output stream to which the message is written.
      */
-    public
-    void toWireCanonical(DnsOutput out) {
-        byte[] b = toWireCanonical();
-        out.writeByteArray(b);
+    fun toWireCanonical(out: DnsOutput) {
+        val b = toWireCanonical()
+        out.writeByteArray(b)
     }
 
     /**
@@ -862,24 +785,25 @@ class Name implements Comparable, Serializable {
      *
      * @return The canonical form of the name.
      */
-    public
-    byte[] toWireCanonical() {
-        int labels = labels();
+    fun toWireCanonical(): ByteArray {
+        val labels = labels()
         if (labels == 0) {
-            return (new byte[0]);
+            return ByteArray(0)
         }
-        byte[] b = new byte[name.length - offset(0)];
-        for (int i = 0, spos = offset(0), dpos = 0; i < labels; i++) {
-            int len = name[spos];
-            if (len > MAXLABEL) {
-                throw new IllegalStateException("invalid label");
+        val b = ByteArray(name.size - offset(0))
+        var i = 0
+        var spos = offset(0)
+        var dpos = 0
+        while (i < labels) {
+            val len = name[spos].toInt()
+            check(len <= MAXLABEL) { "invalid label" }
+            b[dpos++] = name[spos++]
+            for (j in 0 until len) {
+                b[dpos++] = lowercase[name[spos++].toInt() and 0xFF]
             }
-            b[dpos++] = name[spos++];
-            for (int j = 0; j < len; j++) {
-                b[dpos++] = lowercase[(name[spos++] & 0xFF)];
-            }
+            i++
         }
-        return b;
+        return b
     }
 
     /**
@@ -888,84 +812,78 @@ class Name implements Comparable, Serializable {
      * @param out The output stream containing the DNS message.
      * @param c The compression context, or null of no compression is desired.
      * @param canonical If true, emit the name in canonicalized form
-     *         (all lowercase).
+     * (all lowercase).
      *
      * @throws IllegalArgumentException The name is not absolute.
      */
-    public
-    void toWire(DnsOutput out, Compression c, boolean canonical) {
+    fun toWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
         if (canonical) {
-            toWireCanonical(out);
-        }
-        else {
-            toWire(out, c);
+            toWireCanonical(out)
+        } else {
+            toWire(out, c)
         }
     }
 
-    private
-    boolean equals(byte[] b, int bpos) {
-        int labels = labels();
-        for (int i = 0, pos = offset(0); i < labels; i++) {
-            if (name[pos] != b[bpos]) {
-                return false;
+    private fun equals(b: ByteArray?, bpos: Int): Boolean {
+        var bpos = bpos
+        val labels = labels()
+        var i = 0
+        var pos = offset(0)
+        while (i < labels) {
+            if (name[pos] != b!![bpos]) {
+                return false
             }
-            int len = name[pos++];
-            bpos++;
-            if (len > MAXLABEL) {
-                throw new IllegalStateException("invalid label");
-            }
-            for (int j = 0; j < len; j++) {
-                if (lowercase[(name[pos++] & 0xFF)] != lowercase[(b[bpos++] & 0xFF)]) {
-                    return false;
+            val len = name[pos++].toInt()
+            bpos++
+            check(len <= MAXLABEL) { "invalid label" }
+            for (j in 0 until len) {
+                if (lowercase[name[pos++].toInt() and 0xFF] != lowercase[b[bpos++].toInt() and 0xFF]) {
+                    return false
                 }
             }
+            i++
         }
-        return true;
+        return true
     }
 
     /**
      * Computes a hashcode based on the value
      */
-    @Override
-    public
-    int hashCode() {
+    override fun hashCode(): Int {
         if (hashcode != 0) {
-            return (hashcode);
+            return hashcode
         }
-        int code = 0;
-        for (int i = offset(0); i < name.length; i++) {
-            code += ((code << 3) + lowercase[(name[i] & 0xFF)]);
+        var code = 0
+        for (i in offset(0) until name.size) {
+            code += code shl 3 + lowercase[name[i].toInt() and 0xFF]
         }
-        hashcode = code;
-        return hashcode;
+        hashcode = code
+        return hashcode
     }
 
     /**
      * Are these two Names equivalent?
      */
-    @Override
-    public
-    boolean equals(Object arg) {
-        if (arg == this) {
-            return true;
+    override fun equals(other: Any?): Boolean {
+        if (other === this) {
+            return true
         }
-        if (arg == null || !(arg instanceof Name)) {
-            return false;
+        if (other == null || other !is Name) {
+            return false
         }
-        Name d = (Name) arg;
+        val d = other
         if (d.hashcode == 0) {
-            d.hashCode();
+            d.hashCode()
         }
         if (hashcode == 0) {
-            hashCode();
+            hashCode()
         }
         if (d.hashcode != hashcode) {
-            return false;
+            return false
         }
-        if (d.labels() != labels()) {
-            return false;
-        }
-        return equals(d.name, d.offset(0));
+        return if (d.labels() != labels()) {
+            false
+        } else equals(d.name, d.offset(0))
     }
 
     /**
@@ -973,53 +891,58 @@ class Name implements Comparable, Serializable {
      *
      * @return The representation of this name as a (printable) String.
      */
-    @Override
-    public
-    String toString() {
-        return toString(false);
+    override fun toString(): String {
+        return toString(false)
     }
 
     /**
      * Compares this Name to another Object.
      *
-     * @param o The Object to be compared.
+     * @param other The Object to be compared.
      *
      * @return The value 0 if the argument is a name equivalent to this name;
-     *         a value less than 0 if the argument is less than this name in the canonical
-     *         ordering, and a value greater than 0 if the argument is greater than this
-     *         name in the canonical ordering.
+     * a value less than 0 if the argument is less than this name in the canonical
+     * ordering, and a value greater than 0 if the argument is greater than this
+     * name in the canonical ordering.
      *
      * @throws ClassCastException if the argument is not a Name.
      */
-    @Override
-    public
-    int compareTo(Object o) {
-        Name arg = (Name) o;
-
-        if (this == arg) {
-            return (0);
+    override fun compareTo(other: Any?): Int {
+        if (this === other) {
+            return 0
         }
 
-        int labels = labels();
-        int alabels = arg.labels();
-        int compares = labels > alabels ? alabels : labels;
+        if (other == null) {
+            return -1
+        }
 
-        for (int i = 1; i <= compares; i++) {
-            int start = offset(labels - i);
-            int astart = arg.offset(alabels - i);
-            int length = name[start];
-            int alength = arg.name[astart];
-            for (int j = 0; j < length && j < alength; j++) {
-                int n = lowercase[(name[j + start + 1]) & 0xFF] - lowercase[(arg.name[j + astart + 1]) & 0xFF];
+        if (other.javaClass != this.javaClass) {
+            return -1
+        }
+
+        val arg = other as Name
+
+        val labels = labels()
+        val alabels = arg.labels()
+        val compares = if (labels > alabels) alabels else labels
+        for (i in 1..compares) {
+            val start = offset(labels - i)
+            val astart = arg.offset(alabels - i)
+            val length = name[start].toInt()
+            val alength = arg.name[astart].toInt()
+
+            var j = 0
+            while (j < length && j < alength) {
+                val n = lowercase[name[j + start + 1].toInt() and 0xFF] - lowercase[arg.name[j + astart + 1].toInt() and 0xFF]
                 if (n != 0) {
-                    return (n);
+                    return n
                 }
+                j++
             }
             if (length != alength) {
-                return (length - alength);
+                return length - alength
             }
         }
-        return (labels - alabels);
+        return labels - alabels
     }
-
 }

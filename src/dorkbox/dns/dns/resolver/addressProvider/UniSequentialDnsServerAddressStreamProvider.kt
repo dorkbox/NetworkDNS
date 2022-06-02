@@ -13,24 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver.addressProvider;
+package dorkbox.dns.dns.resolver.addressProvider
 
-import io.netty.util.internal.ObjectUtil;
+import io.netty.util.internal.ObjectUtil
 
 /**
- * A {@link DnsServerAddressStreamProvider} which is backed by a single {@link DnsServerAddresses}.
+ * A [DnsServerAddressStreamProvider] which is backed by a single [DnsServerAddresses].
  */
-abstract
-class UniSequentialDnsServerAddressStreamProvider implements DnsServerAddressStreamProvider {
-    private final DnsServerAddresses addresses;
+abstract class UniSequentialDnsServerAddressStreamProvider(addresses: DnsServerAddresses) : DnsServerAddressStreamProvider {
+    private val addresses: DnsServerAddresses
 
-    UniSequentialDnsServerAddressStreamProvider(DnsServerAddresses addresses) {
-        this.addresses = ObjectUtil.checkNotNull(addresses, "addresses");
+    init {
+        this.addresses = ObjectUtil.checkNotNull(addresses, "addresses")
     }
 
-    @Override
-    public final
-    DnsServerAddressStream nameServerAddressStream(String hostname) {
-        return addresses.stream();
+    override fun nameServerAddressStream(hostname: String): DnsServerAddressStream {
+        return addresses.stream()
     }
 }

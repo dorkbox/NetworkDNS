@@ -13,62 +13,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * Key Exchange - delegation of authority
  *
  * @author Brian Wellington
  */
+class KXRecord : U16NameBase {
+    internal constructor() {}
 
-public
-class KXRecord extends U16NameBase {
+    /**
+     * Returns the preference of this KX record
+     */
+    open var preference = 0
 
-    private static final long serialVersionUID = 7448568832769757809L;
+    /**
+     * Returns the target of the KX record
+     */
+    open var target: Name = Name.empty
 
-    KXRecord() {}
 
-    @Override
-    DnsRecord getObject() {
-        return new KXRecord();
-    }
-
-    @Override
-    public
-    Name getAdditionalName() {
-        return getNameField();
-    }
+    override val `object`: DnsRecord
+        get() = KXRecord()
 
     /**
      * Creates a KX Record from the given data
      *
      * @param preference The preference of this KX.  Records with lower priority
-     *         are preferred.
+     * are preferred.
      * @param target The host that authority is delegated to
      */
-    public
-    KXRecord(Name name, int dclass, long ttl, int preference, Name target) {
-        super(name, DnsRecordType.KX, dclass, ttl, preference, "preference", target, "target");
-    }
+    constructor(name: Name, dclass: Int, ttl: Long, preference: Int, target: Name) : super(
+        name, DnsRecordType.KX, dclass, ttl, preference, "preference", target, "target"
+    )
 
-    /**
-     * Returns the target of the KX record
-     */
-    public
-    Name getTarget() {
-        return getNameField();
+    companion object {
+        private const val serialVersionUID = 7448568832769757809L
     }
-
-    /**
-     * Returns the preference of this KX record
-     */
-    public
-    int getPreference() {
-        return getU16Field();
-    }
-
 }

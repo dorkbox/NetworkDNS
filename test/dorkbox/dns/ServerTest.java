@@ -16,6 +16,10 @@
 
 package dorkbox.dns;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.List;
+
 /**
  *
  */
@@ -32,15 +36,15 @@ class ServerTest {
         // server.bind(false);
 
 
-        // DnsClient client = new DnsClient("localhost", 2053);
-        // List<InetAddress> resolve = null;
-        // try {
-        //     resolve = client.resolve("google.com");
-        // } catch (UnknownHostException e) {
-        //     e.printStackTrace();
-        // }
-        // System.err.println("RESOLVED: " + resolve);
-        // client.stop();
+        DnsClient client = new DnsClient("localhost", 2053);
+        List<InetAddress> resolve = null;
+        try {
+            resolve = client.resolve("google.com");
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        System.err.println("RESOLVED: " + resolve);
+        client.stop();
         // server.stop();
     }
 }

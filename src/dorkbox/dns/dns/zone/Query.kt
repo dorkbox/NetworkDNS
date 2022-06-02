@@ -13,47 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.zone;
+package dorkbox.dns.dns.zone
 
-
-import java.util.List;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.records.DnsRecord;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.records.DnsRecord
 
 /**
  * @author taichi
  */
-public
-class Query {
-
-    protected Name origin;
-    protected Name current;
-
-    protected int dnsClass;
-
-    protected Zone target;
-
-    protected ZoneDatabase database;
-
-    public
-    Query(Name origin, Name current, int dnsClass, Zone target, ZoneDatabase database) {
-        super();
-
-        this.origin = origin;
-        this.current = current;
-        this.dnsClass = dnsClass;
-        this.target = target;
-        this.database = database;
-    }
-
-    protected
-    boolean contains(List<DnsRecord> rrs) {
-        for (DnsRecord rr : rrs) {
-            if (this.origin.equals(rr.getName())) {
-                return true;
+class Query(
+    protected var origin: Name,
+    protected var current: Name,
+    protected var dnsClass: Int,
+    protected var target: Zone,
+    protected var database: ZoneDatabase
+) {
+    protected operator fun contains(rrs: List<DnsRecord>): Boolean {
+        for (rr in rrs) {
+            if (origin.equals(rr.name)) {
+                return true
             }
         }
-        return false;
+        return false
     }
 }

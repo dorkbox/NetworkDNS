@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.exceptions.RelativeNameException;
 import dorkbox.dns.dns.exceptions.TextParseException;
 import dorkbox.dns.dns.records.TTL;
@@ -43,138 +42,138 @@ class TokenizerTest extends TestCase {
         m_t = new Tokenizer(new BufferedInputStream(new ByteArrayInputStream("AnIdentifier \"a quoted \\\" string\"\r\n; this is \"my\"\t(comment)\nanotherIdentifier (\ramultilineIdentifier\n)".getBytes())));
 
         Tokenizer.Token tt = m_t.get(true, true);
-        assertEquals(Tokenizer.IDENTIFIER, tt.type);
+        assertEquals(Tokenizer.IDENTIFIER, tt.getType());
         assertTrue(tt.isString());
         assertFalse(tt.isEOL());
-        assertEquals("AnIdentifier", tt.value);
+        assertEquals("AnIdentifier", tt.getValue());
 
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.WHITESPACE, tt.type);
+        assertEquals(Tokenizer.WHITESPACE, tt.getType());
         assertFalse(tt.isString());
         assertFalse(tt.isEOL());
-        assertNull(tt.value);
+        assertNull(tt.getValue());
 
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.QUOTED_STRING, tt.type);
+        assertEquals(Tokenizer.QUOTED_STRING, tt.getType());
         assertTrue(tt.isString());
         assertFalse(tt.isEOL());
-        assertEquals("a quoted \\\" string", tt.value);
+        assertEquals("a quoted \\\" string", tt.getValue());
 
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.EOL, tt.type);
+        assertEquals(Tokenizer.EOL, tt.getType());
         assertFalse(tt.isString());
         assertTrue(tt.isEOL());
-        assertNull(tt.value);
+        assertNull(tt.getValue());
 
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.COMMENT, tt.type);
+        assertEquals(Tokenizer.COMMENT, tt.getType());
         assertFalse(tt.isString());
         assertFalse(tt.isEOL());
-        assertEquals(" this is \"my\"\t(comment)", tt.value);
+        assertEquals(" this is \"my\"\t(comment)", tt.getValue());
 
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.EOL, tt.type);
-        assertFalse(tt.isString());
-        assertTrue(tt.isEOL());
-        assertNull(tt.value);
-
-        tt = m_t.get(true, true);
-        assertEquals(Tokenizer.IDENTIFIER, tt.type);
-        assertTrue(tt.isString());
-        assertFalse(tt.isEOL());
-        assertEquals("anotherIdentifier", tt.value);
-
-        tt = m_t.get(true, true);
-        assertEquals(Tokenizer.WHITESPACE, tt.type);
-
-        tt = m_t.get(true, true);
-        assertEquals(Tokenizer.IDENTIFIER, tt.type);
-        assertTrue(tt.isString());
-        assertFalse(tt.isEOL());
-        assertEquals("amultilineIdentifier", tt.value);
-
-        tt = m_t.get(true, true);
-        assertEquals(Tokenizer.WHITESPACE, tt.type);
-
-        tt = m_t.get(true, true);
-        assertEquals(Tokenizer.EOF, tt.type);
+        assertEquals(Tokenizer.EOL, tt.getType());
         assertFalse(tt.isString());
         assertTrue(tt.isEOL());
-        assertNull(tt.value);
+        assertNull(tt.getValue());
+
+        tt = m_t.get(true, true);
+        assertEquals(Tokenizer.IDENTIFIER, tt.getType());
+        assertTrue(tt.isString());
+        assertFalse(tt.isEOL());
+        assertEquals("anotherIdentifier", tt.getValue());
+
+        tt = m_t.get(true, true);
+        assertEquals(Tokenizer.WHITESPACE, tt.getType());
+
+        tt = m_t.get(true, true);
+        assertEquals(Tokenizer.IDENTIFIER, tt.getType());
+        assertTrue(tt.isString());
+        assertFalse(tt.isEOL());
+        assertEquals("amultilineIdentifier", tt.getValue());
+
+        tt = m_t.get(true, true);
+        assertEquals(Tokenizer.WHITESPACE, tt.getType());
+
+        tt = m_t.get(true, true);
+        assertEquals(Tokenizer.EOF, tt.getType());
+        assertFalse(tt.isString());
+        assertTrue(tt.isEOL());
+        assertNull(tt.getValue());
 
         // should be able to do this repeatedly
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.EOF, tt.type);
+        assertEquals(Tokenizer.EOF, tt.getType());
         assertFalse(tt.isString());
         assertTrue(tt.isEOL());
-        assertNull(tt.value);
+        assertNull(tt.getValue());
 
         m_t.close();
 
         m_t = new Tokenizer("onlyOneIdentifier");
         tt = m_t.get();
-        assertEquals(Tokenizer.IDENTIFIER, tt.type);
-        assertEquals("onlyOneIdentifier", tt.value);
+        assertEquals(Tokenizer.IDENTIFIER, tt.getType());
+        assertEquals("onlyOneIdentifier", tt.getValue());
 
         m_t.close();
 
         m_t = new Tokenizer("identifier ;");
         tt = m_t.get();
-        assertEquals("identifier", tt.value);
+        assertEquals("identifier", tt.getValue());
         tt = m_t.get();
-        assertEquals(Tokenizer.EOF, tt.type);
+        assertEquals(Tokenizer.EOF, tt.getType());
 
         m_t.close();
 
         // some ungets
         m_t = new Tokenizer("identifier \nidentifier2; junk comment");
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.IDENTIFIER, tt.type);
-        assertEquals("identifier", tt.value);
+        assertEquals(Tokenizer.IDENTIFIER, tt.getType());
+        assertEquals("identifier", tt.getValue());
 
         m_t.unget();
 
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.IDENTIFIER, tt.type);
-        assertEquals("identifier", tt.value);
+        assertEquals(Tokenizer.IDENTIFIER, tt.getType());
+        assertEquals("identifier", tt.getValue());
 
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.WHITESPACE, tt.type);
-
-        m_t.unget();
-        tt = m_t.get(true, true);
-        assertEquals(Tokenizer.WHITESPACE, tt.type);
-
-        tt = m_t.get(true, true);
-        assertEquals(Tokenizer.EOL, tt.type);
+        assertEquals(Tokenizer.WHITESPACE, tt.getType());
 
         m_t.unget();
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.EOL, tt.type);
+        assertEquals(Tokenizer.WHITESPACE, tt.getType());
 
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.IDENTIFIER, tt.type);
-        assertEquals("identifier2", tt.value);
-
-        tt = m_t.get(true, true);
-        assertEquals(Tokenizer.COMMENT, tt.type);
-        assertEquals(" junk comment", tt.value);
+        assertEquals(Tokenizer.EOL, tt.getType());
 
         m_t.unget();
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.COMMENT, tt.type);
-        assertEquals(" junk comment", tt.value);
+        assertEquals(Tokenizer.EOL, tt.getType());
 
         tt = m_t.get(true, true);
-        assertEquals(Tokenizer.EOF, tt.type);
+        assertEquals(Tokenizer.IDENTIFIER, tt.getType());
+        assertEquals("identifier2", tt.getValue());
+
+        tt = m_t.get(true, true);
+        assertEquals(Tokenizer.COMMENT, tt.getType());
+        assertEquals(" junk comment", tt.getValue());
+
+        m_t.unget();
+        tt = m_t.get(true, true);
+        assertEquals(Tokenizer.COMMENT, tt.getType());
+        assertEquals(" junk comment", tt.getValue());
+
+        tt = m_t.get(true, true);
+        assertEquals(Tokenizer.EOF, tt.getType());
 
         m_t.close();
 
         m_t = new Tokenizer("identifier ( junk ; comment\n )");
         tt = m_t.get();
-        assertEquals(Tokenizer.IDENTIFIER, tt.type);
-        assertEquals(Tokenizer.IDENTIFIER, m_t.get().type);
-        assertEquals(Tokenizer.EOF, m_t.get().type);
+        assertEquals(Tokenizer.IDENTIFIER, tt.getType());
+        assertEquals(Tokenizer.IDENTIFIER, m_t.get().getType());
+        assertEquals(Tokenizer.EOF, m_t.get().getType());
 
         m_t.close();
     }
@@ -237,19 +236,19 @@ class TokenizerTest extends TestCase {
             m_t = new Tokenizer(tmp);
 
             Tokenizer.Token tt = m_t.get();
-            assertEquals(Tokenizer.IDENTIFIER, tt.type);
-            assertEquals("file", tt.value);
+            assertEquals(Tokenizer.IDENTIFIER, tt.getType());
+            assertEquals("file", tt.getValue());
 
             tt = m_t.get();
-            assertEquals(Tokenizer.EOL, tt.type);
+            assertEquals(Tokenizer.EOL, tt.getType());
 
             tt = m_t.get();
-            assertEquals(Tokenizer.IDENTIFIER, tt.type);
-            assertEquals("input", tt.value);
+            assertEquals(Tokenizer.IDENTIFIER, tt.getType());
+            assertEquals("input", tt.getValue());
 
             tt = m_t.get(false, true);
-            assertEquals(Tokenizer.COMMENT, tt.type);
-            assertEquals(" test", tt.value);
+            assertEquals(Tokenizer.COMMENT, tt.getType());
+            assertEquals(" test", tt.getValue());
 
             m_t.close();
         } finally {
@@ -262,7 +261,7 @@ class TokenizerTest extends TestCase {
         m_t = new Tokenizer("; this whole thing is a comment\n");
         Tokenizer.Token tt = m_t.get();
 
-        assertEquals(Tokenizer.EOL, tt.type);
+        assertEquals(Tokenizer.EOL, tt.getType());
     }
 
     public
@@ -271,7 +270,7 @@ class TokenizerTest extends TestCase {
         Tokenizer.Token tt = m_t.get(true, true);
         m_t.unget();
         tt = m_t.get();
-        assertEquals(Tokenizer.EOF, tt.type);
+        assertEquals(Tokenizer.EOF, tt.getType());
     }
 
     public
@@ -280,18 +279,18 @@ class TokenizerTest extends TestCase {
         Tokenizer.Token tt = m_t.get(true, true);
         m_t.unget();
         tt = m_t.get();
-        assertEquals(Tokenizer.EOF, tt.type);
+        assertEquals(Tokenizer.EOF, tt.getType());
     }
 
     public
     void test_empty_string() throws IOException {
         m_t = new Tokenizer("");
         Tokenizer.Token tt = m_t.get();
-        assertEquals(Tokenizer.EOF, tt.type);
+        assertEquals(Tokenizer.EOF, tt.getType());
 
         m_t = new Tokenizer(" ");
         tt = m_t.get();
-        assertEquals(Tokenizer.EOF, tt.type);
+        assertEquals(Tokenizer.EOF, tt.getType());
     }
 
     public
@@ -463,13 +462,13 @@ class TokenizerTest extends TestCase {
 
     public
     void test_getName() throws IOException, TextParseException {
-        Name root = Name.fromString(".");
+        Name root = Name.Companion.fromString(".");
         m_t = new Tokenizer("junk");
-        Name exp = Name.fromString("junk.");
+        Name exp = Name.Companion.fromString("junk.");
         Name out = m_t.getName(root);
         assertEquals(exp, out);
 
-        Name rel = Name.fromString("you.dig");
+        Name rel = Name.Companion.fromString("you.dig");
         m_t = new Tokenizer("junk");
         try {
             m_t.getName(rel);

@@ -19,6 +19,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Base64;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import dorkbox.dns.dns.DnsInput;
 import dorkbox.dns.dns.DnsOutput;
 import dorkbox.dns.dns.Name;
@@ -49,7 +52,9 @@ class KEYBaseTest extends TestCase {
         }
 
         @Override
-        void rdataFromString(Tokenizer st, Name origin) throws IOException {
+        public
+        void rdataFromString(@NotNull final Tokenizer st, @Nullable final Name origin) throws IOException {
+
         }
     }
 
@@ -61,15 +66,15 @@ class KEYBaseTest extends TestCase {
         assertEquals(0, tc.getAlgorithm());
         assertNull(tc.getKey());
 
-        Name n = Name.fromString("my.name.");
+        Name n = Name.Companion.fromString("my.name.");
         byte[] key = new byte[] {0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF};
 
         tc = new TestClass(n, DnsRecordType.KEY, DnsClass.IN, 100L, 0xFF, 0xF, 0xE, key);
 
         assertSame(n, tc.getName());
         assertEquals(DnsRecordType.KEY, tc.getType());
-        assertEquals(DnsClass.IN, tc.getDClass());
-        assertEquals(100L, tc.getTTL());
+        assertEquals(DnsClass.IN, tc.getDclass());
+        assertEquals(100L, tc.getTtl());
         assertEquals(0xFF, tc.getFlags());
         assertEquals(0xF, tc.getProtocol());
         assertEquals(0xE, tc.getAlgorithm());
@@ -104,7 +109,7 @@ class KEYBaseTest extends TestCase {
 
     public
     void test_rrToString() throws IOException, TextParseException {
-        Name n = Name.fromString("my.name.");
+        Name n = Name.Companion.fromString("my.name.");
         byte[] key = new byte[] {0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF};
 
         TestClass tc = new TestClass(n, DnsRecordType.KEY, DnsClass.IN, 100L, 0xFF, 0xF, 0xE, null);
@@ -124,7 +129,7 @@ class KEYBaseTest extends TestCase {
         assertEquals("255 15 14 " + Base64.getEncoder().encodeToString(key), out);
 
 
-        Options.set("multiline");
+        Options.INSTANCE.set("multiline");
 
         sb = new StringBuilder();
         tc.rrToString(sb);
@@ -137,7 +142,7 @@ class KEYBaseTest extends TestCase {
 
     public
     void test_getFootprint() throws TextParseException {
-        Name n = Name.fromString("my.name.");
+        Name n = Name.Companion.fromString("my.name.");
         byte[] key = new byte[] {0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF};
 
         TestClass tc = new TestClass(n, DnsRecordType.KEY, DnsClass.IN, 100L, 0xFF, 0xF, DNSSEC.Algorithm.RSAMD5, key);
@@ -164,7 +169,7 @@ class KEYBaseTest extends TestCase {
 
     public
     void test_rrToWire() throws IOException, TextParseException {
-        Name n = Name.fromString("my.name.");
+        Name n = Name.Companion.fromString("my.name.");
         byte[] key = new byte[] {0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF};
 
         TestClass tc = new TestClass(n, DnsRecordType.KEY, DnsClass.IN, 100L, 0x7689, 0xAB, 0xCD, key);

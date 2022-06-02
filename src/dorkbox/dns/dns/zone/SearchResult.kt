@@ -13,24 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.zone;
+package dorkbox.dns.dns.zone
 
-import java.util.List;
+import dorkbox.dns.dns.records.DnsRecord
 
-import dorkbox.dns.dns.records.DnsRecord;
-
-public class SearchResult {
-
-	public enum Status {
-		NXDOMAIN, SUCCESS
+class SearchResult(var rrs: List<DnsRecord>) {
+    enum class Status {
+        NXDOMAIN, SUCCESS
     }
 
-	List<DnsRecord> rrs;
-
-	Status status = Status.NXDOMAIN;
-
-	public SearchResult(List<DnsRecord> rrs) {
-		super();
-		this.rrs = rrs;
-	}
+    var status = Status.NXDOMAIN
 }

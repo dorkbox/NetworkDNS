@@ -13,25 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver.addressProvider;
+package dorkbox.dns.dns.resolver.addressProvider
 
 /**
- * Provides an opportunity to override which {@link DnsServerAddressStream} is used to resolve a specific hostname.
- * <p>
- * For example this can be used to represent <a href="https://linux.die.net/man/5/resolver">/etc/resolv.conf</a> and
- * <a href="https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man5/resolver.5.html">
- * /etc/resolver</a>.
+ * Provides an opportunity to override which [DnsServerAddressStream] is used to resolve a specific hostname.
+ *
+ *
+ * For example this can be used to represent [/etc/resolv.conf](https://linux.die.net/man/5/resolver) and
+ * [
+ * /etc/resolver](https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man5/resolver.5.html).
  */
-public
 interface DnsServerAddressStreamProvider {
     /**
-     * Ask this provider for the name servers to query for {@code hostname}.
+     * Ask this provider for the name servers to query for `hostname`.
      *
      * @param hostname The hostname for which to lookup the DNS server addressed to use.
-     *         If this is the final {@link DnsServerAddressStreamProvider} to be queried then generally empty
-     *         string or {@code '.'} correspond to the default {@link DnsServerAddressStream}.
+     * If this is the final [DnsServerAddressStreamProvider] to be queried then generally empty
+     * string or `'.'` correspond to the default [DnsServerAddressStream].
      *
-     * @return The {@link DnsServerAddressStream} which should be used to resolve {@code hostname}.
+     * @return The [DnsServerAddressStream] which should be used to resolve `hostname`.
      */
-    DnsServerAddressStream nameServerAddressStream(String hostname);
+    fun nameServerAddressStream(hostname: String): DnsServerAddressStream
 }

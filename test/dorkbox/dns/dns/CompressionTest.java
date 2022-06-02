@@ -15,8 +15,6 @@
  */
 package dorkbox.dns.dns;
 
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.exceptions.TextParseException;
 import dorkbox.dns.dns.utils.Options;
 import junit.framework.TestCase;
@@ -26,18 +24,18 @@ class CompressionTest extends TestCase {
     @Override
     public
     void setUp() {
-        Options.set("verbosecompression");
+        Options.INSTANCE.set("verbosecompression");
     }
 
     public
     void test() throws TextParseException {
         Compression c = new Compression();
-        Name n = Name.fromString("www.amazon.com.");
+        Name n = Name.Companion.fromString("www.amazon.com.");
 
         c.add(10, n);
         assertEquals(10, c.get(n));
 
-        Name n2 = Name.fromString("www.cnn.com.");
+        Name n2 = Name.Companion.fromString("www.cnn.com.");
 
         c.add(10, n2);
         assertEquals(10, c.get(n2));

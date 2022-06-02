@@ -13,75 +13,70 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.constants.DnsRecordType.check
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * Next SECure name - this record contains the following name in an
  * ordered list of names in the zone, and a set of types for which
  * records exist for this name.  The presence of this record in a response
  * signifies a negative response from a DNSSEC-signed zone.
- * <p>
+ *
+ *
  * This replaces the NXT record.
  *
  * @author Brian Wellington
  * @author David Blacka
  */
+class NSECRecord : DnsRecord {
+    /**
+     * Returns the next name
+     */
+    var next: Name? = null
+        private set
 
-public
-class NSECRecord extends DnsRecord {
+    private var types: TypeBitmap? = null
 
-    private static final long serialVersionUID = -5165065768816265385L;
+    internal constructor() {}
 
-    private Name next;
-    private TypeBitmap types;
+    override val `object`: DnsRecord
+        get() = NSECRecord()
 
-    NSECRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new NSECRecord();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        next = Name(`in`)
+        types = TypeBitmap(`in`)
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        next = new Name(in);
-        types = new TypeBitmap(in);
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
         // Note: The next name is not lowercased.
-        next.toWire(out, null, false);
-        types.toWire(out);
+        next!!.toWire(out, null, false)
+        types!!.toWire(out)
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(next);
-
-        if (!types.empty()) {
-            sb.append(' ');
-            sb.append(types.toString());
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(next)
+        if (!types!!.empty()) {
+            sb.append(' ')
+            sb.append(types.toString())
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        next = st.getName(origin);
-        types = new TypeBitmap(st);
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        next = st.getName(origin)
+        types = TypeBitmap(st)
     }
 
     /**
@@ -90,38 +85,31 @@ class NSECRecord extends DnsRecord {
      * @param next The following name in an ordered list of the zone
      * @param types An array containing the types present.
      */
-    public
-    NSECRecord(Name name, int dclass, long ttl, Name next, int[] types) {
-        super(name, DnsRecordType.NSEC, dclass, ttl);
-        this.next = checkName("next", next);
-        for (int i = 0; i < types.length; i++) {
-            DnsRecordType.check(types[i]);
+    constructor(name: Name?, dclass: Int, ttl: Long, next: Name?, types: IntArray) : super(
+        name!!, DnsRecordType.NSEC, dclass, ttl
+    ) {
+        this.next = checkName("next", next!!)
+        for (i in types.indices) {
+            check(types[i])
         }
-        this.types = new TypeBitmap(types);
-    }
-
-    /**
-     * Returns the next name
-     */
-    public
-    Name getNext() {
-        return next;
+        this.types = TypeBitmap(types)
     }
 
     /**
      * Returns the set of types defined for this name
      */
-    public
-    int[] getTypes() {
-        return types.toArray();
+    fun getTypes(): IntArray {
+        return types!!.toArray()
     }
 
     /**
      * Returns whether a specific type is in the set of types.
      */
-    public
-    boolean hasType(int type) {
-        return types.contains(type);
+    fun hasType(type: Int): Boolean {
+        return types!!.contains(type)
     }
 
+    companion object {
+        private const val serialVersionUID = -5165065768816265385L
+    }
 }

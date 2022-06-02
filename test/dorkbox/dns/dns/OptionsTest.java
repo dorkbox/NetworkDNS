@@ -29,14 +29,14 @@ class OptionsTest extends TestCase {
 
     public
     void test_set_1arg() {
-        Options.set("Option1");
+        Options.INSTANCE.set("Option1");
         assertEquals("true", Options.value("option1"));
 
-        Options.set("OPTION2");
+        Options.INSTANCE.set("OPTION2");
         assertEquals("true", Options.value("option1"));
         assertEquals("true", Options.value("OpTIOn2"));
 
-        Options.set("option2");
+        Options.INSTANCE.set("option2");
         assertEquals("true", Options.value("option2"));
     }
 
@@ -58,7 +58,7 @@ class OptionsTest extends TestCase {
     void test_check() {
         assertFalse(Options.check("No Options yet"));
 
-        Options.set("First Option");
+        Options.INSTANCE.set("First Option");
         assertFalse(Options.check("Not a valid option name"));
         assertTrue(Options.check("First Option"));
         assertTrue(Options.check("FIRST option"));
@@ -69,12 +69,12 @@ class OptionsTest extends TestCase {
         // unset something non-existant
         Options.unset("Not an option Name");
 
-        Options.set("Temporary Option");
+        Options.INSTANCE.set("Temporary Option");
         assertTrue(Options.check("Temporary Option"));
         Options.unset("Temporary Option");
         assertFalse(Options.check("Temporary Option"));
 
-        Options.set("Temporary Option");
+        Options.INSTANCE.set("Temporary Option");
         assertTrue(Options.check("Temporary Option"));
         Options.unset("temporary option");
         assertFalse(Options.check("Temporary Option"));
@@ -87,7 +87,7 @@ class OptionsTest extends TestCase {
     void test_value() {
         assertNull(Options.value("Table is Null"));
 
-        Options.set("Testing Option");
+        Options.INSTANCE.set("Testing Option");
         assertNull(Options.value("Not an Option Name"));
 
         assertEquals("true", Options.value("Testing OPTION"));
@@ -97,7 +97,7 @@ class OptionsTest extends TestCase {
     void test_intValue() {
         assertEquals(-1, Options.intValue("Table is Null"));
 
-        Options.set("A Boolean Option");
+        Options.INSTANCE.set("A Boolean Option");
         Options.set("An Int Option", "13");
         Options.set("Not An Int Option", "NotAnInt");
         Options.set("A Negative Int Value", "-1000");

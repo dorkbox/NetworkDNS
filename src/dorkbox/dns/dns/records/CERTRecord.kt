@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.util.Base64;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Mnemonic;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.utils.Options;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.os.OS;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Mnemonic
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.records.DNSSEC.Algorithm.value
+import dorkbox.dns.dns.utils.Options.check
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.os.OS.LINE_SEPARATOR
+import java.io.IOException
+import java.util.*
 
 /**
  * Certificate Record  - Stores a certificate associated with a name.  The
@@ -36,109 +35,103 @@ import dorkbox.os.OS;
  * @author Brian Wellington
  * @see KEYRecord
  */
+class CERTRecord : DnsRecord {
+    /**
+     * Returns the type of certificate
+     */
+    var certType = 0
+        private set
 
-public
-class CERTRecord extends DnsRecord {
+    /**
+     * Returns the ID of the associated KEYRecord, if present
+     */
+    var keyTag = 0
+        private set
 
     /**
-     * PKIX (X.509v3)
+     * Returns the algorithm of the associated KEYRecord, if present
      */
-    public static final int PKIX = CertificateType.PKIX;
-    /**
-     * Simple Public Key Infrastructure
-     */
-    public static final int SPKI = CertificateType.SPKI;
-    /**
-     * Pretty Good Privacy
-     */
-    public static final int PGP = CertificateType.PGP;
-    /**
-     * Certificate format defined by URI
-     */
-    public static final int URI = CertificateType.URI;
-    /**
-     * Certificate format defined by IOD
-     */
-    public static final int OID = CertificateType.OID;
-    private static final long serialVersionUID = 4763014646517016835L;
-    private int certType, keyTag;
-    private int alg;
-    private byte[] cert;
+    var algorithm = 0
+        private set
 
+    /**
+     * Returns the binary representation of the certificate
+     */
+    var cert: ByteArray = byteArrayOf()
+        private set
 
-    public static
-    class CertificateType {
+    object CertificateType {
         /**
          * PKIX (X.509v3)
          */
-        public static final int PKIX = 1;
+        const val PKIX = 1
+
         /**
          * Simple Public Key Infrastructure
          */
-        public static final int SPKI = 2;
+        const val SPKI = 2
+
         /**
          * Pretty Good Privacy
          */
-        public static final int PGP = 3;
+        const val PGP = 3
+
         /**
          * URL of an X.509 data object
          */
-        public static final int IPKIX = 4;
+        const val IPKIX = 4
+
         /**
          * URL of an SPKI certificate
          */
-        public static final int ISPKI = 5;
+        const val ISPKI = 5
+
         /**
          * Fingerprint and URL of an OpenPGP packet
          */
-        public static final int IPGP = 6;
+        const val IPGP = 6
+
         /**
          * Attribute Certificate
          */
-        public static final int ACPKIX = 7;
+        const val ACPKIX = 7
+
         /**
          * URL of an Attribute Certificate
          */
-        public static final int IACPKIX = 8;
+        const val IACPKIX = 8
+
         /**
          * Certificate format defined by URI
          */
-        public static final int URI = 253;
+        const val URI = 253
+
         /**
          * Certificate format defined by OID
          */
-        public static final int OID = 254;
-        private static Mnemonic types = new Mnemonic("Certificate type", Mnemonic.CASE_UPPER);
+        const val OID = 254
+        private val types = Mnemonic("Certificate type", Mnemonic.CASE_UPPER)
 
-        /**
-         * Certificate type identifiers.  See RFC 4398 for more detail.
-         */
-
-        private
-        CertificateType() {}
-
-        static {
-            types.setMaximum(0xFFFF);
-            types.setNumericAllowed(true);
-
-            types.add(PKIX, "PKIX");
-            types.add(SPKI, "SPKI");
-            types.add(PGP, "PGP");
-            types.add(PKIX, "IPKIX");
-            types.add(SPKI, "ISPKI");
-            types.add(PGP, "IPGP");
-            types.add(PGP, "ACPKIX");
-            types.add(PGP, "IACPKIX");
-            types.add(URI, "URI");
-            types.add(OID, "OID");
+        init {
+            types.setMaximum(0xFFFF)
+            types.setNumericAllowed(true)
+            types.add(PKIX, "PKIX")
+            types.add(SPKI, "SPKI")
+            types.add(PGP, "PGP")
+            types.add(PKIX, "IPKIX")
+            types.add(SPKI, "ISPKI")
+            types.add(PGP, "IPGP")
+            types.add(PGP, "ACPKIX")
+            types.add(PGP, "IACPKIX")
+            types.add(URI, "URI")
+            types.add(OID, "OID")
         }
 
         /**
          * Converts a certificate type into its textual representation
          */
-        public static
-        String string(int type) {
-            return types.getText(type);
+        fun string(type: Int): String {
+            return types.getText(type)
         }
 
         /**
@@ -149,71 +142,64 @@ class CERTRecord extends DnsRecord {
          *
          * @return The algorithm code, or -1 on error.
          */
-        public static
-        int value(String s) {
-            return types.getValue(s);
+        fun value(s: String?): Int {
+            return types.getValue(s!!)
         }
     }
 
-    CERTRecord() {}
+    internal constructor() {}
 
-    @Override
-    DnsRecord getObject() {
-        return new CERTRecord();
+    override val `object`: DnsRecord
+        get() = CERTRecord()
+
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        certType = `in`.readU16()
+        keyTag = `in`.readU16()
+        algorithm = `in`.readU8()
+        cert = `in`.readByteArray()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        certType = in.readU16();
-        keyTag = in.readU16();
-        alg = in.readU8();
-        cert = in.readByteArray();
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU16(certType);
-        out.writeU16(keyTag);
-        out.writeU8(alg);
-        out.writeByteArray(cert);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU16(certType)
+        out.writeU16(keyTag)
+        out.writeU8(algorithm)
+        out.writeByteArray(cert!!)
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(certType);
-        sb.append(" ");
-        sb.append(keyTag);
-        sb.append(" ");
-        sb.append(alg);
-
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(certType)
+        sb.append(" ")
+        sb.append(keyTag)
+        sb.append(" ")
+        sb.append(algorithm)
         if (cert != null) {
-            if (Options.check("multiline")) {
-                sb.append(OS.INSTANCE.getLINE_SEPARATOR());
-                sb.append(Base64.getMimeEncoder().encodeToString(cert));
-            }
-            else {
-                sb.append(Base64.getEncoder().encodeToString(cert));
+            if (check("multiline")) {
+                sb.append(LINE_SEPARATOR)
+                sb.append(Base64.getMimeEncoder().encodeToString(cert))
+            } else {
+                sb.append(Base64.getEncoder().encodeToString(cert))
             }
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        String certTypeString = st.getString();
-        certType = CertificateType.value(certTypeString);
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        val certTypeString = st.getString()
+        certType = CertificateType.value(certTypeString)
         if (certType < 0) {
-            throw st.exception("Invalid certificate type: " + certTypeString);
+            throw st.exception("Invalid certificate type: $certTypeString")
         }
-        keyTag = st.getUInt16();
-        String algString = st.getString();
-        alg = DNSSEC.Algorithm.value(algString);
-        if (alg < 0) {
-            throw st.exception("Invalid algorithm: " + algString);
+        keyTag = st.getUInt16()
+        val algString = st.getString()
+        algorithm = value(algString)
+        if (algorithm < 0) {
+            throw st.exception("Invalid algorithm: $algString")
         }
-        cert = st.getBase64();
+        cert = st.getBase64(true)!!
     }
 
     /**
@@ -224,45 +210,40 @@ class CERTRecord extends DnsRecord {
      * @param alg The algorithm of the associated KEYRecord, if present
      * @param cert Binary data representing the certificate
      */
-    public
-    CERTRecord(Name name, int dclass, long ttl, int certType, int keyTag, int alg, byte[] cert) {
-        super(name, DnsRecordType.CERT, dclass, ttl);
-        this.certType = checkU16("certType", certType);
-        this.keyTag = checkU16("keyTag", keyTag);
-        this.alg = checkU8("alg", alg);
-        this.cert = cert;
+    constructor(name: Name, dclass: Int, ttl: Long, certType: Int, keyTag: Int, alg: Int, cert: ByteArray) : super(
+        name, DnsRecordType.CERT, dclass, ttl
+    ) {
+        this.certType = checkU16("certType", certType)
+        this.keyTag = checkU16("keyTag", keyTag)
+        algorithm = checkU8("alg", alg)
+        this.cert = cert
     }
 
-    /**
-     * Returns the type of certificate
-     */
-    public
-    int getCertType() {
-        return certType;
-    }
+    companion object {
+        /**
+         * PKIX (X.509v3)
+         */
+        const val PKIX = CertificateType.PKIX
 
-    /**
-     * Returns the ID of the associated KEYRecord, if present
-     */
-    public
-    int getKeyTag() {
-        return keyTag;
-    }
+        /**
+         * Simple Public Key Infrastructure
+         */
+        const val SPKI = CertificateType.SPKI
 
-    /**
-     * Returns the algorithm of the associated KEYRecord, if present
-     */
-    public
-    int getAlgorithm() {
-        return alg;
-    }
+        /**
+         * Pretty Good Privacy
+         */
+        const val PGP = CertificateType.PGP
 
-    /**
-     * Returns the binary representation of the certificate
-     */
-    public
-    byte[] getCert() {
-        return cert;
-    }
+        /**
+         * Certificate format defined by URI
+         */
+        const val URI = CertificateType.URI
 
+        /**
+         * Certificate format defined by IOD
+         */
+        const val OID = CertificateType.OID
+        private const val serialVersionUID = 4763014646517016835L
+    }
 }

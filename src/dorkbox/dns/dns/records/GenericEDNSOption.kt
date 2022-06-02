@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.records;
+package dorkbox.dns.dns.records
 
-import java.io.IOException;
-
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.utils.base16;
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.utils.base16.toString
+import java.io.IOException
 
 /**
  * An EDNSOption with no internal structure.
@@ -27,39 +26,30 @@ import dorkbox.dns.dns.utils.base16;
  * @author Ming Zhou &lt;mizhou@bnivideo.com&gt;, Beaumaris Networks
  * @author Brian Wellington
  */
-public
-class GenericEDNSOption extends EDNSOption {
+open class GenericEDNSOption : EDNSOption {
+    override var data: ByteArray = byteArrayOf()
 
-    private byte[] data;
-
-    GenericEDNSOption(int code) {
-        super(code);
-    }
+    internal constructor(code: Int) : super(code) {}
 
     /**
      * Construct a generic EDNS option.
      *
      * @param data The contents of the option.
      */
-    public
-    GenericEDNSOption(int code, byte[] data) {
-        super(code);
-        this.data = DnsRecord.checkByteArrayLength("option data", data, 0xFFFF);
+    constructor(code: Int, data: ByteArray?) : super(code) {
+        this.data = DnsRecord.checkByteArrayLength("option data", data!!, 0xFFFF)
     }
 
-    @Override
-    void optionFromWire(DnsInput in) throws IOException {
-        data = in.readByteArray();
+    @Throws(IOException::class)
+    override fun optionFromWire(`in`: DnsInput) {
+        data = `in`.readByteArray()
     }
 
-    @Override
-    void optionToWire(DnsOutput out) {
-        out.writeByteArray(data);
+    override fun optionToWire(out: DnsOutput) {
+        out.writeByteArray(data)
     }
 
-    @Override
-    String optionToString() {
-        return "<" + base16.toString(data) + ">";
+    override fun optionToString(): String? {
+        return "<" + toString(data) + ">"
     }
-
 }

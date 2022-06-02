@@ -25,19 +25,16 @@ import dorkbox.dns.dns.constants.DnsResponseCode;
 import dorkbox.dns.dns.constants.DnsSection;
 import dorkbox.dns.dns.constants.Flags;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DnsMessage;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.TSIG;
 import junit.framework.TestCase;
 
 public
 class TSIGTest extends TestCase {
     public
     void test_TSIG_query() throws TextParseException, IOException {
-        TSIG key = new TSIG(TSIG.HMAC_SHA256, "example.", "12345678");
+        TSIG key = new TSIG(TSIG.getHMAC_SHA256(), "example.", "12345678");
 
-        Name qname = Name.fromString("www.example.");
-        DnsRecord rec = DnsRecord.newRecord(qname, DnsRecordType.A, DnsClass.IN);
+        Name qname = Name.Companion.fromString("www.example.");
+        DnsRecord rec = DnsRecord.Companion.newRecord(qname, DnsRecordType.A, DnsClass.IN, 0L);
         DnsMessage msg = DnsMessage.newQuery(rec);
         msg.setTSIG(key, DnsResponseCode.NOERROR, null);
         byte[] bytes = msg.toWire(512);
@@ -51,10 +48,10 @@ class TSIGTest extends TestCase {
 
     public
     void test_TSIG_response() throws TextParseException, IOException {
-        TSIG key = new TSIG(TSIG.HMAC_SHA256, "example.", "12345678");
+        TSIG key = new TSIG(TSIG.getHMAC_SHA256(), "example.", "12345678");
 
-        Name qname = Name.fromString("www.example.");
-        DnsRecord question = DnsRecord.newRecord(qname, DnsRecordType.A, DnsClass.IN);
+        Name qname = Name.Companion.fromString("www.example.");
+        DnsRecord question = DnsRecord.Companion.newRecord(qname, DnsRecordType.A, DnsClass.IN, 0L);
         DnsMessage query = DnsMessage.newQuery(question);
         query.setTSIG(key, DnsResponseCode.NOERROR, null);
         byte[] qbytes = query.toWire();
@@ -66,7 +63,7 @@ class TSIGTest extends TestCase {
         response.getHeader()
                 .setFlag(Flags.QR);
         response.addRecord(question, DnsSection.QUESTION);
-        DnsRecord answer = DnsRecord.fromString(qname, DnsRecordType.A, DnsClass.IN, 300, "1.2.3.4", null);
+        DnsRecord answer = DnsRecord.Companion.fromString(qname, DnsRecordType.A, DnsClass.IN, 300, "1.2.3.4", null);
         response.addRecord(answer, DnsSection.ANSWER);
         byte[] bytes = response.toWire(512);
 
@@ -78,10 +75,10 @@ class TSIGTest extends TestCase {
 
     public
     void test_TSIG_truncated() throws TextParseException, IOException {
-        TSIG key = new TSIG(TSIG.HMAC_SHA256, "example.", "12345678");
+        TSIG key = new TSIG(TSIG.getHMAC_SHA256(), "example.", "12345678");
 
-        Name qname = Name.fromString("www.example.");
-        DnsRecord question = DnsRecord.newRecord(qname, DnsRecordType.A, DnsClass.IN);
+        Name qname = Name.Companion.fromString("www.example.");
+        DnsRecord question = DnsRecord.Companion.newRecord(qname, DnsRecordType.A, DnsClass.IN, 0L);
         DnsMessage query = DnsMessage.newQuery(question);
         query.setTSIG(key, DnsResponseCode.NOERROR, null);
         byte[] qbytes = query.toWire();
@@ -94,7 +91,7 @@ class TSIGTest extends TestCase {
                 .setFlag(Flags.QR);
         response.addRecord(question, DnsSection.QUESTION);
         for (int i = 0; i < 40; i++) {
-            DnsRecord answer = DnsRecord.fromString(qname, DnsRecordType.TXT, DnsClass.IN, 300, "foo" + i, null);
+            DnsRecord answer = DnsRecord.Companion.fromString(qname, DnsRecordType.TXT, DnsClass.IN, 300, "foo" + i, null);
             response.addRecord(answer, DnsSection.ANSWER);
         }
         byte[] bytes = response.toWire(512);

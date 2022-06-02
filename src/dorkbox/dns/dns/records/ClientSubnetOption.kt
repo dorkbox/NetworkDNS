@@ -13,33 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.utils.Address;
-import dorkbox.netUtil.IP;
-import dorkbox.netUtil.IPv4;
-import dorkbox.netUtil.IPv6;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.exceptions.WireParseException;
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.exceptions.WireParseException
+import dorkbox.dns.dns.utils.Address
+import dorkbox.dns.dns.utils.Address.familyOf
+import dorkbox.netUtil.IP.truncate
+import dorkbox.netUtil.IPv4
+import dorkbox.netUtil.IPv6
+import java.net.InetAddress
+import java.net.UnknownHostException
 
 /**
  * The Client Subnet EDNS Option, defined in
  * http://tools.ietf.org/html/draft-vandergaast-edns-client-subnet-00
  * ("Client subnet in DNS requests").
- * <p>
+ *
+ *
  * The option is used to convey information about the IP address of the
  * originating client, so that an authoritative server can make decisions
  * based on this address, rather than the address of the intermediate
  * caching name server.
- * <p>
+ *
+ *
  * The option is transmitted as part of an OPTRecord in the additional section
  * of a DNS message, as defined by RFC 2671 (EDNS0).
- * <p>
+ *
+ *
  * The wire format of the option contains a 2-byte length field (1 for IPv4, 2
  * for IPv6), a 1-byte source netmask, a 1-byte scope netmask, and an address
  * truncated to the source netmask length (where the final octet is padded with
@@ -49,33 +51,44 @@ import dorkbox.dns.dns.exceptions.WireParseException;
  * @author Ming Zhou &lt;mizhou@bnivideo.com&gt;, Beaumaris Networks
  * @see OPTRecord
  */
-public
-class ClientSubnetOption extends EDNSOption {
+class ClientSubnetOption : EDNSOption {
+    /**
+     * Returns the family of the network address.  This will be either IPv4 (1)
+     * or IPv6 (2).
+     */
+    var family = 0
+        private set
 
-    private static final long serialVersionUID = -3868158449890266347L;
+    /**
+     * Returns the source netmask.
+     */
+    var sourceNetmask = 0
+        private set
 
-    private int family;
-    private int sourceNetmask;
-    private int scopeNetmask;
-    private InetAddress address;
+    /**
+     * Returns the scope netmask.
+     */
+    var scopeNetmask = 0
+        private set
 
-    ClientSubnetOption() {
-        super(EDNSOption.Code.CLIENT_SUBNET);
-    }
+    /**
+     * Returns the IP address of the client.
+     */
+    var address: InetAddress? = null
+        private set
+
+    internal constructor() : super(Code.CLIENT_SUBNET) {}
 
     /**
      * Construct a Client Subnet option with scope netmask set to 0.
      *
      * @param sourceNetmask The length of the netmask pertaining to the query.
-     *         In replies, it mirrors the same value as in the requests.
+     * In replies, it mirrors the same value as in the requests.
      * @param address The address of the client.
      *
      * @see ClientSubnetOption
      */
-    public
-    ClientSubnetOption(int sourceNetmask, InetAddress address) {
-        this(sourceNetmask, 0, address);
-    }
+    constructor(sourceNetmask: Int, address: InetAddress) : this(sourceNetmask, 0, address) {}
 
     /**
      * Construct a Client Subnet option.  Note that the number of significant bits
@@ -83,134 +96,90 @@ class ClientSubnetOption extends EDNSOption {
      * may also be issues related to Java's handling of mapped addresses
      *
      * @param sourceNetmask The length of the netmask pertaining to the query.
-     *         In replies, it mirrors the same value as in the requests.
+     * In replies, it mirrors the same value as in the requests.
      * @param scopeNetmask The length of the netmask pertaining to the reply.
-     *         In requests, it MUST be set to 0.  In responses, this may or may not match
-     *         the source netmask.
+     * In requests, it MUST be set to 0.  In responses, this may or may not match
+     * the source netmask.
      * @param address The address of the client.
      */
-    public
-    ClientSubnetOption(int sourceNetmask, int scopeNetmask, InetAddress address) {
-        super(EDNSOption.Code.CLIENT_SUBNET);
-
-        this.family = Address.familyOf(address);
-        this.sourceNetmask = checkMaskLength("source netmask", this.family, sourceNetmask);
-        this.scopeNetmask = checkMaskLength("scope netmask", this.family, scopeNetmask);
-        this.address = IP.INSTANCE.truncate(address, sourceNetmask);
-
-        if (!address.equals(this.address)) {
-            throw new IllegalArgumentException("source netmask is not " + "valid for address");
-        }
+    constructor(sourceNetmask: Int, scopeNetmask: Int, address: InetAddress) : super(Code.CLIENT_SUBNET) {
+        family = familyOf(address)
+        this.sourceNetmask = checkMaskLength("source netmask", family, sourceNetmask)
+        this.scopeNetmask = checkMaskLength("scope netmask", family, scopeNetmask)
+        this.address = truncate(address, sourceNetmask)
+        require(address == this.address) { "source netmask is not " + "valid for address" }
     }
 
-    private static int getLength(int family) {
-        int max;
-        if (family == Address.IPv4) {
-            max = IPv4.INSTANCE.getLength();
-        } else if (family == Address.IPv6) {
-            max = IPv6.INSTANCE.getLength();
-        } else {
-            throw new IllegalArgumentException("Invalid family address!");
-        }
-        return max;
-    }
-
-    private static
-    int checkMaskLength(String field, int family, int val) {
-        int max = getLength(family) * 8;
-        if (val < 0 || val > max) {
-            throw new IllegalArgumentException("\"" + field + "\" " + val + " must be in the range " + "[0.." + max + "]");
-        }
-        return val;
-    }
-
-    /**
-     * Returns the family of the network address.  This will be either IPv4 (1)
-     * or IPv6 (2).
-     */
-    public
-    int getFamily() {
-        return family;
-    }
-
-    /**
-     * Returns the source netmask.
-     */
-    public
-    int getSourceNetmask() {
-        return sourceNetmask;
-    }
-
-    /**
-     * Returns the scope netmask.
-     */
-    public
-    int getScopeNetmask() {
-        return scopeNetmask;
-    }
-
-    /**
-     * Returns the IP address of the client.
-     */
-    public
-    InetAddress getAddress() {
-        return address;
-    }
-
-    @Override
-    void optionFromWire(DnsInput in) throws WireParseException {
-        family = in.readU16();
+    @Throws(WireParseException::class)
+    override fun optionFromWire(`in`: DnsInput) {
+        family = `in`.readU16()
         if (family != Address.IPv4 && family != Address.IPv6) {
-            throw new WireParseException("unknown address family");
+            throw WireParseException("unknown address family")
         }
-        sourceNetmask = in.readU8();
+        sourceNetmask = `in`.readU8()
         if (sourceNetmask > getLength(family) * 8) {
-            throw new WireParseException("invalid source netmask");
+            throw WireParseException("invalid source netmask")
         }
-        scopeNetmask = in.readU8();
+        scopeNetmask = `in`.readU8()
         if (scopeNetmask > getLength(family) * 8) {
-            throw new WireParseException("invalid scope netmask");
+            throw WireParseException("invalid scope netmask")
         }
 
         // Read the truncated address
-        byte[] addr = in.readByteArray();
-        if (addr.length != (sourceNetmask + 7) / 8) {
-            throw new WireParseException("invalid address");
+        val addr = `in`.readByteArray()
+        if (addr.size != (sourceNetmask + 7) / 8) {
+            throw WireParseException("invalid address")
         }
 
         // Convert it to a full length address.
-        byte[] fulladdr = new byte[getLength(family)];
-        System.arraycopy(addr, 0, fulladdr, 0, addr.length);
-
-        try {
-            address = InetAddress.getByAddress(fulladdr);
-        } catch (UnknownHostException e) {
-            throw new WireParseException("invalid address", e);
+        val fulladdr = ByteArray(getLength(family))
+        System.arraycopy(addr, 0, fulladdr, 0, addr.size)
+        address = try {
+            InetAddress.getByAddress(fulladdr)
+        } catch (e: UnknownHostException) {
+            throw WireParseException("invalid address", e)
         }
-
-        InetAddress tmp = IP.INSTANCE.truncate(address, sourceNetmask);
-        if (!tmp.equals(address)) {
-            throw new WireParseException("invalid padding");
+        val tmp = truncate(address!!, sourceNetmask)
+        if (tmp != address) {
+            throw WireParseException("invalid padding")
         }
     }
 
-    @Override
-    void optionToWire(DnsOutput out) {
-        out.writeU16(family);
-        out.writeU8(sourceNetmask);
-        out.writeU8(scopeNetmask);
-        out.writeByteArray(address.getAddress(), 0, (sourceNetmask + 7) / 8);
+    override fun optionToWire(out: DnsOutput) {
+        out.writeU16(family)
+        out.writeU8(sourceNetmask)
+        out.writeU8(scopeNetmask)
+        out.writeByteArray(address!!.address, 0, (sourceNetmask + 7) / 8)
     }
 
-    @Override
-    String optionToString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(address.getHostAddress());
-        sb.append("/");
-        sb.append(sourceNetmask);
-        sb.append(", scope netmask ");
-        sb.append(scopeNetmask);
-        return sb.toString();
+    override fun optionToString(): String {
+        val sb = StringBuilder()
+        sb.append(address!!.hostAddress)
+        sb.append("/")
+        sb.append(sourceNetmask)
+        sb.append(", scope netmask ")
+        sb.append(scopeNetmask)
+        return sb.toString()
     }
 
+    companion object {
+        private const val serialVersionUID = -3868158449890266347L
+        private fun getLength(family: Int): Int {
+            val max: Int
+            max = if (family == Address.IPv4) {
+                IPv4.length
+            } else if (family == Address.IPv6) {
+                IPv6.length
+            } else {
+                throw IllegalArgumentException("Invalid family address!")
+            }
+            return max
+        }
+
+        private fun checkMaskLength(field: String, family: Int, `val`: Int): Int {
+            val max = getLength(family) * 8
+            require(!(`val` < 0 || `val` > max)) { "\"$field\" $`val` must be in the range [0..$max]" }
+            return `val`
+        }
+    }
 }

@@ -13,106 +13,69 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns;
+package dorkbox.dns.dns
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-
-import dorkbox.dns.dns.records.DnsMessage;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.AddressedEnvelope;
+import dorkbox.dns.dns.records.DnsMessage
+import io.netty.buffer.ByteBuf
+import io.netty.channel.AddressedEnvelope
+import java.net.InetSocketAddress
 
 /**
  *
  */
-public
-class DnsEnvelope extends DnsMessage implements AddressedEnvelope<DnsEnvelope, InetSocketAddress> {
+open class DnsEnvelope : DnsMessage, AddressedEnvelope<DnsEnvelope, InetSocketAddress?> {
+    private var localAddress: InetSocketAddress? = null
+    private var remoteAddress: InetSocketAddress? = null
 
-    private InetSocketAddress localAddress;
-    private InetSocketAddress remoteAddress;
-
-    public
-    DnsEnvelope() {
-        super();
+    constructor() : super()
+    constructor(id: Int, localAddress: InetSocketAddress?, remoteAddress: InetSocketAddress?) : super(id) {
+        this.localAddress = localAddress
+        this.remoteAddress = remoteAddress
     }
 
-
-    public
-    DnsEnvelope(final int id, final InetSocketAddress localAddress, final InetSocketAddress remoteAddress) {
-        super(id);
-
-        this.localAddress = localAddress;
-        this.remoteAddress = remoteAddress;
+    constructor(buffer: ByteBuf?, localAddress: InetSocketAddress?, remoteAddress: InetSocketAddress?) : super(buffer!!) {
+        this.localAddress = localAddress
+        this.remoteAddress = remoteAddress
     }
 
-    public
-    DnsEnvelope(final ByteBuf buffer, final InetSocketAddress localAddress, final InetSocketAddress remoteAddress) throws IOException {
-        super(buffer);
-
-        this.localAddress = localAddress;
-        this.remoteAddress = remoteAddress;
+    constructor(input: DnsInput?, localAddress: InetSocketAddress?, remoteAddress: InetSocketAddress?) : super(input!!) {
+        this.localAddress = localAddress
+        this.remoteAddress = remoteAddress
     }
 
-
-    public
-    DnsEnvelope(final DnsInput input, final InetSocketAddress localAddress, final InetSocketAddress remoteAddress) throws IOException {
-        super(input);
-
-        this.localAddress = localAddress;
-        this.remoteAddress = remoteAddress;
+    fun setLocalAddress(localAddress: InetSocketAddress?) {
+        this.localAddress = localAddress
     }
 
-    public
-    void setLocalAddress(final InetSocketAddress localAddress) {
-        this.localAddress = localAddress;
+    fun setRemoteAddress(remoteAddress: InetSocketAddress?) {
+        this.remoteAddress = remoteAddress
     }
 
-    public
-    void setRemoteAddress(final InetSocketAddress remoteAddress) {
-        this.remoteAddress = remoteAddress;
+    override fun content(): DnsEnvelope {
+        return this
     }
 
-    @Override
-    public
-    DnsEnvelope content() {
-        return this;
+    override fun sender(): InetSocketAddress? {
+        return localAddress
     }
 
-    @Override
-    public final
-    InetSocketAddress sender() {
-        return localAddress;
+    override fun recipient(): InetSocketAddress? {
+        return remoteAddress
     }
 
-    @Override
-    public final
-    InetSocketAddress recipient() {
-        return remoteAddress;
+    override fun touch(): DnsEnvelope {
+        return super.touch() as DnsEnvelope
     }
 
-
-
-    @Override
-    public
-    DnsEnvelope touch() {
-        return (DnsEnvelope) super.touch();
+    override fun touch(hint: Any): DnsEnvelope {
+        return super.touch(hint) as DnsEnvelope
     }
 
-    @Override
-    public
-    DnsEnvelope touch(Object hint) {
-        return (DnsEnvelope) super.touch(hint);
+    override fun retain(): DnsEnvelope {
+        return super.retain() as DnsEnvelope
     }
 
-    @Override
-    public
-    DnsEnvelope retain() {
-        return (DnsEnvelope) super.retain();
-    }
-
-    @Override
-    public
-    DnsEnvelope retain(int increment) {
-        return (DnsEnvelope) super.retain(increment);
+    override fun retain(increment: Int): DnsEnvelope {
+        return super.retain(increment) as DnsEnvelope
     }
 }

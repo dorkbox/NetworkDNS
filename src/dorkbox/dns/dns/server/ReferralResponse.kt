@@ -13,29 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.server;
+package dorkbox.dns.dns.server
 
-import java.util.Set;
+import dorkbox.dns.dns.constants.DnsResponseCode
+import dorkbox.dns.dns.constants.DnsSection
+import dorkbox.dns.dns.records.DnsMessage
+import dorkbox.dns.dns.records.DnsRecord
 
-import dorkbox.dns.dns.constants.DnsResponseCode;
-import dorkbox.dns.dns.constants.DnsSection;
-import dorkbox.dns.dns.records.DnsMessage;
-import dorkbox.dns.dns.records.DnsRecord;
+class ReferralResponse(val nsRecords: Set<DnsRecord>) : DefaultResponse(DnsResponseCode.NOERROR) {
+    override fun postProcess(message: DnsMessage) {
+        message.header.rcode = responseCode()
 
-public class ReferralResponse extends DefaultResponse {
-	final Set<DnsRecord> nsRecords;
-
-	public ReferralResponse(Set<DnsRecord> records) {
-		super(DnsResponseCode.NOERROR);
-		this.nsRecords = records;
-	}
-
-	@Override
-	public void postProcess(DnsMessage message) {
-	    message.getHeader().setRcode(this.responseCode());
-
-        for (DnsRecord nsRecord : nsRecords) {
-            message.addRecord(nsRecord, DnsSection.AUTHORITY);
+        for (nsRecord in nsRecords) {
+            message.addRecord(nsRecord, DnsSection.AUTHORITY)
         }
-	}
+    }
 }

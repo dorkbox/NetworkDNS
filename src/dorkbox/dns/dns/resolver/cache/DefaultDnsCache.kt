@@ -13,212 +13,172 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver.cache;
+package dorkbox.dns.dns.resolver.cache
 
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
-import static io.netty.util.internal.ObjectUtil.checkPositiveOrZero;
-
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-
-import dorkbox.dns.dns.records.DnsRecord;
-import io.netty.channel.EventLoop;
-import io.netty.util.internal.PlatformDependent;
-import io.netty.util.internal.UnstableApi;
+import io.netty.channel.EventLoop
+import io.netty.util.internal.ObjectUtil
+import io.netty.util.internal.PlatformDependent
+import io.netty.util.internal.UnstableApi
+import java.net.InetAddress
+import java.util.concurrent.*
 
 /**
- * Default implementation of {@link DnsCache}, backed by a {@link ConcurrentMap}.
- * If any additional {@link DnsRecord} is used, no caching takes place.
+ * Default implementation of [DnsCache], backed by a [ConcurrentMap].
+ * If any additional [DnsRecord] is used, no caching takes place.
  */
 @UnstableApi
-public class DefaultDnsCache implements DnsCache {
-
-    private final ConcurrentMap<String, List<DnsCacheEntry>> resolveCache = PlatformDependent.newConcurrentHashMap();
-    private final int minTtl;
-    private final int maxTtl;
-    private final int negativeTtl;
-
-    /**
-     * Create a cache that respects the TTL returned by the DNS server
-     * and doesn't cache negative responses.
-     */
-    public DefaultDnsCache() {
-        this(0, Integer.MAX_VALUE, 0);
-    }
-
+class DefaultDnsCache @JvmOverloads constructor(minTtl: Int = 0, maxTtl: Int = Int.MAX_VALUE, negativeTtl: Int = 0) : DnsCache {
+    private val resolveCache = PlatformDependent.newConcurrentHashMap<String, MutableList<DnsCacheEntry>>()
+    private val minTtl: Int
+    private val maxTtl: Int
+    private val negativeTtl: Int
     /**
      * Create a cache.
      * @param minTtl the minimum TTL
      * @param maxTtl the maximum TTL
      * @param negativeTtl the TTL for failed queries
      */
-    public DefaultDnsCache(int minTtl, int maxTtl, int negativeTtl) {
-        this.minTtl = checkPositiveOrZero(minTtl, "minTtl");
-        this.maxTtl = checkPositiveOrZero(maxTtl, "maxTtl");
+    /**
+     * Create a cache that respects the TTL returned by the DNS server
+     * and doesn't cache negative responses.
+     */
+    init {
+        this.minTtl = ObjectUtil.checkPositiveOrZero(minTtl, "minTtl")
+        this.maxTtl = ObjectUtil.checkPositiveOrZero(maxTtl, "maxTtl")
         if (minTtl > maxTtl) {
-            throw new IllegalArgumentException(
-                    "minTtl: " + minTtl + ", maxTtl: " + maxTtl + " (expected: 0 <= minTtl <= maxTtl)");
+            throw IllegalArgumentException(
+                "minTtl: $minTtl, maxTtl: $maxTtl (expected: 0 <= minTtl <= maxTtl)"
+            )
         }
-        this.negativeTtl = checkPositiveOrZero(negativeTtl, "negativeTtl");
+        this.negativeTtl = ObjectUtil.checkPositiveOrZero(negativeTtl, "negativeTtl")
     }
 
     /**
      * Returns the minimum TTL of the cached DNS resource records (in seconds).
      *
-     * @see #maxTtl()
+     * @see .maxTtl
      */
-    public int minTtl() {
-        return minTtl;
+    fun minTtl(): Int {
+        return minTtl
     }
 
     /**
      * Returns the maximum TTL of the cached DNS resource records (in seconds).
      *
-     * @see #minTtl()
+     * @see .minTtl
      */
-    public int maxTtl() {
-        return maxTtl;
+    fun maxTtl(): Int {
+        return maxTtl
     }
 
     /**
-     * Returns the TTL of the cache for the failed DNS queries (in seconds). The default value is {@code 0}, which
+     * Returns the TTL of the cache for the failed DNS queries (in seconds). The default value is `0`, which
      * disables the cache for negative results.
      */
-    public int negativeTtl() {
-        return negativeTtl;
+    fun negativeTtl(): Int {
+        return negativeTtl
     }
 
-    @Override
-    public void clear() {
-        for (Iterator<Map.Entry<String, List<DnsCacheEntry>>> i = resolveCache.entrySet().iterator(); i.hasNext();) {
-            final Map.Entry<String, List<DnsCacheEntry>> e = i.next();
-            i.remove();
-            cancelExpiration(e.getValue());
+    override fun clear() {
+        val i: MutableIterator<Map.Entry<String?, List<DnsCacheEntry?>>> = resolveCache.entries.iterator()
+        while (i.hasNext()) {
+            val e = i.next()
+            i.remove()
+            cancelExpiration(e.value)
         }
     }
 
-    @Override
-    public boolean clear(String hostname) {
-        checkNotNull(hostname, "hostname");
-        boolean removed = false;
-        for (Iterator<Map.Entry<String, List<DnsCacheEntry>>> i = resolveCache.entrySet().iterator(); i.hasNext();) {
-            final Map.Entry<String, List<DnsCacheEntry>> e = i.next();
-            if (e.getKey().equals(hostname)) {
-                i.remove();
-                cancelExpiration(e.getValue());
-                removed = true;
+    override fun clear(hostname: String): Boolean {
+        var removed = false
+        val i: MutableIterator<Map.Entry<String?, List<DnsCacheEntry?>>> = resolveCache.entries.iterator()
+        while (i.hasNext()) {
+            val e = i.next()
+            if ((e.key == hostname)) {
+                i.remove()
+                cancelExpiration(e.value)
+                removed = true
             }
         }
-        return removed;
+        return removed
     }
 
-    @Override
-    public List<DnsCacheEntry> get(String hostname) {
-        checkNotNull(hostname, "hostname");
-        return resolveCache.get(hostname);
+    override fun get(hostname: String):MutableList<DnsCacheEntry>? {
+        return resolveCache[hostname]
     }
 
-    private List<DnsCacheEntry> cachedEntries(String hostname) {
-        List<DnsCacheEntry> oldEntries = resolveCache.get(hostname);
-        final List<DnsCacheEntry> entries;
+    private fun cachedEntries(hostname: String): MutableList<DnsCacheEntry> {
+        var oldEntries = resolveCache[hostname]
+        val entries: MutableList<DnsCacheEntry>
         if (oldEntries == null) {
-            List<DnsCacheEntry> newEntries = new ArrayList<DnsCacheEntry>(8);
-            oldEntries = resolveCache.putIfAbsent(hostname, newEntries);
-            entries = oldEntries != null? oldEntries : newEntries;
+            val newEntries: MutableList<DnsCacheEntry> = ArrayList(8)
+            oldEntries = resolveCache.putIfAbsent(hostname, newEntries)
+            entries = oldEntries ?: newEntries
         } else {
-            entries = oldEntries;
+            entries = oldEntries
         }
-        return entries;
+        return entries
     }
 
-    @Override
-    public void cache(String hostname, InetAddress address, long originalTtl, EventLoop loop) {
-        checkNotNull(hostname, "hostname");
-        checkNotNull(address, "address");
-        checkNotNull(loop, "loop");
+    override fun cache(hostname: String, address: InetAddress, originalTtl: Long, loop: EventLoop) {
         if (maxTtl == 0) {
-            return;
+            return
         }
-        final int ttl = Math.max(minTtl, (int) Math.min(maxTtl, originalTtl));
-        final List<DnsCacheEntry> entries = cachedEntries(hostname);
-        final DnsCacheEntry e = new DnsCacheEntry(hostname, address);
-
-        synchronized (entries) {
+        val ttl = Math.max(minTtl, Math.min(maxTtl.toLong(), originalTtl).toInt())
+        val entries = cachedEntries(hostname)
+        val e = DnsCacheEntry(hostname, address)
+        synchronized(entries) {
             if (!entries.isEmpty()) {
-                final DnsCacheEntry firstEntry = entries.get(0);
-                if (firstEntry.cause() != null) {
-                    assert entries.size() == 1;
-                    firstEntry.cancelExpiration();
-                    entries.clear();
+                val firstEntry: DnsCacheEntry? = entries.get(0)
+                if (firstEntry!!.cause() != null) {
+                    assert(entries.size == 1)
+                    firstEntry.cancelExpiration()
+                    entries.clear()
                 }
             }
-            entries.add(e);
+            entries.add(e)
         }
-
-        scheduleCacheExpiration(entries, e, ttl, loop);
+        scheduleCacheExpiration(entries, e, ttl, loop)
     }
 
-    @Override
-    public void cache(String hostname, Throwable cause, EventLoop loop) {
-        checkNotNull(hostname, "hostname");
-        checkNotNull(cause, "cause");
-        checkNotNull(loop, "loop");
-
+    override fun cache(hostname: String, cause: Throwable, loop: EventLoop) {
         if (negativeTtl == 0) {
-            return;
+            return
         }
-        final List<DnsCacheEntry> entries = cachedEntries(hostname);
-        final DnsCacheEntry e = new DnsCacheEntry(hostname, cause);
-
-        synchronized (entries) {
-            final int numEntries = entries.size();
-            for (int i = 0; i < numEntries; i ++) {
-                entries.get(i).cancelExpiration();
+        val entries = cachedEntries(hostname)
+        val e = DnsCacheEntry(hostname, cause)
+        synchronized(entries) {
+            val numEntries: Int = entries.size
+            for (i in 0 until numEntries) {
+                entries[i].cancelExpiration()
             }
-            entries.clear();
-            entries.add(e);
+            entries.clear()
+            entries.add(e)
         }
-
-        scheduleCacheExpiration(entries, e, negativeTtl, loop);
+        scheduleCacheExpiration(entries, e, negativeTtl, loop)
     }
 
-    private static void cancelExpiration(List<DnsCacheEntry> entries) {
-        final int numEntries = entries.size();
-        for (int i = 0; i < numEntries; i++) {
-            entries.get(i).cancelExpiration();
+    private fun scheduleCacheExpiration(entries: MutableList<DnsCacheEntry>, e: DnsCacheEntry, ttl: Int, loop: EventLoop) {
+        e.scheduleExpiration(loop, {
+            synchronized(entries) {
+                entries.remove(e)
+                if (entries.isEmpty()) {
+                    resolveCache.remove(e.hostname())
+                }
+            }
+        }, ttl.toLong(), TimeUnit.SECONDS)
+    }
+
+    override fun toString(): String {
+        return StringBuilder().append("DefaultDnsCache(minTtl=").append(minTtl).append(", maxTtl=").append(maxTtl).append(", negativeTtl=")
+            .append(negativeTtl).append(", cached resolved hostname=").append(resolveCache.size).append(")").toString()
+    }
+
+    companion object {
+        private fun cancelExpiration(entries: List<DnsCacheEntry?>) {
+            val numEntries = entries.size
+            for (i in 0 until numEntries) {
+                entries[i]!!.cancelExpiration()
+            }
         }
-    }
-
-    private void scheduleCacheExpiration(final List<DnsCacheEntry> entries,
-                                         final DnsCacheEntry e,
-                                         int ttl,
-                                         EventLoop loop) {
-        e.scheduleExpiration(loop, new Runnable() {
-                    @Override
-                    public void run() {
-                        synchronized (entries) {
-                            entries.remove(e);
-                            if (entries.isEmpty()) {
-                                resolveCache.remove(e.hostname());
-                            }
-                        }
-                    }
-                }, ttl, TimeUnit.SECONDS);
-    }
-
-    @Override
-    public String toString() {
-        return new StringBuilder()
-                .append("DefaultDnsCache(minTtl=")
-                .append(minTtl).append(", maxTtl=")
-                .append(maxTtl).append(", negativeTtl=")
-                .append(negativeTtl).append(", cached resolved hostname=")
-                .append(resolveCache.size()).append(")")
-                .toString();
     }
 }

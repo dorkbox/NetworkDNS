@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * X25 - identifies the PSDN (Public Switched Data Network) address in the
@@ -31,43 +29,32 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  */
+class X25Record : DnsRecord {
+    private lateinit var address: ByteArray
 
-public
-class X25Record extends DnsRecord {
+    internal constructor() {}
 
-    private static final long serialVersionUID = 4267576252335579764L;
+    override val `object`: DnsRecord
+        get() = X25Record()
 
-    private byte[] address;
-
-    X25Record() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new X25Record();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        address = `in`.readCountedString()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        address = in.readCountedString();
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeCountedString(address)
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeCountedString(address);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(byteArrayToString(address, true))
     }
 
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(byteArrayToString(address, true));
-    }
-
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        String addr = st.getString();
-        this.address = checkAndConvertAddress(addr);
-        if (this.address == null) {
-            throw st.exception("invalid PSDN address " + addr);
-        }
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        val addr = st.getString()
+        val address = checkAndConvertAddress(addr) ?: throw st.exception("invalid PSDN address $addr")
+        this.address = address
     }
 
     /**
@@ -77,34 +64,32 @@ class X25Record extends DnsRecord {
      *
      * @throws IllegalArgumentException The address is not a valid PSDN address.
      */
-    public
-    X25Record(Name name, int dclass, long ttl, String address) {
-        super(name, DnsRecordType.X25, dclass, ttl);
-        this.address = checkAndConvertAddress(address);
-        if (this.address == null) {
-            throw new IllegalArgumentException("invalid PSDN address " + address);
-        }
-    }
-
-    private static
-    byte[] checkAndConvertAddress(String address) {
-        int length = address.length();
-        byte[] out = new byte[length];
-        for (int i = 0; i < length; i++) {
-            char c = address.charAt(i);
-            if (!Character.isDigit(c)) {
-                return null;
-            }
-            out[i] = (byte) c;
-        }
-        return out;
+    constructor(name: Name, dclass: Int, ttl: Long, address: String) : super(name, DnsRecordType.X25, dclass, ttl) {
+        val address = checkAndConvertAddress(address)
+        requireNotNull(address) { "invalid PSDN address $address" }
+        this.address = address
     }
 
     /**
      * Returns the X.25 PSDN address.
      */
-    public
-    String getAddress() {
-        return byteArrayToString(address, false);
+    fun getAddress(): String {
+        return byteArrayToString(address, false)
+    }
+
+    companion object {
+        private const val serialVersionUID = 4267576252335579764L
+        private fun checkAndConvertAddress(address: String): ByteArray? {
+            val length = address.length
+            val out = ByteArray(length)
+            for (i in 0 until length) {
+                val c = address[i]
+                if (!Character.isDigit(c)) {
+                    return null
+                }
+                out[i] = c.code.toByte()
+            }
+            return out
+        }
     }
 }

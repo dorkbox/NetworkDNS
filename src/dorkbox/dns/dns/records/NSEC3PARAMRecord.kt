@@ -13,19 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.utils.base16;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.dns.dns.utils.base16.toString
+import java.io.IOException
+import java.security.NoSuchAlgorithmException
 
 /**
  * Next SECure name 3 Parameters - this record contains the parameters (hash
@@ -37,89 +35,91 @@ import dorkbox.dns.dns.utils.base16;
  * @author Brian Wellington
  * @author David Blacka
  */
+class NSEC3PARAMRecord : DnsRecord {
+    /**
+     * Returns the hash algorithm
+     */
+    var hashAlgorithm = 0
+        private set
 
-public
-class NSEC3PARAMRecord extends DnsRecord {
+    /**
+     * Returns the flags
+     */
+    var flags = 0
+        private set
 
-    private static final long serialVersionUID = -8689038598776316533L;
+    /**
+     * Returns the number of iterations
+     */
+    var iterations = 0
+        private set
 
-    private int hashAlg;
-    private int flags;
-    private int iterations;
-    private byte salt[];
+    /**
+     * Returns the salt
+     */
+    var salt: ByteArray? = null
+        private set
 
-    NSEC3PARAMRecord() {}
+    internal constructor() {}
 
-    @Override
-    DnsRecord getObject() {
-        return new NSEC3PARAMRecord();
+    override val `object`: DnsRecord
+        get() = NSEC3PARAMRecord()
+
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        hashAlgorithm = `in`.readU8()
+        flags = `in`.readU8()
+        iterations = `in`.readU16()
+        val salt_length = `in`.readU8()
+        salt = if (salt_length > 0) {
+            `in`.readByteArray(salt_length)
+        } else {
+            null
+        }
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        hashAlg = in.readU8();
-        flags = in.readU8();
-        iterations = in.readU16();
-
-        int salt_length = in.readU8();
-        if (salt_length > 0) {
-            salt = in.readByteArray(salt_length);
-        }
-        else {
-            salt = null;
-        }
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU8(hashAlg);
-        out.writeU8(flags);
-        out.writeU16(iterations);
-
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU8(hashAlgorithm)
+        out.writeU8(flags)
+        out.writeU16(iterations)
         if (salt != null) {
-            out.writeU8(salt.length);
-            out.writeByteArray(salt);
-        }
-        else {
-            out.writeU8(0);
+            out.writeU8(salt!!.size)
+            out.writeByteArray(salt!!)
+        } else {
+            out.writeU8(0)
         }
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(hashAlg);
-        sb.append(' ');
-        sb.append(flags);
-        sb.append(' ');
-        sb.append(iterations);
-        sb.append(' ');
-
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(hashAlgorithm)
+        sb.append(' ')
+        sb.append(flags)
+        sb.append(' ')
+        sb.append(iterations)
+        sb.append(' ')
         if (salt == null) {
-            sb.append('-');
-        }
-        else {
-            sb.append(base16.toString(salt));
+            sb.append('-')
+        } else {
+            sb.append(toString(salt!!))
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        hashAlg = st.getUInt8();
-        flags = st.getUInt8();
-        iterations = st.getUInt16();
-
-        String s = st.getString();
-        if (s.equals("-")) {
-            salt = null;
-        }
-        else {
-            st.unget();
-            salt = st.getHexString();
-            if (salt.length > 255) {
-                throw st.exception("salt value too long");
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        hashAlgorithm = st.getUInt8()
+        flags = st.getUInt8()
+        iterations = st.getUInt16()
+        val s = st.getString()
+        if (s == "-") {
+            salt = null
+        } else {
+            st.unget()
+            salt = st.hexString
+            if (salt!!.size > 255) {
+                throw st.exception("salt value too long")
             }
         }
     }
@@ -135,54 +135,19 @@ class NSEC3PARAMRecord extends DnsRecord {
      * @param iterations The number of hash iterations.
      * @param salt The salt to use (may be null).
      */
-    public
-    NSEC3PARAMRecord(Name name, int dclass, long ttl, int hashAlg, int flags, int iterations, byte[] salt) {
-        super(name, DnsRecordType.NSEC3PARAM, dclass, ttl);
-        this.hashAlg = checkU8("hashAlg", hashAlg);
-        this.flags = checkU8("flags", flags);
-        this.iterations = checkU16("iterations", iterations);
-
+    constructor(name: Name?, dclass: Int, ttl: Long, hashAlg: Int, flags: Int, iterations: Int, salt: ByteArray?) : super(
+        name!!, DnsRecordType.NSEC3PARAM, dclass, ttl
+    ) {
+        hashAlgorithm = checkU8("hashAlg", hashAlg)
+        this.flags = checkU8("flags", flags)
+        this.iterations = checkU16("iterations", iterations)
         if (salt != null) {
-            if (salt.length > 255) {
-                throw new IllegalArgumentException("Invalid salt " + "length");
-            }
-            if (salt.length > 0) {
-                this.salt = new byte[salt.length];
-                System.arraycopy(salt, 0, this.salt, 0, salt.length);
+            require(salt.size <= 255) { "Invalid salt " + "length" }
+            if (salt.size > 0) {
+                this.salt = ByteArray(salt.size)
+                System.arraycopy(salt, 0, this.salt, 0, salt.size)
             }
         }
-    }
-
-    /**
-     * Returns the hash algorithm
-     */
-    public
-    int getHashAlgorithm() {
-        return hashAlg;
-    }
-
-    /**
-     * Returns the flags
-     */
-    public
-    int getFlags() {
-        return flags;
-    }
-
-    /**
-     * Returns the number of iterations
-     */
-    public
-    int getIterations() {
-        return iterations;
-    }
-
-    /**
-     * Returns the salt
-     */
-    public
-    byte[] getSalt() {
-        return salt;
     }
 
     /**
@@ -194,9 +159,12 @@ class NSEC3PARAMRecord extends DnsRecord {
      *
      * @throws NoSuchAlgorithmException The hash algorithm is unknown.
      */
-    public
-    byte[] hashName(Name name) throws NoSuchAlgorithmException {
-        return NSEC3Record.hashName(name, hashAlg, iterations, salt);
+    @Throws(NoSuchAlgorithmException::class)
+    fun hashName(name: Name): ByteArray? {
+        return NSEC3Record.hashName(name, hashAlgorithm, iterations, salt)
     }
 
+    companion object {
+        private const val serialVersionUID = -8689038598776316533L
+    }
 }

@@ -13,80 +13,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver;
+package dorkbox.dns.dns.resolver
 
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
+import dorkbox.dns.dns.records.DnsMessage
+import io.netty.channel.ChannelFuture
+import org.slf4j.Logger
+import java.net.InetSocketAddress
 
-import java.net.InetSocketAddress;
-import java.util.List;
+internal class TraceDnsQueryLifecycleObserver(private val question: DnsMessage, private val logger: Logger) : DnsQueryLifecycleObserver {
+    private var dnsServerAddress: InetSocketAddress? = null
 
-import org.slf4j.Logger;
-
-import dorkbox.dns.dns.records.DnsMessage;
-import io.netty.channel.ChannelFuture;
-
-final
-class TraceDnsQueryLifecycleObserver implements DnsQueryLifecycleObserver {
-    private final Logger logger;
-    private final DnsMessage question;
-    private InetSocketAddress dnsServerAddress;
-
-    TraceDnsQueryLifecycleObserver(DnsMessage question, Logger logger) {
-        this.question = checkNotNull(question, "question");
-        this.logger = checkNotNull(logger, "logger");
+    override fun queryWritten(dnsServerAddress: InetSocketAddress, future: ChannelFuture) {
+        this.dnsServerAddress = dnsServerAddress
     }
 
-    @Override
-    public
-    void queryWritten(InetSocketAddress dnsServerAddress, ChannelFuture future) {
-        this.dnsServerAddress = dnsServerAddress;
-    }
-
-    @Override
-    public
-    void queryCancelled(int queriesRemaining) {
+    override fun queryCancelled(queriesRemaining: Int) {
         if (dnsServerAddress != null) {
-            logger.trace("from {} : {} cancelled with {} queries remaining", dnsServerAddress, question, queriesRemaining);
+            logger.trace("from {} : {} cancelled with {} queries remaining", dnsServerAddress, question, queriesRemaining)
+        } else {
+            logger.trace("{} query never written and cancelled with {} queries remaining", question, queriesRemaining)
         }
-        else {
-            logger.trace("{} query never written and cancelled with {} queries remaining", question, queriesRemaining);
-        }
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver queryRedirected(List<InetSocketAddress> nameServers) {
-        logger.trace("from {} : {} redirected", dnsServerAddress, question);
-        return this;
+    override fun queryRedirected(nameServers: List<InetSocketAddress>): DnsQueryLifecycleObserver {
+        logger.trace("from {} : {} redirected", dnsServerAddress, question)
+        return this
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver queryCNAMEd(DnsMessage cnameQuestion) {
-        logger.trace("from {} : {} CNAME question {}", dnsServerAddress, question, cnameQuestion);
-        return this;
+    override fun queryCNAMEd(cnameQuestion: DnsMessage): DnsQueryLifecycleObserver {
+        logger.trace("from {} : {} CNAME question {}", dnsServerAddress, question, cnameQuestion)
+        return this
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver queryNoAnswer(int code) {
-        logger.trace("from {} : {} no answer {}", dnsServerAddress, question, code);
-        return this;
+    override fun queryNoAnswer(code: Int): DnsQueryLifecycleObserver {
+        logger.trace("from {} : {} no answer {}", dnsServerAddress, question, code)
+        return this
     }
 
-    @Override
-    public
-    void queryFailed(Throwable cause) {
+    override fun queryFailed(cause: Throwable) {
         if (dnsServerAddress != null) {
-            logger.trace("from {} : {} failure", dnsServerAddress, question, cause);
-        }
-        else {
-            logger.trace("{} query never written and failed", question, cause);
+            logger.trace("from {} : {} failure", dnsServerAddress, question, cause)
+        } else {
+            logger.trace("{} query never written and failed", question, cause)
         }
     }
 
-    @Override
-    public
-    void querySucceed() {
-    }
+    override fun querySucceed() {}
 }

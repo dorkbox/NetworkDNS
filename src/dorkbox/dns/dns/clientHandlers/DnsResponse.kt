@@ -13,87 +13,69 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.clientHandlers;
+package dorkbox.dns.dns.clientHandlers
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsEnvelope;
-import io.netty.channel.AddressedEnvelope;
-import io.netty.util.internal.UnstableApi;
+import dorkbox.dns.dns.DnsEnvelope
+import dorkbox.dns.dns.DnsInput
+import io.netty.channel.AddressedEnvelope
+import io.netty.util.internal.UnstableApi
+import java.net.InetSocketAddress
+import java.net.SocketAddress
 
 /**
- * A {@link DnsResponse} implementation for UDP/IP.
+ * A [DnsResponse] implementation for UDP/IP.
  */
 @UnstableApi
-public
-class DnsResponse extends DnsEnvelope {
-
+class DnsResponse(dnsInput: DnsInput?, localAddress: InetSocketAddress?, remoteAddress: InetSocketAddress?) :
+    DnsEnvelope(dnsInput, localAddress, remoteAddress) {
     /**
      * Creates a new instance.
      *
      * @param localAddress the address of the sender
      * @param remoteAddress the address of the recipient
      */
-    public
-    DnsResponse(final DnsInput dnsInput, InetSocketAddress localAddress, InetSocketAddress remoteAddress) throws IOException {
-        super(dnsInput, localAddress, remoteAddress);
-
+    init {
         if (remoteAddress == null && localAddress == null) {
-            throw new NullPointerException("localAddress and remoteAddress");
+            throw NullPointerException("localAddress and remoteAddress")
         }
     }
 
-    @Override
-    public
-    int hashCode() {
-        int hashCode = super.hashCode();
+    override fun hashCode(): Int {
+        var hashCode = super.hashCode()
         if (sender() != null) {
-            hashCode = hashCode * 31 + sender().hashCode();
+            hashCode = hashCode * 31 + sender().hashCode()
         }
         if (recipient() != null) {
-            hashCode = hashCode * 31 + recipient().hashCode();
+            hashCode = hashCode * 31 + recipient().hashCode()
         }
-        return hashCode;
+        return hashCode
     }
 
-    @Override
-    public
-    boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
+    override fun equals(obj: Any?): Boolean {
+        if (this === obj) {
+            return true
         }
-
         if (!super.equals(obj)) {
-            return false;
+            return false
         }
-
-        if (!(obj instanceof AddressedEnvelope)) {
-            return false;
+        if (obj !is AddressedEnvelope<*, *>) {
+            return false
         }
-
-        @SuppressWarnings("unchecked")
-        final AddressedEnvelope<?, SocketAddress> that = (AddressedEnvelope<?, SocketAddress>) obj;
+        val that = obj as AddressedEnvelope<*, SocketAddress?>
         if (sender() == null) {
             if (that.sender() != null) {
-                return false;
+                return false
             }
+        } else if (sender() != that.sender()) {
+            return false
         }
-        else if (!sender().equals(that.sender())) {
-            return false;
-        }
-
         if (recipient() == null) {
             if (that.recipient() != null) {
-                return false;
+                return false
             }
+        } else if (recipient() != that.recipient()) {
+            return false
         }
-        else if (!recipient().equals(that.recipient())) {
-            return false;
-        }
-
-        return true;
+        return true
     }
 }

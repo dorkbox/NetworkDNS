@@ -13,59 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns
 
-package dorkbox.dns.dns;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 
 /**
  * A class for rendering DNS messages.
  *
  * @author Brian Wellington
  */
-
-
-public
-class DnsOutput {
-
-    private ByteBuf byteBuf;
-    private boolean marked = false;
-
-    /**
-     * Create a new DnsOutput
-     */
-    public
-    DnsOutput() {
-        this(32);
-    }
-
+class DnsOutput
+/**
+ * Create a new DnsOutput with a specified ByteBuf.
+ *
+ * @param byteBuf The ByteBuf to use
+ */(val byteBuf: ByteBuf) {
+    private var marked = false
     /**
      * Create a new DnsOutput with a specified size.
      *
      * @param size The initial size
      */
-    public
-    DnsOutput(int size) {
-        this(Unpooled.buffer(size));
-    }
-
     /**
-     * Create a new DnsOutput with a specified ByteBuf.
-     *
-     * @param byteBuf The ByteBuf to use
+     * Create a new DnsOutput
      */
-    public
-    DnsOutput(ByteBuf byteBuf) {
-        this.byteBuf = byteBuf;
+    @JvmOverloads
+    constructor(size: Int = 32) : this(Unpooled.buffer(size)) {
     }
 
     /**
      * Returns the current position.
      */
-    public
-    int current() {
-        return byteBuf.writerIndex();
+    fun current(): Int {
+        return byteBuf.writerIndex()
     }
 
     /**
@@ -75,14 +56,12 @@ class DnsOutput {
      *
      * @throws IllegalArgumentException The index is not within the output.
      */
-    public
-    void jump(int index) {
-        if (index >= byteBuf.writerIndex()) {
+    fun jump(index: Int) {
+        require(index < byteBuf.writerIndex()) {
             // we haven't written data to this point yet, and the contract for jump() is that it can only jump to a PREVIOUSLY written spot
-            throw new IllegalArgumentException("Unable to jump to invalid position " + index + ". Max is " + byteBuf.writerIndex());
+            "Unable to jump to invalid position " + index + ". Max is " + byteBuf.writerIndex()
         }
-
-        byteBuf.writerIndex(index);
+        byteBuf.writerIndex(index)
     }
 
     /**
@@ -90,22 +69,18 @@ class DnsOutput {
      *
      * @throws IllegalArgumentException The index is not within the output.
      */
-    public
-    void save() {
-        marked = true;
-        byteBuf.markWriterIndex();
+    fun save() {
+        marked = true
+        byteBuf.markWriterIndex()
     }
 
     /**
-     * Restores the input stream to its state before the call to {@link #save}.
+     * Restores the input stream to its state before the call to [.save].
      */
-    public
-    void restore() {
-        if (!marked) {
-            throw new IllegalStateException("Not marked first");
-        }
-        byteBuf.resetWriterIndex();
-        marked = false;
+    fun restore() {
+        check(marked) { "Not marked first" }
+        byteBuf.resetWriterIndex()
+        marked = false
     }
 
     /**
@@ -113,21 +88,16 @@ class DnsOutput {
      *
      * @param val The value to be written
      */
-    public
-    void writeU8(int val) {
-        check(val, 8);
-
-        byteBuf.ensureWritable(1);
-        byteBuf.writeByte(val);
+    fun writeU8(`val`: Int) {
+        check(`val`.toLong(), 8)
+        byteBuf.ensureWritable(1)
+        byteBuf.writeByte(`val`)
     }
 
-    private
-    void check(long val, int bits) {
-        long max = 1;
-        max <<= bits;
-        if (val < 0 || val > max) {
-            throw new IllegalArgumentException(val + " out of range for " + bits + " bit value");
-        }
+    private fun check(`val`: Long, bits: Int) {
+        var max: Long = 1
+        max = max shl bits
+        require(!(`val` < 0 || `val` > max)) { "$`val` out of range for $bits bit value" }
     }
 
     /**
@@ -135,12 +105,10 @@ class DnsOutput {
      *
      * @param val The value to be written
      */
-    public
-    void writeU16(int val) {
-        check(val, 16);
-
-        byteBuf.ensureWritable(2);
-        byteBuf.writeShort(val);
+    fun writeU16(`val`: Int) {
+        check(`val`.toLong(), 16)
+        byteBuf.ensureWritable(2)
+        byteBuf.writeShort(`val`)
     }
 
     /**
@@ -149,21 +117,19 @@ class DnsOutput {
      * @param val The value to be written
      * @param where The position to write the value.
      */
-    public
-    void writeU16At(int val, int where) {
-        check(val, 16);
+    fun writeU16At(`val`: Int, where: Int) {
+        check(`val`.toLong(), 16)
 
         // save and set both the read/write index, otherwise if the read index is > write index, errors happen.
-        int saved = byteBuf.writerIndex();
-        int readSaved = byteBuf.readerIndex();
-
-        byteBuf.setIndex(where, where);
-        byteBuf.ensureWritable(2);
-        byteBuf.writeShort(val);
+        val saved = byteBuf.writerIndex()
+        val readSaved = byteBuf.readerIndex()
+        byteBuf.setIndex(where, where)
+        byteBuf.ensureWritable(2)
+        byteBuf.writeShort(`val`)
 
         // put the read/write back to where it was (since this was an operation to write a value at a specific position)
-        byteBuf.writerIndex(saved);
-        byteBuf.readerIndex(readSaved);
+        byteBuf.writerIndex(saved)
+        byteBuf.readerIndex(readSaved)
     }
 
     /**
@@ -171,24 +137,11 @@ class DnsOutput {
      *
      * @param val The value to be written
      */
-    public
-    void writeU32(long val) {
-        check(val, 32);
-
-        byteBuf.ensureWritable(4);
-        byteBuf.writeInt((int) val);
+    fun writeU32(`val`: Long) {
+        check(`val`, 32)
+        byteBuf.ensureWritable(4)
+        byteBuf.writeInt(`val`.toInt())
     }
-
-    /**
-     * Writes a byte array to the stream.
-     *
-     * @param b The array to write.
-     */
-    public
-    void writeByteArray(byte[] b) {
-        writeByteArray(b, 0, b.length);
-    }
-
     /**
      * Writes a byte array to the stream.
      *
@@ -196,10 +149,10 @@ class DnsOutput {
      * @param off The offset of the array to start copying data from.
      * @param len The number of bytes to write.
      */
-    public
-    void writeByteArray(byte[] b, int off, int len) {
-        byteBuf.ensureWritable(len);
-        byteBuf.writeBytes(b, off, len);
+    @JvmOverloads
+    fun writeByteArray(b: ByteArray, off: Int = 0, len: Int = b.size) {
+        byteBuf.ensureWritable(len)
+        byteBuf.writeBytes(b, off, len)
     }
 
     /**
@@ -208,29 +161,19 @@ class DnsOutput {
      *
      * @param s The string to write.
      */
-    public
-    void writeCountedString(byte[] s) {
-        if (s.length > 0xFF) {
-            throw new IllegalArgumentException("Invalid counted string");
-        }
-
-        byteBuf.ensureWritable(1 + s.length);
-        byteBuf.writeByte(s.length);
-        byteBuf.writeBytes(s, 0, s.length);
+    fun writeCountedString(s: ByteArray) {
+        require(s.size <= 0xFF) { "Invalid counted string" }
+        byteBuf.ensureWritable(1 + s.size)
+        byteBuf.writeByte(s.size)
+        byteBuf.writeBytes(s, 0, s.size)
     }
 
     /**
      * Returns a byte array containing the current contents of the stream.
      */
-    public
-    byte[] toByteArray() {
-        byte[] out = new byte[byteBuf.writerIndex()];
-        byteBuf.readBytes(out, 0, out.length);
-        return out;
-    }
-
-    public
-    ByteBuf getByteBuf() {
-        return byteBuf;
+    fun toByteArray(): ByteArray {
+        val out = ByteArray(byteBuf.writerIndex())
+        byteBuf.readBytes(out, 0, out.size)
+        return out
     }
 }

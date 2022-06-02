@@ -13,83 +13,67 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.util.Iterator;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsClass;
-import dorkbox.dns.dns.constants.DnsOpCode;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.constants.DnsSection;
-import dorkbox.dns.dns.exceptions.RelativeNameException;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsClass
+import dorkbox.dns.dns.constants.DnsClass.check
+import dorkbox.dns.dns.constants.DnsOpCode
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.constants.DnsSection
+import dorkbox.dns.dns.exceptions.RelativeNameException
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * A helper class for constructing dynamic DNS (DDNS) update messages.
  *
  * @author Brian Wellington
  */
-
-public
-class Update extends DnsMessage {
-
-    private Name origin;
-    private int dclass;
-
-    /**
-     * Creates an update message.  The class is assumed to be IN.
-     *
-     * @param zone The name of the zone being updated.
-     */
-    public
-    Update(Name zone) {
-        this(zone, DnsClass.IN);
-    }
-
+class Update @JvmOverloads constructor(zone: Name, dclass: Int = DnsClass.IN) : DnsMessage() {
+    private val origin: Name
+    private val dclass: Int
     /**
      * Creates an update message.
      *
      * @param zone The name of the zone being updated.
      * @param dclass The class of the zone being updated.
      */
-    public
-    Update(Name zone, int dclass) {
-        super();
-        if (!zone.isAbsolute()) {
-            throw new RelativeNameException(zone);
+    /**
+     * Creates an update message.  The class is assumed to be IN.
+     *
+     * @param zone The name of the zone being updated.
+     */
+    init {
+        if (!zone.isAbsolute) {
+            throw RelativeNameException(zone)
         }
-        DnsClass.check(dclass);
-        getHeader().setOpcode(DnsOpCode.UPDATE);
-        DnsRecord soa = DnsRecord.newRecord(zone, DnsRecordType.SOA, DnsClass.IN);
-        addRecord(soa, DnsSection.QUESTION);
-        this.origin = zone;
-        this.dclass = dclass;
+        check(dclass)
+        header.opcode = DnsOpCode.UPDATE
+        val soa = DnsRecord.newRecord(zone, DnsRecordType.SOA, DnsClass.IN)
+        addRecord(soa, DnsSection.QUESTION)
+        origin = zone
+        this.dclass = dclass
     }
 
     /**
      * Inserts a prerequisite that the specified name exists; that is, there
      * exist records with the given name in the zone.
      */
-    public
-    void present(Name name) {
-        newPrereq(DnsRecord.newRecord(name, DnsRecordType.ANY, DnsClass.ANY, 0));
+    fun present(name: Name) {
+        newPrereq(DnsRecord.newRecord(name, DnsRecordType.ANY, DnsClass.ANY, 0))
     }
 
-    private
-    void newPrereq(DnsRecord rec) {
-        addRecord(rec, DnsSection.PREREQ);
+    private fun newPrereq(rec: DnsRecord) {
+        addRecord(rec, DnsSection.PREREQ)
     }
 
     /**
      * Inserts a prerequisite that the specified rrset exists; that is, there
      * exist records with the given name and type in the zone.
      */
-    public
-    void present(Name name, int type) {
-        newPrereq(DnsRecord.newRecord(name, type, DnsClass.ANY, 0));
+    fun present(name: Name, type: Int) {
+        newPrereq(DnsRecord.newRecord(name, type, DnsClass.ANY, 0))
     }
 
     /**
@@ -101,9 +85,9 @@ class Update extends DnsMessage {
      *
      * @throws IOException The record could not be parsed.
      */
-    public
-    void present(Name name, int type, String record) throws IOException {
-        newPrereq(DnsRecord.fromString(name, type, dclass, 0, record, origin));
+    @Throws(IOException::class)
+    fun present(name: Name, type: Int, record: String) {
+        newPrereq(DnsRecord.fromString(name, type, dclass, 0, record, origin))
     }
 
     /**
@@ -115,9 +99,9 @@ class Update extends DnsMessage {
      *
      * @throws IOException The record could not be parsed.
      */
-    public
-    void present(Name name, int type, Tokenizer tokenizer) throws IOException {
-        newPrereq(DnsRecord.fromString(name, type, dclass, 0, tokenizer, origin));
+    @Throws(IOException::class)
+    fun present(name: Name, type: Int, tokenizer: Tokenizer) {
+        newPrereq(DnsRecord.fromString(name, type, dclass, 0, tokenizer, origin))
     }
 
     /**
@@ -126,60 +110,54 @@ class Update extends DnsMessage {
      * the set of all records with the same and type in the update message must
      * be identical to the set of all records with that name and type on the server.
      */
-    public
-    void present(DnsRecord record) {
-        newPrereq(record);
+    fun present(record: DnsRecord) {
+        newPrereq(record)
     }
 
     /**
      * Inserts a prerequisite that the specified name does not exist; that is,
      * there are no records with the given name in the zone.
      */
-    public
-    void absent(Name name) {
-        newPrereq(DnsRecord.newRecord(name, DnsRecordType.ANY, DnsClass.NONE, 0));
+    fun absent(name: Name) {
+        newPrereq(DnsRecord.newRecord(name, DnsRecordType.ANY, DnsClass.NONE, 0))
     }
 
     /**
      * Inserts a prerequisite that the specified rrset does not exist; that is,
      * there are no records with the given name and type in the zone.
      */
-    public
-    void absent(Name name, int type) {
-        newPrereq(DnsRecord.newRecord(name, type, DnsClass.NONE, 0));
+    fun absent(name: Name, type: Int) {
+        newPrereq(DnsRecord.newRecord(name, type, DnsClass.NONE, 0))
     }
 
     /**
      * Indicates that the records should be inserted into the zone.
      */
-    public
-    void add(DnsRecord[] records) {
-        for (int i = 0; i < records.length; i++) {
-            add(records[i]);
+    fun add(records: Array<DnsRecord>) {
+        for (i in records.indices) {
+            add(records[i])
         }
     }
 
     /**
      * Indicates that the record should be inserted into the zone.
      */
-    public
-    void add(DnsRecord record) {
-        newUpdate(record);
+    fun add(record: DnsRecord) {
+        newUpdate(record)
     }
 
-    private
-    void newUpdate(DnsRecord rec) {
-        addRecord(rec, DnsSection.UPDATE);
+    private fun newUpdate(rec: DnsRecord) {
+        addRecord(rec, DnsSection.UPDATE)
     }
 
     /**
      * Indicates that all of the records in the rrset should be inserted into the
      * zone.
      */
-    public
-    void add(RRset rrset) {
-        for (Iterator it = rrset.rrs(); it.hasNext(); ) {
-            add((DnsRecord) it.next());
+    fun add(rrset: RRset) {
+        val it = rrset.rrs()
+        while (it.hasNext()) {
+            add(it.next() as DnsRecord)
         }
     }
 
@@ -187,9 +165,8 @@ class Update extends DnsMessage {
      * Indicates that all records with the given name should be deleted from
      * the zone.
      */
-    public
-    void delete(Name name) {
-        newUpdate(DnsRecord.newRecord(name, DnsRecordType.ANY, DnsClass.ANY, 0));
+    fun delete(name: Name) {
+        newUpdate(DnsRecord.newRecord(name, DnsRecordType.ANY, DnsClass.ANY, 0))
     }
 
     /**
@@ -198,9 +175,9 @@ class Update extends DnsMessage {
      *
      * @throws IOException The record could not be parsed.
      */
-    public
-    void delete(Name name, int type, String record) throws IOException {
-        newUpdate(DnsRecord.fromString(name, type, DnsClass.NONE, 0, record, origin));
+    @Throws(IOException::class)
+    fun delete(name: Name, type: Int, record: String) {
+        newUpdate(DnsRecord.fromString(name, type, DnsClass.NONE, 0, record, origin))
     }
 
     /**
@@ -209,37 +186,35 @@ class Update extends DnsMessage {
      *
      * @throws IOException The record could not be parsed.
      */
-    public
-    void delete(Name name, int type, Tokenizer tokenizer) throws IOException {
-        newUpdate(DnsRecord.fromString(name, type, DnsClass.NONE, 0, tokenizer, origin));
+    @Throws(IOException::class)
+    fun delete(name: Name, type: Int, tokenizer: Tokenizer) {
+        newUpdate(DnsRecord.fromString(name, type, DnsClass.NONE, 0, tokenizer, origin))
     }
 
     /**
      * Indicates that the records should be deleted from the zone.
      */
-    public
-    void delete(DnsRecord[] records) {
-        for (int i = 0; i < records.length; i++) {
-            delete(records[i]);
+    fun delete(records: Array<DnsRecord>) {
+        for (i in records.indices) {
+            delete(records[i])
         }
     }
 
     /**
      * Indicates that the specified record should be deleted from the zone.
      */
-    public
-    void delete(DnsRecord record) {
-        newUpdate(record.withDClass(DnsClass.NONE, 0));
+    fun delete(record: DnsRecord) {
+        newUpdate(record.withDClass(DnsClass.NONE, 0))
     }
 
     /**
      * Indicates that all of the records in the rrset should be deleted from the
      * zone.
      */
-    public
-    void delete(RRset rrset) {
-        for (Iterator it = rrset.rrs(); it.hasNext(); ) {
-            delete((DnsRecord) it.next());
+    fun delete(rrset: RRset) {
+        val it = rrset.rrs()
+        while (it.hasNext()) {
+            delete(it.next() as DnsRecord)
         }
     }
 
@@ -250,10 +225,10 @@ class Update extends DnsMessage {
      *
      * @throws IOException The record could not be parsed.
      */
-    public
-    void replace(Name name, int type, long ttl, String record) throws IOException {
-        delete(name, type);
-        add(name, type, ttl, record);
+    @Throws(IOException::class)
+    fun replace(name: Name, type: Int, ttl: Long, record: String) {
+        delete(name, type)
+        add(name, type, ttl, record)
     }
 
     /**
@@ -262,18 +237,17 @@ class Update extends DnsMessage {
      *
      * @throws IOException The record could not be parsed.
      */
-    public
-    void add(Name name, int type, long ttl, String record) throws IOException {
-        newUpdate(DnsRecord.fromString(name, type, dclass, ttl, record, origin));
+    @Throws(IOException::class)
+    fun add(name: Name, type: Int, ttl: Long, record: String) {
+        newUpdate(DnsRecord.fromString(name, type, dclass, ttl, record, origin))
     }
 
     /**
      * Indicates that all records with the given name and type should be deleted
      * from the zone.
      */
-    public
-    void delete(Name name, int type) {
-        newUpdate(DnsRecord.newRecord(name, type, DnsClass.ANY, 0));
+    fun delete(name: Name, type: Int) {
+        newUpdate(DnsRecord.newRecord(name, type, DnsClass.ANY, 0))
     }
 
     /**
@@ -283,10 +257,10 @@ class Update extends DnsMessage {
      *
      * @throws IOException The record could not be parsed.
      */
-    public
-    void replace(Name name, int type, long ttl, Tokenizer tokenizer) throws IOException {
-        delete(name, type);
-        add(name, type, ttl, tokenizer);
+    @Throws(IOException::class)
+    fun replace(name: Name, type: Int, ttl: Long, tokenizer: Tokenizer) {
+        delete(name, type)
+        add(name, type, ttl, tokenizer)
     }
 
     /**
@@ -295,19 +269,18 @@ class Update extends DnsMessage {
      *
      * @throws IOException The record could not be parsed.
      */
-    public
-    void add(Name name, int type, long ttl, Tokenizer tokenizer) throws IOException {
-        newUpdate(DnsRecord.fromString(name, type, dclass, ttl, tokenizer, origin));
+    @Throws(IOException::class)
+    fun add(name: Name, type: Int, ttl: Long, tokenizer: Tokenizer) {
+        newUpdate(DnsRecord.fromString(name, type, dclass, ttl, tokenizer, origin))
     }
 
     /**
      * Indicates that the records should be inserted into the zone replacing any
      * other records with the same name and type as each one.
      */
-    public
-    void replace(DnsRecord[] records) {
-        for (int i = 0; i < records.length; i++) {
-            replace(records[i]);
+    fun replace(records: Array<DnsRecord>) {
+        for (i in records.indices) {
+            replace(records[i])
         }
     }
 
@@ -315,22 +288,20 @@ class Update extends DnsMessage {
      * Indicates that the record should be inserted into the zone replacing any
      * other records with the same name and type.
      */
-    public
-    void replace(DnsRecord record) {
-        delete(record.getName(), record.getType());
-        add(record);
+    fun replace(record: DnsRecord) {
+        delete(record.name, record.type)
+        add(record)
     }
 
     /**
      * Indicates that all of the records in the rrset should be inserted into the
      * zone replacing any other records with the same name and type.
      */
-    public
-    void replace(RRset rrset) {
-        delete(rrset.getName(), rrset.getType());
-        for (Iterator it = rrset.rrs(); it.hasNext(); ) {
-            add((DnsRecord) it.next());
+    fun replace(rrset: RRset) {
+        delete(rrset.name, rrset.type)
+        val it = rrset.rrs()
+        while (it.hasNext()) {
+            add(it.next() as DnsRecord)
         }
     }
-
 }

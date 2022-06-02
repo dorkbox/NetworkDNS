@@ -13,70 +13,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * Mail Exchange - specifies where mail to a domain is sent
  *
  * @author Brian Wellington
  */
+class MXRecord : U16NameBase {
+    internal constructor() {}
 
-public
-class MXRecord extends U16NameBase {
+    override val `object`: DnsRecord
+        get() = MXRecord()
 
-    private static final long serialVersionUID = 2914841027584208546L;
-
-    MXRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new MXRecord();
-    }
-
-    @Override
-    public
-    Name getAdditionalName() {
-        return getNameField();
-    }
-
-    /**
-     * Creates an MX Record from the given data
-     *
-     * @param priority The priority of this MX.  Records with lower priority
-     *         are preferred.
-     * @param target The host that mail is sent to
-     */
-    public
-    MXRecord(Name name, int dclass, long ttl, int priority, Name target) {
-        super(name, DnsRecordType.MX, dclass, ttl, priority, "priority", target, "target");
-    }
 
     /**
      * Returns the target of the MX record
      */
-    public
-    Name getTarget() {
-        return getNameField();
-    }
+    val target: Name
+        get() = nameField
 
     /**
      * Returns the priority of this MX record
      */
-    public
-    int getPriority() {
-        return getU16Field();
+    val priority: Int
+        get() = u16Field
+
+
+    /**
+     * Creates an MX Record from the given data
+     *
+     * @param priority The priority of this MX.  Records with lower priority are preferred.
+     * @param target The host that mail is sent to
+     */
+    constructor(name: Name, dclass: Int, ttl: Long, priority: Int, target: Name) : super(
+        name, DnsRecordType.MX, dclass, ttl, priority, "priority", target, "target"
+    ) {
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU16(u16Field);
-        nameField.toWire(out, c, canonical);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU16(u16Field)
+        nameField.toWire(out, c, canonical)
     }
 
+    companion object {
+        private const val serialVersionUID = 2914841027584208546L
+    }
 }

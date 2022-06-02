@@ -22,8 +22,6 @@ import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.MXRecord;
 import junit.framework.TestCase;
 
 public
@@ -37,14 +35,14 @@ class MXRecordTest extends TestCase {
 
     public
     void test_ctor_5arg() throws TextParseException {
-        Name n = Name.fromString("My.Name.");
-        Name m = Name.fromString("My.OtherName.");
+        Name n = Name.Companion.fromString("My.Name.");
+        Name m = Name.Companion.fromString("My.OtherName.");
 
         MXRecord d = new MXRecord(n, DnsClass.IN, 0xABCDEL, 0xF1, m);
         assertEquals(n, d.getName());
         assertEquals(DnsRecordType.MX, d.getType());
-        assertEquals(DnsClass.IN, d.getDClass());
-        assertEquals(0xABCDEL, d.getTTL());
+        assertEquals(DnsClass.IN, d.getDclass());
+        assertEquals(0xABCDEL, d.getTtl());
         assertEquals(0xF1, d.getPriority());
         assertEquals(m, d.getTarget());
         assertEquals(m, d.getAdditionalName());
@@ -52,8 +50,8 @@ class MXRecordTest extends TestCase {
 
     public
     void test_rrToWire() throws TextParseException {
-        Name n = Name.fromString("My.Name.");
-        Name m = Name.fromString("M.O.n.");
+        Name n = Name.Companion.fromString("My.Name.");
+        Name m = Name.Companion.fromString("M.O.n.");
 
         MXRecord mr = new MXRecord(n, DnsClass.IN, 0xB12FL, 0x1F2B, m);
 

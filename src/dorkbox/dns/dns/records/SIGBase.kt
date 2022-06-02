@@ -13,233 +13,200 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.util.Base64;
-import java.util.Date;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.utils.FormattedTime;
-import dorkbox.dns.dns.utils.Options;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.os.OS;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsClass
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.constants.DnsRecordType.check
+import dorkbox.dns.dns.constants.DnsRecordType.string
+import dorkbox.dns.dns.constants.DnsRecordType.value
+import dorkbox.dns.dns.utils.FormattedTime.format
+import dorkbox.dns.dns.utils.FormattedTime.parse
+import dorkbox.dns.dns.utils.Options.check
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.os.OS.LINE_SEPARATOR
+import java.io.IOException
+import java.util.*
 
 /**
  * The base class for SIG/RRSIG records, which have identical formats
  *
  * @author Brian Wellington
  */
-
-abstract
-class SIGBase extends DnsRecord {
-
-    private static final long serialVersionUID = -3738444391533812369L;
-
-    protected int covered;
-    protected int alg, labels;
-    protected long origttl;
-    protected Date expire, timeSigned;
-    protected int footprint;
-    protected Name signer;
-    protected byte[] signature;
-
-    protected
-    SIGBase() {}
-
-    public
-    SIGBase(Name name,
-            int type,
-            int dclass,
-            long ttl,
-            int covered,
-            int alg,
-            long origttl,
-            Date expire,
-            Date timeSigned,
-            int footprint,
-            Name signer,
-            byte[] signature) {
-        super(name, type, dclass, ttl);
-        DnsRecordType.check(covered);
-        TTL.check(origttl);
-        this.covered = covered;
-        this.alg = checkU8("alg", alg);
-        this.labels = name.labels() - 1;
-        if (name.isWild()) {
-            this.labels--;
-        }
-        this.origttl = origttl;
-        this.expire = expire;
-        this.timeSigned = timeSigned;
-        this.footprint = checkU16("footprint", footprint);
-        this.signer = checkName("signer", signer);
-        this.signature = signature;
-    }
-
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        covered = in.readU16();
-        alg = in.readU8();
-        labels = in.readU8();
-        origttl = in.readU32();
-        expire = new Date(1000 * in.readU32());
-        timeSigned = new Date(1000 * in.readU32());
-        footprint = in.readU16();
-        signer = new Name(in);
-        signature = in.readByteArray();
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU16(covered);
-        out.writeU8(alg);
-        out.writeU8(labels);
-        out.writeU32(origttl);
-        out.writeU32(expire.getTime() / 1000);
-        out.writeU32(timeSigned.getTime() / 1000);
-        out.writeU16(footprint);
-        signer.toWire(out, null, canonical);
-        out.writeByteArray(signature);
-    }
-
-    /**
-     * Converts the RRSIG/SIG Record to a String
-     */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(DnsRecordType.string(covered));
-        sb.append(" ");
-        sb.append(alg);
-        sb.append(" ");
-        sb.append(labels);
-        sb.append(" ");
-        sb.append(origttl);
-        sb.append(" ");
-        if (Options.check("multiline")) {
-            sb.append("(");
-            sb.append(OS.INSTANCE.getLINE_SEPARATOR());
-            sb.append("\t");
-        }
-        sb.append(FormattedTime.format(expire));
-        sb.append(" ");
-        sb.append(FormattedTime.format(timeSigned));
-        sb.append(" ");
-        sb.append(footprint);
-        sb.append(" ");
-        sb.append(signer);
-        if (Options.check("multiline")) {
-            sb.append(OS.INSTANCE.getLINE_SEPARATOR());
-            sb.append(Base64.getEncoder().encodeToString(signature));
-        }
-        else {
-            sb.append(" ");
-            sb.append(Base64.getMimeEncoder().encodeToString(signature));
-        }
-    }
-
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        String typeString = st.getString();
-        covered = DnsRecordType.value(typeString);
-        if (covered < 0) {
-            throw st.exception("Invalid type: " + typeString);
-        }
-        String algString = st.getString();
-        alg = DNSSEC.Algorithm.value(algString);
-        if (alg < 0) {
-            throw st.exception("Invalid algorithm: " + algString);
-        }
-        labels = st.getUInt8();
-        origttl = st.getTTL();
-        expire = FormattedTime.parse(st.getString());
-        timeSigned = FormattedTime.parse(st.getString());
-        footprint = st.getUInt16();
-        signer = st.getName(origin);
-        signature = st.getBase64();
-    }
-
+abstract class SIGBase : DnsRecord {
     /**
      * Returns the RRset type covered by this signature
      */
-    public
-    int getTypeCovered() {
-        return covered;
-    }
+    var typeCovered = 0
+        protected set
 
     /**
      * Returns the cryptographic algorithm of the key that generated the signature
      */
-    public
-    int getAlgorithm() {
-        return alg;
-    }
+    var algorithm = 0
+        protected set
 
     /**
      * Returns the number of labels in the signed domain name.  This may be
      * different than the record's domain name if the record is a wildcard
      * record.
      */
-    public
-    int getLabels() {
-        return labels;
-    }
+    var labels = 0
+        protected set
 
     /**
      * Returns the original TTL of the RRset
      */
-    public
-    long getOrigTTL() {
-        return origttl;
-    }
+    var origTTL: Long = 0
+        protected set
 
     /**
      * Returns the time at which the signature expires
      */
-    public
-    Date getExpire() {
-        return expire;
-    }
+    var expire: Date
+        protected set
 
     /**
      * Returns the time at which this signature was generated
      */
-    public
-    Date getTimeSigned() {
-        return timeSigned;
-    }
+    var timeSigned: Date
+        protected set
 
     /**
      * Returns The footprint/key id of the signing key.
      */
-    public
-    int getFootprint() {
-        return footprint;
-    }
+    var footprint = 0
+        protected set
 
     /**
      * Returns the owner of the signing key
      */
-    public
-    Name getSigner() {
-        return signer;
-    }
+    var signer: Name
+        protected set
 
     /**
      * Returns the binary data representing the signature
      */
-    public
-    byte[] getSignature() {
-        return signature;
+    var signature: ByteArray
+
+    protected constructor() : this(
+        Name.empty, DnsRecordType.A, DnsClass.ANY, 0L, DnsRecordType.A, 0, 0, Date(), Date(), 0, Name.root, byteArrayOf()
+    )
+    constructor(
+        name: Name,
+        type: Int,
+        dclass: Int,
+        ttl: Long,
+        covered: Int,
+        alg: Int,
+        origttl: Long,
+        expire: Date,
+        timeSigned: Date,
+        footprint: Int,
+        signer: Name,
+        signature: ByteArray
+    ) : super(name, type, dclass, ttl) {
+        check(covered)
+        TTL.check(origttl)
+        typeCovered = covered
+        algorithm = checkU8("alg", alg)
+        labels = name.labels() - 1
+        if (name.isWild) {
+            labels--
+        }
+
+        origTTL = origttl
+        this.expire = expire
+        this.timeSigned = timeSigned
+        this.footprint = checkU16("footprint", footprint)
+        this.signer = checkName("signer", signer)
+        this.signature = signature
     }
 
-    void setSignature(byte[] signature) {
-        this.signature = signature;
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        typeCovered = `in`.readU16()
+        algorithm = `in`.readU8()
+        labels = `in`.readU8()
+        origTTL = `in`.readU32()
+        expire = Date(1000 * `in`.readU32())
+        timeSigned = Date(1000 * `in`.readU32())
+        footprint = `in`.readU16()
+        signer = Name(`in`)
+        signature = `in`.readByteArray()
     }
 
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU16(typeCovered)
+        out.writeU8(algorithm)
+        out.writeU8(labels)
+        out.writeU32(origTTL)
+        out.writeU32(expire.time / 1000)
+        out.writeU32(timeSigned.time / 1000)
+        out.writeU16(footprint)
+        signer.toWire(out, null, canonical)
+        out.writeByteArray(signature)
+    }
+
+    /**
+     * Converts the RRSIG/SIG Record to a String
+     */
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(string(typeCovered))
+        sb.append(" ")
+        sb.append(algorithm)
+        sb.append(" ")
+        sb.append(labels)
+        sb.append(" ")
+        sb.append(origTTL)
+        sb.append(" ")
+        if (check("multiline")) {
+            sb.append("(")
+            sb.append(LINE_SEPARATOR)
+            sb.append("\t")
+        }
+        sb.append(format(expire))
+        sb.append(" ")
+        sb.append(format(timeSigned))
+        sb.append(" ")
+        sb.append(footprint)
+        sb.append(" ")
+        sb.append(signer)
+        if (check("multiline")) {
+            sb.append(LINE_SEPARATOR)
+            sb.append(Base64.getEncoder().encodeToString(signature))
+        } else {
+            sb.append(" ")
+            sb.append(Base64.getMimeEncoder().encodeToString(signature))
+        }
+    }
+
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        val typeString = st.getString()
+        typeCovered = value(typeString)
+        if (typeCovered < 0) {
+            throw st.exception("Invalid type: $typeString")
+        }
+        val algString = st.getString()
+        algorithm = DNSSEC.Algorithm.value(algString)
+        if (algorithm < 0) {
+            throw st.exception("Invalid algorithm: $algString")
+        }
+        labels = st.getUInt8()
+        origTTL = st.getTTL()
+        expire = parse(st.getString())
+        timeSigned = parse(st.getString())
+        footprint = st.getUInt16()
+        signer = st.getName(origin)
+        signature = st.getBase64(true)!!
+    }
+
+    companion object {
+        private const val serialVersionUID = -3738444391533812369L
+    }
 }

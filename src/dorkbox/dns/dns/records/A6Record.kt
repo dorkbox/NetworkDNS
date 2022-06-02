@@ -13,104 +13,108 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.net.InetAddress;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.netUtil.IPv6;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.exceptions.TextParseException;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.exceptions.TextParseException
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.netUtil.IPv6.isFamily
+import dorkbox.netUtil.IPv6.toAddress
+import java.io.IOException
+import java.net.InetAddress
 
 /**
  * A6 Record - maps a domain name to an IPv6 address (experimental)
  *
  * @author Brian Wellington
  */
+class A6Record : DnsRecord {
+    /**
+     * Returns the number of bits in the prefix
+     */
+    var prefixBits = 0
+        private set
 
-public
-class A6Record extends DnsRecord {
+    /**
+     * Returns the address suffix
+     */
+    var suffix: InetAddress? = null
+        private set
 
-    private static final long serialVersionUID = -8815026887337346789L;
+    /**
+     * Returns the address prefix
+     */
+    var prefix: Name? = null
+        private set
 
-    private int prefixBits;
-    private InetAddress suffix;
-    private Name prefix;
+    internal constructor() {}
 
-    A6Record() {}
+    override val `object`: DnsRecord
+        get() = A6Record()
 
-    @Override
-    DnsRecord getObject() {
-        return new A6Record();
-    }
-
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        prefixBits = in.readU8();
-        int suffixbits = 128 - prefixBits;
-        int suffixbytes = (suffixbits + 7) / 8;
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        prefixBits = `in`.readU8()
+        val suffixbits = 128 - prefixBits
+        val suffixbytes = (suffixbits + 7) / 8
         if (prefixBits < 128) {
-            byte[] bytes = new byte[16];
-            in.readByteArray(bytes, 16 - suffixbytes, suffixbytes);
-            suffix = InetAddress.getByAddress(bytes);
+            val bytes = ByteArray(16)
+            `in`.readByteArray(bytes, 16 - suffixbytes, suffixbytes)
+            suffix = InetAddress.getByAddress(bytes)
         }
         if (prefixBits > 0) {
-            prefix = new Name(in);
+            prefix = Name(`in`)
         }
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU8(prefixBits);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU8(prefixBits)
         if (suffix != null) {
-            int suffixbits = 128 - prefixBits;
-            int suffixbytes = (suffixbits + 7) / 8;
-            byte[] data = suffix.getAddress();
-            out.writeByteArray(data, 16 - suffixbytes, suffixbytes);
+            val suffixbits = 128 - prefixBits
+            val suffixbytes = (suffixbits + 7) / 8
+            val data = suffix!!.address
+            out.writeByteArray(data, 16 - suffixbytes, suffixbytes)
         }
+
         if (prefix != null) {
-            prefix.toWire(out, null, canonical);
+            prefix!!.toWire(out, null, canonical)
         }
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(prefixBits);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(prefixBits)
         if (suffix != null) {
-            sb.append(" ");
-            sb.append(suffix.getHostAddress());
+            sb.append(" ")
+            sb.append(suffix!!.hostAddress)
         }
         if (prefix != null) {
-            sb.append(" ");
-            sb.append(prefix);
+            sb.append(" ")
+            sb.append(prefix)
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        prefixBits = st.getUInt8();
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        prefixBits = st.getUInt8()
         if (prefixBits > 128) {
-            throw st.exception("prefix bits must be [0..128]");
-        }
-        else if (prefixBits < 128) {
-            String s = st.getString();
-            try {
-                suffix = IPv6.INSTANCE.toAddress(s);
-            } catch (Exception e) {
-                throw new TextParseException("Invalid address: " + s, e);
+            throw st.exception("prefix bits must be [0..128]")
+        } else if (prefixBits < 128) {
+            val s = st.getString()
+            suffix = try {
+                toAddress(s)
+            } catch (e: Exception) {
+                throw TextParseException("Invalid address: $s", e)
             }
         }
         if (prefixBits > 0) {
-            prefix = st.getName(origin);
+            prefix = st.getName(origin)
         }
     }
 
@@ -121,41 +125,19 @@ class A6Record extends DnsRecord {
      * @param suffix The address suffix
      * @param prefix The name of the prefix
      */
-    public
-    A6Record(Name name, int dclass, long ttl, int prefixBits, InetAddress suffix, Name prefix) {
-        super(name, DnsRecordType.A6, dclass, ttl);
-        this.prefixBits = checkU8("prefixBits", prefixBits);
-        if (suffix != null && !IPv6.INSTANCE.isFamily(suffix)) {
-            throw new IllegalArgumentException("invalid IPv6 address");
-        }
-        this.suffix = suffix;
+    constructor(name: Name, dclass: Int, ttl: Long, prefixBits: Int, suffix: InetAddress?, prefix: Name?) : super(
+        name, DnsRecordType.A6, dclass, ttl
+    ) {
+        this.prefixBits = checkU8("prefixBits", prefixBits)
+        require(!(suffix != null && !isFamily(suffix))) { "invalid IPv6 address" }
+        this.suffix = suffix
+
         if (prefix != null) {
-            this.prefix = checkName("prefix", prefix);
+            this.prefix = checkName("prefix", prefix)
         }
     }
 
-    /**
-     * Returns the number of bits in the prefix
-     */
-    public
-    int getPrefixBits() {
-        return prefixBits;
+    companion object {
+        private const val serialVersionUID = -8815026887337346789L
     }
-
-    /**
-     * Returns the address suffix
-     */
-    public
-    InetAddress getSuffix() {
-        return suffix;
-    }
-
-    /**
-     * Returns the address prefix
-     */
-    public
-    Name getPrefix() {
-        return prefix;
-    }
-
 }

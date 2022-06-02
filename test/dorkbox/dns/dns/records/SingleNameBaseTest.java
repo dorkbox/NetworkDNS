@@ -24,8 +24,6 @@ import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.RelativeNameException;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.SingleNameBase;
 import dorkbox.dns.dns.utils.Tokenizer;
 import junit.framework.TestCase;
 
@@ -48,12 +46,6 @@ class SingleNameBaseTest extends TestCase {
 
         @Override
         public
-        Name getSingleName() {
-            return super.getSingleName();
-        }
-
-        @Override
-        public
         DnsRecord getObject() {
             return null;
         }
@@ -64,22 +56,22 @@ class SingleNameBaseTest extends TestCase {
         TestClass tc = new TestClass();
         assertNull(tc.getSingleName());
 
-        Name n = Name.fromString("my.name.");
-        Name sn = Name.fromString("my.single.name.");
+        Name n = Name.Companion.fromString("my.name.");
+        Name sn = Name.Companion.fromString("my.single.name.");
 
         tc = new TestClass(n, DnsRecordType.A, DnsClass.IN, 100L);
 
         assertSame(n, tc.getName());
         assertEquals(DnsRecordType.A, tc.getType());
-        assertEquals(DnsClass.IN, tc.getDClass());
-        assertEquals(100L, tc.getTTL());
+        assertEquals(DnsClass.IN, tc.getDclass());
+        assertEquals(100L, tc.getTtl());
 
         tc = new TestClass(n, DnsRecordType.A, DnsClass.IN, 100L, sn, "The Description");
 
         assertSame(n, tc.getName());
         assertEquals(DnsRecordType.A, tc.getType());
-        assertEquals(DnsClass.IN, tc.getDClass());
-        assertEquals(100L, tc.getTTL());
+        assertEquals(DnsClass.IN, tc.getDclass());
+        assertEquals(100L, tc.getTtl());
         assertSame(sn, tc.getSingleName());
     }
 
@@ -91,13 +83,13 @@ class SingleNameBaseTest extends TestCase {
         TestClass tc = new TestClass();
         tc.rrFromWire(in);
 
-        Name exp = Name.fromString("my.single.name.");
+        Name exp = Name.Companion.fromString("my.single.name.");
         assertEquals(exp, tc.getSingleName());
     }
 
     public
     void test_rdataFromString() throws IOException {
-        Name exp = Name.fromString("my.single.name.");
+        Name exp = Name.Companion.fromString("my.single.name.");
 
         Tokenizer t = new Tokenizer("my.single.name.");
         TestClass tc = new TestClass();
@@ -115,7 +107,7 @@ class SingleNameBaseTest extends TestCase {
 
     public
     void test_rrToString() throws IOException, TextParseException {
-        Name exp = Name.fromString("my.single.name.");
+        Name exp = Name.Companion.fromString("my.single.name.");
 
         Tokenizer t = new Tokenizer("my.single.name.");
         TestClass tc = new TestClass();
@@ -130,8 +122,8 @@ class SingleNameBaseTest extends TestCase {
 
     public
     void test_rrToWire() throws IOException, TextParseException {
-        Name n = Name.fromString("my.name.");
-        Name sn = Name.fromString("My.Single.Name.");
+        Name n = Name.Companion.fromString("my.name.");
+        Name sn = Name.Companion.fromString("My.Single.Name.");
 
         // non-canonical (case sensitive)
         TestClass tc = new TestClass(n, DnsRecordType.A, DnsClass.IN, 100L, sn, "The Description");

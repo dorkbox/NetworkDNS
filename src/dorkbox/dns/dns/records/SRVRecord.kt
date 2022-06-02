@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * Server Selection Record  - finds hosts running services in a domain.  An
@@ -33,112 +31,89 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  */
+class SRVRecord : DnsRecord {
+    /**
+     * Returns the priority
+     */
+    var priority = 0
+        private set
 
-public
-class SRVRecord extends DnsRecord {
+    /**
+     * Returns the weight
+     */
+    var weight = 0
+        private set
 
-    private static final long serialVersionUID = -3886460132387522052L;
+    /**
+     * Returns the port that the service runs on
+     */
+    var port = 0
+        private set
 
-    private int priority, weight, port;
-    private Name target;
+    /**
+     * Returns the host running that the service
+     */
+    override var additionalName: Name? = null
 
-    SRVRecord() {}
 
-    @Override
-    DnsRecord getObject() {
-        return new SRVRecord();
+    internal constructor() {}
+
+    override val `object`: DnsRecord
+        get() = SRVRecord()
+
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        priority = `in`.readU16()
+        weight = `in`.readU16()
+        port = `in`.readU16()
+        additionalName = Name(`in`)
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        priority = in.readU16();
-        weight = in.readU16();
-        port = in.readU16();
-        target = new Name(in);
-    }
-
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU16(priority);
-        out.writeU16(weight);
-        out.writeU16(port);
-        target.toWire(out, null, canonical);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU16(priority)
+        out.writeU16(weight)
+        out.writeU16(port)
+        additionalName!!.toWire(out, null, canonical)
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(priority + " ");
-        sb.append(weight + " ");
-        sb.append(port + " ");
-        sb.append(target);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append("$priority ")
+        sb.append("$weight ")
+        sb.append("$port ")
+        sb.append(additionalName)
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        priority = st.getUInt16();
-        weight = st.getUInt16();
-        port = st.getUInt16();
-        target = st.getName(origin);
-    }
-
-    @Override
-    public
-    Name getAdditionalName() {
-        return target;
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        priority = st.getUInt16()
+        weight = st.getUInt16()
+        port = st.getUInt16()
+        additionalName = st.getName(origin)
     }
 
     /**
      * Creates an SRV Record from the given data
      *
      * @param priority The priority of this SRV.  Records with lower priority
-     *         are preferred.
+     * are preferred.
      * @param weight The weight, used to select between records at the same
-     *         priority.
+     * priority.
      * @param port The TCP/UDP port that the service uses
      * @param target The host running the service
      */
-    public
-    SRVRecord(Name name, int dclass, long ttl, int priority, int weight, int port, Name target) {
-        super(name, DnsRecordType.SRV, dclass, ttl);
-        this.priority = checkU16("priority", priority);
-        this.weight = checkU16("weight", weight);
-        this.port = checkU16("port", port);
-        this.target = checkName("target", target);
+    constructor(name: Name?, dclass: Int, ttl: Long, priority: Int, weight: Int, port: Int, target: Name?) : super(
+        name!!, DnsRecordType.SRV, dclass, ttl
+    ) {
+        this.priority = checkU16("priority", priority)
+        this.weight = checkU16("weight", weight)
+        this.port = checkU16("port", port)
+        additionalName = checkName("target", target!!)
     }
 
-    /**
-     * Returns the priority
-     */
-    public
-    int getPriority() {
-        return priority;
+    companion object {
+        private const val serialVersionUID = -3886460132387522052L
     }
-
-    /**
-     * Returns the weight
-     */
-    public
-    int getWeight() {
-        return weight;
-    }
-
-    /**
-     * Returns the port that the service runs on
-     */
-    public
-    int getPort() {
-        return port;
-    }
-
-    /**
-     * Returns the host running that the service
-     */
-    public
-    Name getTarget() {
-        return target;
-    }
-
 }

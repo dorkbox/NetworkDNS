@@ -13,31 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.util.List;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * Sender Policy Framework (RFC 4408, experimental)
  *
  * @author Brian Wellington
  */
+class SPFRecord : TXTBase {
+    internal constructor() {}
 
-public
-class SPFRecord extends TXTBase {
-
-    private static final long serialVersionUID = -2100754352801658722L;
-
-    SPFRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new SPFRecord();
-    }
+    override val `object`: DnsRecord
+        get() = SPFRecord()
 
     /**
      * Creates a SPF Record from the given data
@@ -46,10 +36,7 @@ class SPFRecord extends TXTBase {
      *
      * @throws IllegalArgumentException One of the strings has invalid escapes
      */
-    public
-    SPFRecord(Name name, int dclass, long ttl, List<String> strings) {
-        super(name, DnsRecordType.SPF, dclass, ttl, strings);
-    }
+    constructor(name: Name, dclass: Int, ttl: Long, strings: List<String>) : super(name, DnsRecordType.SPF, dclass, ttl, strings)
 
     /**
      * Creates a SPF Record from the given data
@@ -58,9 +45,9 @@ class SPFRecord extends TXTBase {
      *
      * @throws IllegalArgumentException The string has invalid escapes
      */
-    public
-    SPFRecord(Name name, int dclass, long ttl, String string) {
-        super(name, DnsRecordType.SPF, dclass, ttl, string);
-    }
+    constructor(name: Name, dclass: Int, ttl: Long, string: String) : super(name, DnsRecordType.SPF, dclass, ttl, string)
 
+    companion object {
+        private const val serialVersionUID = -2100754352801658722L
+    }
 }

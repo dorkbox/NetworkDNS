@@ -13,53 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.server;
+package dorkbox.dns.dns.server
 
-import java.util.Set;
+import dorkbox.dns.dns.constants.DnsResponseCode
+import dorkbox.dns.dns.constants.DnsSection
+import dorkbox.dns.dns.constants.Flags
+import dorkbox.dns.dns.records.DnsMessage
+import dorkbox.dns.dns.records.DnsRecord
 
-import dorkbox.dns.dns.constants.DnsResponseCode;
-import dorkbox.dns.dns.constants.DnsSection;
-import dorkbox.dns.dns.constants.Flags;
-import dorkbox.dns.dns.records.DnsMessage;
-import dorkbox.dns.dns.records.DnsRecord;
+class NoErrorResponse @JvmOverloads constructor(val records: Set<DnsRecord>, val authoritativeAnswer: Boolean = true) :
+    DefaultResponse(DnsResponseCode.NOERROR) {
+    override fun postProcess(message: DnsMessage) {
+        message.header.rcode = responseCode()
+        message.header.setFlag(Flags.QR)
 
-public
-class NoErrorResponse extends DefaultResponse {
-    final Set<DnsRecord> records;
-    final boolean authoritativeAnswer;
-
-    public
-    NoErrorResponse(Set<DnsRecord> records) {
-        this(records, true);
-    }
-
-    public
-    NoErrorResponse(Set<DnsRecord> records, boolean authoritativeAnswer) {
-        super(DnsResponseCode.NOERROR);
-        this.records = records;
-        this.authoritativeAnswer = authoritativeAnswer;
-    }
-
-    @Override
-    public
-    void postProcess(DnsMessage message) {
-        message.getHeader()
-               .setRcode(this.responseCode());
-
-        message.getHeader()
-               .setFlag(Flags.QR);
-
-        if (this.authoritativeAnswer) {
-            message.getHeader()
-                   .setFlag(Flags.AA);
+        if (authoritativeAnswer) {
+            message.header.setFlag(Flags.AA)
+        } else {
+            message.header.unsetFlag(Flags.AA)
         }
-        else {
-            message.getHeader()
-                   .unsetFlag(Flags.AA);
-        }
-
-        for (DnsRecord record : records) {
-            message.addRecord(record, DnsSection.ANSWER);
+        for (record in records) {
+            message.addRecord(record, DnsSection.ANSWER)
         }
 
         // TODO additional section ?

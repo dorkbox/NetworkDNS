@@ -13,28 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.utils
 
-package dorkbox.dns.dns.utils;
-
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PushbackInputStream;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.Base64;
-
-import dorkbox.netUtil.IPv4;
-import dorkbox.netUtil.IPv6;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.exceptions.RelativeNameException;
-import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.TTL;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.exceptions.RelativeNameException
+import dorkbox.dns.dns.exceptions.TextParseException
+import dorkbox.dns.dns.records.TTL
+import dorkbox.netUtil.IPv4
+import dorkbox.netUtil.IPv6
+import java.io.BufferedInputStream
+import java.io.ByteArrayInputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.PushbackInputStream
+import java.net.InetAddress
+import java.net.UnknownHostException
+import java.util.*
 
 /**
  * Tokenizer is used to parse DNS records and zones from text format,
@@ -42,152 +38,72 @@ import dorkbox.dns.dns.records.TTL;
  * @author Brian Wellington
  * @author Bob Halley
  */
+class Tokenizer(inputStream: InputStream) : AutoCloseable {
+    private val `is`: PushbackInputStream
+    private var ungottenToken: Boolean
+    private var multiline: Int
+    private var quoting: Boolean
+    private var delimiters: String
+    private val current: Token
+    private val sb: StringBuilder
+    private var wantClose = false
+    private var filename: String
+    private var line: Int
 
-public
-class Tokenizer implements AutoCloseable {
-    private static final char[] VALID = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
-    private static final int[] INTERNAL = new int[256];
-
-    static {
-        Arrays.fill(INTERNAL, -1);
-        for (int i = 0, iS = VALID.length; i < iS; i++) {
-            INTERNAL[VALID[i]] = 1;
-        }
-        INTERNAL['='] = 1;
-    }
-
-
-    private static String delim = " \t\n;()\"";
-    private static String quotes = "\"";
-
-    /**
-     * End of file
-     */
-    public static final int EOF = 0;
-
-    /**
-     * End of line
-     */
-    public static final int EOL = 1;
-
-    /**
-     * Whitespace; only returned when wantWhitespace is set
-     */
-    public static final int WHITESPACE = 2;
-
-    /**
-     * An identifier (unquoted string)
-     */
-    public static final int IDENTIFIER = 3;
-
-    /**
-     * A quoted string
-     */
-    public static final int QUOTED_STRING = 4;
-
-    /**
-     * A comment; only returned when wantComment is set
-     */
-    public static final int COMMENT = 5;
-
-    private PushbackInputStream is;
-    private boolean ungottenToken;
-    private int multiline;
-    private boolean quoting;
-    private String delimiters;
-    private Token current;
-    private StringBuilder sb;
-    private boolean wantClose;
-
-    private String filename;
-    private int line;
-
-
-    public static
     class Token {
         /**
          * The type of token.
          */
-        public int type;
+        var type: Int
 
         /**
          * The value of the token, or null for tokens without values.
          */
-        public String value;
+        var value: String?
 
-        private
-        Token() {
-            type = -1;
-            value = null;
+        init {
+            type = -1
+            value = null
         }
 
-        private
-        Token set(int type, StringBuilder value) {
-            if (type < 0) {
-                throw new IllegalArgumentException();
-            }
-            this.type = type;
-            this.value = value == null ? null : value.toString();
-            return this;
+        operator fun set(type: Int, value: StringBuilder?): Token {
+            require(type >= 0)
+            this.type = type
+            this.value = value?.toString()
+            return this
         }
 
         /**
          * Converts the token to a string containing a representation useful
          * for debugging.
          */
-        @Override
-        public
-        String toString() {
-            switch (type) {
-                case EOF:
-                    return "<eof>";
-                case EOL:
-                    return "<eol>";
-                case WHITESPACE:
-                    return "<whitespace>";
-                case IDENTIFIER:
-                    return "<identifier: " + value + ">";
-                case QUOTED_STRING:
-                    return "<quoted_string: " + value + ">";
-                case COMMENT:
-                    return "<comment: " + value + ">";
-                default:
-                    return "<unknown>";
+        override fun toString(): String {
+            return when (type) {
+                EOF -> "<eof>"
+                EOL -> "<eol>"
+                WHITESPACE -> "<whitespace>"
+                IDENTIFIER -> "<identifier: $value>"
+                QUOTED_STRING -> "<quoted_string: $value>"
+                COMMENT -> "<comment: $value>"
+                else -> "<unknown>"
             }
         }
 
         /**
          * Indicates whether this token contains a string.
          */
-        public
-        boolean isString() {
-            return (type == IDENTIFIER || type == QUOTED_STRING);
-        }
+        val isString: Boolean
+            get() = type == IDENTIFIER || type == QUOTED_STRING
 
         /**
          * Indicates whether this token contains an EOL or EOF.
          */
-        public
-        boolean isEOL() {
-            return (type == EOL || type == EOF);
-        }
+        val isEOL: Boolean
+            get() = type == EOL || type == EOF
     }
 
+    class TokenizerException(filename: String, line: Int, var baseMessage: String) : TextParseException("$filename:$line: $baseMessage") {
 
-    public static
-    class TokenizerException extends TextParseException {
-        String message;
-
-        public
-        TokenizerException(String filename, int line, String message) {
-            super(filename + ":" + line + ": " + message);
-            this.message = message;
-        }
-
-        public
-        String getBaseMessage() {
-            return message;
-        }
     }
 
     /**
@@ -195,30 +111,27 @@ class Tokenizer implements AutoCloseable {
      *
      * @param s The String to tokenize.
      */
-    public
-    Tokenizer(String s) {
-        this(new ByteArrayInputStream(s.getBytes()));
-    }
+    constructor(s: String) : this(ByteArrayInputStream(s.toByteArray())) {}
 
     /**
      * Creates a Tokenizer from an arbitrary input stream.
      *
      * @param is The InputStream to tokenize.
      */
-    public
-    Tokenizer(InputStream is) {
-        if (!(is instanceof BufferedInputStream)) {
-            is = new BufferedInputStream(is);
+    init {
+        var `is` = inputStream
+        if (`is` !is BufferedInputStream) {
+            `is` = BufferedInputStream(`is`)
         }
-        this.is = new PushbackInputStream(is, 2);
-        ungottenToken = false;
-        multiline = 0;
-        quoting = false;
-        delimiters = delim;
-        current = new Token();
-        sb = new StringBuilder();
-        filename = "<none>";
-        line = 1;
+        this.`is` = PushbackInputStream(`is`, 2)
+        ungottenToken = false
+        multiline = 0
+        quoting = false
+        delimiters = delim
+        current = Token()
+        sb = StringBuilder()
+        filename = "<none>"
+        line = 1
     }
 
     /**
@@ -226,11 +139,9 @@ class Tokenizer implements AutoCloseable {
      *
      * @param f The File to tokenize.
      */
-    public
-    Tokenizer(File f) throws FileNotFoundException {
-        this(new FileInputStream(f));
-        wantClose = true;
-        filename = f.getName();
+    constructor(f: File) : this(FileInputStream(f)) {
+        wantClose = true
+        filename = f.name
     }
 
     /**
@@ -241,33 +152,20 @@ class Tokenizer implements AutoCloseable {
      * @throws TextParseException The input was invalid or not a string.
      * @throws IOException An I/O error occurred.
      */
-    public
-    String getString() throws IOException {
-        Token next = get();
-        if (!next.isString()) {
-            throw exception("expected a string");
+    @Throws(IOException::class, TextParseException::class)
+    fun getString(): String {
+        val next = get()
+        if (!next.isString) {
+            throw exception("expected a string")
         }
-        return next.value;
-    }
 
-    /**
-     * Gets the next token from a tokenizer, ignoring whitespace and comments.
-     *
-     * @return The next token in the stream.
-     *
-     * @throws TextParseException The input was invalid.
-     * @throws IOException An I/O error occurred.
-     */
-    public
-    Token get() throws IOException {
-        return get(false, false);
+        return next.value!! // we check if this is a string with .isString
     }
-
     /**
      * Gets the next token from a tokenizer.
      *
      * @param wantWhitespace If true, leading whitespace will be returned as a
-     *         token.
+     * token.
      * @param wantComment If true, comments are returned as tokens.
      *
      * @return The next token in the stream.
@@ -275,179 +173,164 @@ class Tokenizer implements AutoCloseable {
      * @throws TextParseException The input was invalid.
      * @throws IOException An I/O error occurred.
      */
-    public
-    Token get(boolean wantWhitespace, boolean wantComment) throws IOException {
-        int type;
-        int c;
-
+    @JvmOverloads
+    @Throws(IOException::class, TokenizerException::class)
+    operator fun get(wantWhitespace: Boolean = false, wantComment: Boolean = false): Token {
+        var type: Int
+        var c: Int
         if (ungottenToken) {
-            ungottenToken = false;
+            ungottenToken = false
             if (current.type == WHITESPACE) {
                 if (wantWhitespace) {
-                    return current;
+                    return current
                 }
-            }
-            else if (current.type == COMMENT) {
+            } else if (current.type == COMMENT) {
                 if (wantComment) {
-                    return current;
+                    return current
                 }
-            }
-            else {
+            } else {
                 if (current.type == EOL) {
-                    line++;
+                    line++
                 }
-                return current;
+                return current
             }
         }
-        int skipped = skipWhitespace();
+        val skipped = skipWhitespace()
         if (skipped > 0 && wantWhitespace) {
-            return current.set(WHITESPACE, null);
+            return current.set(WHITESPACE, null)
         }
-        type = IDENTIFIER;
-        sb.setLength(0);
+        type = IDENTIFIER
+        sb.setLength(0)
         while (true) {
-            c = getChar();
-            if (c == -1 || delimiters.indexOf(c) != -1) {
+            c = char
+            if (c == -1 || delimiters.indexOf(c.toChar()) != -1) {
                 if (c == -1) {
-                    if (quoting) {
-                        throw exception("EOF in " + "quoted string");
-                    }
-                    else if (sb.length() == 0) {
-                        return current.set(EOF, null);
-                    }
-                    else {
-                        return current.set(type, sb);
+                    return if (quoting) {
+                        throw exception("EOF in " + "quoted string")
+                    } else if (sb.length == 0) {
+                        current.set(EOF, null)
+                    } else {
+                        current.set(type, sb)
                     }
                 }
-                if (sb.length() == 0 && type != QUOTED_STRING) {
-                    if (c == '(') {
-                        multiline++;
-                        skipWhitespace();
-                        continue;
-                    }
-                    else if (c == ')') {
+                if (sb.length == 0 && type != QUOTED_STRING) {
+                    return if (c == '('.code) {
+                        multiline++
+                        skipWhitespace()
+                        continue
+                    } else if (c == ')'.code) {
                         if (multiline <= 0) {
-                            throw exception("invalid " + "close " + "parenthesis");
+                            throw exception("invalid " + "close " + "parenthesis")
                         }
-                        multiline--;
-                        skipWhitespace();
-                        continue;
-                    }
-                    else if (c == '"') {
+                        multiline--
+                        skipWhitespace()
+                        continue
+                    } else if (c == '"'.code) {
                         if (!quoting) {
-                            quoting = true;
-                            delimiters = quotes;
-                            type = QUOTED_STRING;
+                            quoting = true
+                            delimiters = quotes
+                            type = QUOTED_STRING
+                        } else {
+                            quoting = false
+                            delimiters = delim
+                            skipWhitespace()
                         }
-                        else {
-                            quoting = false;
-                            delimiters = delim;
-                            skipWhitespace();
-                        }
-                        continue;
-                    }
-                    else if (c == '\n') {
-                        return current.set(EOL, null);
-                    }
-                    else if (c == ';') {
+                        continue
+                    } else if (c == '\n'.code) {
+                        current.set(EOL, null)
+                    } else if (c == ';'.code) {
                         while (true) {
-                            c = getChar();
-                            if (c == '\n' || c == -1) {
-                                break;
+                            c = char
+                            if (c == '\n'.code || c == -1) {
+                                break
                             }
-                            sb.append((char) c);
+                            sb.append(c.toChar())
                         }
                         if (wantComment) {
-                            ungetChar(c);
-                            return current.set(COMMENT, sb);
+                            ungetChar(c)
+                            current.set(COMMENT, sb)
+                        } else if (c == -1 && type != QUOTED_STRING) {
+                            checkUnbalancedParens()
+                            current.set(EOF, null)
+                        } else if (multiline > 0) {
+                            skipWhitespace()
+                            sb.setLength(0)
+                            continue
+                        } else {
+                            current.set(EOL, null)
                         }
-                        else if (c == -1 && type != QUOTED_STRING) {
-                            checkUnbalancedParens();
-                            return current.set(EOF, null);
-                        }
-                        else if (multiline > 0) {
-                            skipWhitespace();
-                            sb.setLength(0);
-                            continue;
-                        }
-                        else {
-                            return current.set(EOL, null);
-                        }
+                    } else {
+                        throw IllegalStateException()
                     }
-                    else {
-                        throw new IllegalStateException();
-                    }
+                } else {
+                    ungetChar(c)
                 }
-                else {
-                    ungetChar(c);
-                }
-                break;
-            }
-            else if (c == '\\') {
-                c = getChar();
+                break
+            } else if (c == '\\'.code) {
+                c = char
                 if (c == -1) {
-                    throw exception("unterminated escape sequence");
+                    throw exception("unterminated escape sequence")
                 }
-                sb.append('\\');
+                sb.append('\\')
+            } else if (quoting && c == '\n'.code) {
+                throw exception("newline in quoted string")
             }
-            else if (quoting && c == '\n') {
-                throw exception("newline in quoted string");
-            }
-            sb.append((char) c);
+            sb.append(c.toChar())
         }
-        if (sb.length() == 0 && type != QUOTED_STRING) {
-            checkUnbalancedParens();
-            return current.set(EOF, null);
+        if (sb.length == 0 && type != QUOTED_STRING) {
+            checkUnbalancedParens()
+            return current.set(EOF, null)
         }
-        return current.set(type, sb);
+        return current.set(type, sb)
     }
 
-    private
-    int skipWhitespace() throws IOException {
-        int skipped = 0;
+    @Throws(IOException::class)
+    private fun skipWhitespace(): Int {
+        var skipped = 0
         while (true) {
-            int c = getChar();
-            if (c != ' ' && c != '\t') {
-                if (!(c == '\n' && multiline > 0)) {
-                    ungetChar(c);
-                    return skipped;
+            val c = char
+            if (c != ' '.code && c != '\t'.code) {
+                if (!(c == '\n'.code && multiline > 0)) {
+                    ungetChar(c)
+                    return skipped
                 }
             }
-            skipped++;
+            skipped++
         }
     }
 
-    private
-    int getChar() throws IOException {
-        int c = is.read();
-        if (c == '\r') {
-            int next = is.read();
-            if (next != '\n') {
-                is.unread(next);
+    @get:Throws(IOException::class)
+    private val char: Int
+        get() {
+            var c = `is`.read()
+            if (c == '\r'.code) {
+                val next = `is`.read()
+                if (next != '\n'.code) {
+                    `is`.unread(next)
+                }
+                c = '\n'.code
             }
-            c = '\n';
+            if (c == '\n'.code) {
+                line++
+            }
+            return c
         }
-        if (c == '\n') {
-            line++;
-        }
-        return c;
-    }
 
-    private
-    void ungetChar(int c) throws IOException {
+    @Throws(IOException::class)
+    private fun ungetChar(c: Int) {
         if (c == -1) {
-            return;
+            return
         }
-        is.unread(c);
-        if (c == '\n') {
-            line--;
+        `is`.unread(c)
+        if (c == '\n'.code) {
+            line--
         }
     }
 
-    private
-    void checkUnbalancedParens() throws TextParseException {
+    @Throws(TextParseException::class)
+    private fun checkUnbalancedParens() {
         if (multiline > 0) {
-            throw exception("unbalanced parentheses");
+            throw exception("unbalanced parentheses")
         }
     }
 
@@ -458,9 +341,8 @@ class Tokenizer implements AutoCloseable {
      *
      * @return The exception to be thrown
      */
-    public
-    TextParseException exception(String s) {
-        return new TokenizerException(filename, line, s);
+    fun exception(s: String): TextParseException {
+        return TokenizerException(filename, line, s)
     }
 
     /**
@@ -472,18 +354,17 @@ class Tokenizer implements AutoCloseable {
      * @throws TextParseException The input was invalid or not an unquoted string.
      * @throws IOException An I/O error occurred.
      */
-    public
-    String getIdentifier() throws IOException {
-        return _getIdentifier("an identifier");
-    }
+    @Throws(IOException::class, TextParseException::class)
+    fun getIdentifier(): String = _getIdentifier("an identifier")
 
-    private
-    String _getIdentifier(String expected) throws IOException {
-        Token next = get();
+    @Throws(IOException::class, TextParseException::class)
+    private fun _getIdentifier(expected: String): String {
+        val next = get()
         if (next.type != IDENTIFIER) {
-            throw exception("expected " + expected);
+            throw exception("expected $expected")
         }
-        return next.value;
+
+        return next.value!! // we check with the identifier type
     }
 
     /**
@@ -493,16 +374,16 @@ class Tokenizer implements AutoCloseable {
      * @return The next token in the stream, as an unsigned 32 bit integer.
      *
      * @throws TextParseException The input was invalid or not an unsigned 32
-     *         bit integer.
+     * bit integer.
      * @throws IOException An I/O error occurred.
      */
-    public
-    long getUInt32() throws IOException {
-        long l = getLong();
+    @Throws(IOException::class, TokenizerException::class)
+    fun getUInt32(): Long {
+        val l = getLong()
         if (l < 0 || l > 0xFFFFFFFFL) {
-            throw exception("expected an 32 bit unsigned integer");
+            throw exception("expected an 32 bit unsigned integer")
         }
-        return l;
+        return l
     }
 
     /**
@@ -513,16 +394,16 @@ class Tokenizer implements AutoCloseable {
      * @throws TextParseException The input was invalid or not a long.
      * @throws IOException An I/O error occurred.
      */
-    public
-    long getLong() throws IOException {
-        String next = _getIdentifier("an integer");
-        if (!Character.isDigit(next.charAt(0))) {
-            throw exception("expected an integer");
+    @Throws(IOException::class, TokenizerException::class)
+    fun getLong(): Long {
+        val next = _getIdentifier("an integer")
+        if (!Character.isDigit(next[0])) {
+            throw exception("expected an integer")
         }
-        try {
-            return Long.parseLong(next);
-        } catch (NumberFormatException e) {
-            throw exception("expected an integer");
+        return try {
+            next.toLong()
+        } catch (e: NumberFormatException) {
+            throw exception("expected an integer")
         }
     }
 
@@ -533,16 +414,16 @@ class Tokenizer implements AutoCloseable {
      * @return The next token in the stream, as an unsigned 16 bit integer.
      *
      * @throws TextParseException The input was invalid or not an unsigned 16
-     *         bit integer.
+     * bit integer.
      * @throws IOException An I/O error occurred.
      */
-    public
-    int getUInt16() throws IOException {
-        long l = getLong();
+    @Throws(IOException::class)
+    fun getUInt16(): Int {
+        val l = getLong()
         if (l < 0 || l > 0xFFFFL) {
-            throw exception("expected an 16 bit unsigned integer");
+            throw exception("expected an 16 bit unsigned integer")
         }
-        return (int) l;
+        return l.toInt()
     }
 
     /**
@@ -552,16 +433,16 @@ class Tokenizer implements AutoCloseable {
      * @return The next token in the stream, as an unsigned 8 bit integer.
      *
      * @throws TextParseException The input was invalid or not an unsigned 8
-     *         bit integer.
+     * bit integer.
      * @throws IOException An I/O error occurred.
      */
-    public
-    int getUInt8() throws IOException {
-        long l = getLong();
+    @Throws(IOException::class, TextParseException::class)
+    fun getUInt8(): Int {
+        val l = getLong()
         if (l < 0 || l > 0xFFL) {
-            throw exception("expected an 8 bit unsigned integer");
+            throw exception("expected an 8 bit unsigned integer")
         }
-        return (int) l;
+        return l.toInt()
     }
 
     /**
@@ -573,13 +454,13 @@ class Tokenizer implements AutoCloseable {
      * @throws IOException An I/O error occurred.
      * @see TTL
      */
-    public
-    long getTTL() throws IOException {
-        String next = _getIdentifier("a TTL value");
-        try {
-            return TTL.parseTTL(next);
-        } catch (NumberFormatException e) {
-            throw exception("expected a TTL value");
+    @Throws(IOException::class)
+    fun getTTL(): Long {
+        val next = _getIdentifier("a TTL value")
+        return try {
+            TTL.parseTTL(next)
+        } catch (e: NumberFormatException) {
+            throw exception("expected a TTL value")
         }
     }
 
@@ -592,13 +473,13 @@ class Tokenizer implements AutoCloseable {
      * @throws IOException An I/O error occurred.
      * @see TTL
      */
-    public
-    long getTTLLike() throws IOException {
-        String next = _getIdentifier("a TTL-like value");
-        try {
-            return TTL.parse(next, false);
-        } catch (NumberFormatException e) {
-            throw exception("expected a TTL-like value");
+    @Throws(IOException::class, TokenizerException::class)
+    fun getTTLLike(): Long {
+        val next = _getIdentifier("a TTL-like value")
+        return try {
+            TTL.parse(next, false)
+        } catch (e: NumberFormatException) {
+            throw exception("expected a TTL-like value")
         }
     }
 
@@ -612,20 +493,21 @@ class Tokenizer implements AutoCloseable {
      * @throws TextParseException The input was invalid or not a valid name.
      * @throws IOException An I/O error occurred.
      * @throws RelativeNameException The parsed name was relative, even with the
-     *         origin.
+     * origin.
      * @see Name
      */
-    public
-    Name getName(Name origin) throws IOException {
-        String next = _getIdentifier("a name");
-        try {
-            Name name = Name.fromString(next, origin);
-            if (!name.isAbsolute()) {
-                throw new RelativeNameException(name);
+    @Throws(IOException::class, RelativeNameException::class)
+    fun getName(origin: Name?): Name {
+        val next = _getIdentifier("a name")
+
+        return try {
+            val name = Name.fromString(next, origin)
+            if (!name.isAbsolute) {
+                throw RelativeNameException(name)
             }
-            return name;
-        } catch (TextParseException e) {
-            throw exception(e.getMessage());
+            name
+        } catch (e: TextParseException) {
+            throw exception(e.message ?: "")
         }
     }
 
@@ -636,24 +518,22 @@ class Tokenizer implements AutoCloseable {
      * @param family The address family.
      *
      * @return The next token in the stream, as an byte array representing an IP
-     *         address.
+     * address.
      *
      * @throws TextParseException The input was invalid or not a valid address.
      * @throws IOException An I/O error occurred.
      * @see Address
      */
-    public
-    byte[] getAddressBytes(int family) throws IOException {
-        String next = _getIdentifier("an address");
+    @Throws(IOException::class)
+    fun getAddressBytes(family: Int): ByteArray {
+        val next = _getIdentifier("an address")
 
-        if (family == Address.IPv4 && IPv4.INSTANCE.isValid(next)) {
-            return IPv4.INSTANCE.toBytes(next);
+        if (family == Address.IPv4 && IPv4.isValid(next)) {
+            return IPv4.toBytes(next)
+        } else if (family == Address.IPv6 && IPv6.isValid(next)) {
+            return IPv6.toBytes(next)
         }
-        else if (family == Address.IPv6 && IPv6.INSTANCE.isValid(next)) {
-            return IPv6.INSTANCE.toBytes(next);
-        }
-
-        throw exception("Invalid address: " + next);
+        throw exception("Invalid address: $next")
     }
 
     /**
@@ -667,16 +547,17 @@ class Tokenizer implements AutoCloseable {
      * @throws IOException An I/O error occurred.
      * @see Address
      */
-    public
-    InetAddress getAddress(int family) throws IOException {
-        String next = _getIdentifier("an address");
-        if (IPv4.INSTANCE.isValid(next)) {
-            return IPv4.INSTANCE.toAddress(next);
+    @Throws(IOException::class)
+    fun getAddress(family: Int): InetAddress {
+        val next = _getIdentifier("an address")
+
+        if (IPv4.isValid(next)) {
+            return IPv4.toAddress(next)!!
         }
-        if (IPv6.INSTANCE.isValid(next)) {
-            return IPv6.INSTANCE.toAddress(next);
+        if (IPv6.isValid(next)) {
+            return IPv6.toAddress(next)!!
         }
-        throw new UnknownHostException("Unable to create an address from: " + next);
+        throw UnknownHostException("Unable to create an address from: $next")
     }
 
     /**
@@ -685,11 +566,11 @@ class Tokenizer implements AutoCloseable {
      * @throws TextParseException The input was invalid or not an EOL or EOF token.
      * @throws IOException An I/O error occurred.
      */
-    public
-    void getEOL() throws IOException {
-        Token next = get();
+    @Throws(IOException::class)
+    fun getEOL(): Unit {
+        val next = get()
         if (next.type != EOL && next.type != EOF) {
-            throw exception("expected EOL or EOF");
+            throw exception("expected EOL or EOF")
         }
     }
 
@@ -698,79 +579,65 @@ class Tokenizer implements AutoCloseable {
      * them together, and converts the base64 encoded data to a byte array.
      *
      * @return The byte array containing the decoded strings, or null if there
-     *         were no strings to decode.
+     * were no strings to decode.
      *
      * @throws TextParseException The input was invalid.
      * @throws IOException An I/O error occurred.
      */
-    public
-    byte[] getBase64() throws IOException {
-        return getBase64(false);
-    }
+    @get:Throws(IOException::class)
+    val base64: ByteArray?
+        get() = getBase64(false)
 
     /**
      * Gets the remaining string tokens until an EOL/EOF is seen, concatenates
      * them together, and converts the base64 encoded data to a byte array.
      *
      * @param required If true, an exception will be thrown if no strings remain;
-     *         otherwise null be be returned.
+     * otherwise null be be returned.
      *
      * @return The byte array containing the decoded strings, or null if there
-     *         were no strings to decode.
+     * were no strings to decode.
      *
      * @throws TextParseException The input was invalid.
      * @throws IOException An I/O error occurred.
      */
-    public
-    byte[] getBase64(boolean required) throws IOException {
-        String s = remainingStrings();
-        if (s == null) {
-            if (required) {
-                throw exception("expected base64 encoded string");
-            }
-            else {
-                return null;
-            }
+    @Throws(IOException::class)
+    fun getBase64(required: Boolean): ByteArray? {
+        val s = remainingStrings() ?: return if (required) {
+            throw exception("expected base64 encoded string")
+        } else {
+            null
         }
 
         // have to validate the base-64 encoded strings first.
-        char[] chars = s.toCharArray();
-        for (char aChar : chars) {
-            if (aChar > 256 || INTERNAL[aChar] != 1) {
+        val chars = s.toCharArray()
+        for (aChar in chars) {
+            if (aChar.code > 256 || INTERNAL[aChar.code] != 1) {
                 // not valid
-                throw new TextParseException("Invalid base64 character!");
+                throw TextParseException("Invalid base64 character!")
             }
         }
-
-        byte[] array = Base64.getDecoder().decode(s);
-        if (array == null) {
-            throw exception("invalid base64 encoding");
-        }
-
-        return array;
+        return Base64.getDecoder().decode(s) ?: throw exception("invalid base64 encoding")
     }
 
     /**
      * Returns a concatenation of the remaining strings from a Tokenizer.
      */
-    private
-    String remainingStrings() throws IOException {
-        StringBuilder buffer = null;
+    @Throws(IOException::class)
+    private fun remainingStrings(): String? {
+        var buffer: StringBuilder? = null
         while (true) {
-            Tokenizer.Token t = get();
-            if (!t.isString()) {
-                break;
+            val t = get()
+            if (!t.isString) {
+                break
             }
             if (buffer == null) {
-                buffer = new StringBuilder();
+                buffer = StringBuilder()
             }
-            buffer.append(t.value);
+            buffer.append(t.value)
         }
-        unget();
-        if (buffer == null) {
-            return null;
-        }
-        return buffer.toString();
+        unget()
+        return buffer?.toString()
     }
 
     /**
@@ -779,15 +646,12 @@ class Tokenizer implements AutoCloseable {
      *
      * @throws IllegalStateException There are already ungotten tokens.
      */
-    public
-    void unget() {
-        if (ungottenToken) {
-            throw new IllegalStateException("Cannot unget multiple tokens");
-        }
+    fun unget() {
+        check(!ungottenToken) { "Cannot unget multiple tokens" }
         if (current.type == EOL) {
-            line--;
+            line--
         }
-        ungottenToken = true;
+        ungottenToken = true
     }
 
     /**
@@ -795,45 +659,36 @@ class Tokenizer implements AutoCloseable {
      * them together, and converts the hex encoded data to a byte array.
      *
      * @return The byte array containing the decoded strings, or null if there
-     *         were no strings to decode.
+     * were no strings to decode.
      *
      * @throws TextParseException The input was invalid.
      * @throws IOException An I/O error occurred.
      */
-    public
-    byte[] getHex() throws IOException {
-        return getHex(false);
-    }
+    @get:Throws(IOException::class)
+    val hex: ByteArray?
+        get() = getHex(false)
 
     /**
      * Gets the remaining string tokens until an EOL/EOF is seen, concatenates
      * them together, and converts the hex encoded data to a byte array.
      *
      * @param required If true, an exception will be thrown if no strings remain;
-     *         otherwise null be be returned.
+     * otherwise null be be returned.
      *
      * @return The byte array containing the decoded strings, or null if there
-     *         were no strings to decode.
+     * were no strings to decode.
      *
      * @throws TextParseException The input was invalid.
      * @throws IOException An I/O error occurred.
      */
-    public
-    byte[] getHex(boolean required) throws IOException {
-        String s = remainingStrings();
-        if (s == null) {
-            if (required) {
-                throw exception("expected hex encoded string");
-            }
-            else {
-                return null;
-            }
+    @Throws(IOException::class)
+    fun getHex(required: Boolean): ByteArray? {
+        val s = remainingStrings() ?: return if (required) {
+            throw exception("expected hex encoded string")
+        } else {
+            null
         }
-        byte[] array = base16.fromString(s);
-        if (array == null) {
-            throw exception("invalid hex encoding");
-        }
-        return array;
+        return base16.fromString(s) ?: throw exception("invalid hex encoding")
     }
 
     /**
@@ -844,15 +699,12 @@ class Tokenizer implements AutoCloseable {
      * @throws TextParseException The input was invalid.
      * @throws IOException An I/O error occurred.
      */
-    public
-    byte[] getHexString() throws IOException {
-        String next = _getIdentifier("a hex string");
-        byte[] array = base16.fromString(next);
-        if (array == null) {
-            throw exception("invalid hex encoding");
+    @get:Throws(IOException::class)
+    val hexString: ByteArray
+        get() {
+            val next = _getIdentifier("a hex string")
+            return base16.fromString(next) ?: throw exception("invalid hex encoding")
         }
-        return array;
-    }
 
     /**
      * Gets the next token from a tokenizer and decodes it as base32.
@@ -864,27 +716,70 @@ class Tokenizer implements AutoCloseable {
      * @throws TextParseException The input was invalid.
      * @throws IOException An I/O error occurred.
      */
-    public
-    byte[] getBase32String(base32 b32) throws IOException {
-        String next = _getIdentifier("a base32 string");
-        byte[] array = b32.fromString(next);
-        if (array == null) {
-            throw exception("invalid base32 encoding");
-        }
-        return array;
+    @Throws(IOException::class)
+    fun getBase32String(b32: base32): ByteArray {
+        val next = _getIdentifier("a base32 string")
+        return b32.fromString(next) ?: throw exception("invalid base32 encoding")
     }
 
     /**
      * Closes any files opened by this tokenizer.
      */
-    @Override
-    public
-    void close() {
+    override fun close() {
         if (wantClose) {
             try {
-                is.close();
-            } catch (IOException e) {
+                `is`.close()
+            } catch (ignored: IOException) {
             }
         }
+    }
+
+    companion object {
+        private val VALID = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray()
+        private val INTERNAL = IntArray(256)
+
+        init {
+            Arrays.fill(INTERNAL, -1)
+            var i = 0
+            val iS = VALID.size
+            while (i < iS) {
+                INTERNAL[VALID[i].code] = 1
+                i++
+            }
+            INTERNAL['='.code] = 1
+        }
+
+        private const val delim = " \t\n;()\""
+        private const val quotes = "\""
+
+        /**
+         * End of file
+         */
+        const val EOF = 0
+
+        /**
+         * End of line
+         */
+        const val EOL = 1
+
+        /**
+         * Whitespace; only returned when wantWhitespace is set
+         */
+        const val WHITESPACE = 2
+
+        /**
+         * An identifier (unquoted string)
+         */
+        const val IDENTIFIER = 3
+
+        /**
+         * A quoted string
+         */
+        const val QUOTED_STRING = 4
+
+        /**
+         * A comment; only returned when wantComment is set
+         */
+        const val COMMENT = 5
     }
 }

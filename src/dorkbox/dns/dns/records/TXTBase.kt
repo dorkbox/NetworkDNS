@@ -13,117 +13,94 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsOutput;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.exceptions.TextParseException
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
- * Implements common functionality for the many record types whose format
- * is a list of strings.
+ * Implements common functionality for the many record types whose format is a list of strings.
  *
  * @author Brian Wellington
  */
+abstract class TXTBase : DnsRecord {
+    private var strings = mutableListOf<ByteArray>()
 
-abstract
-class TXTBase extends DnsRecord {
+    protected constructor() {}
+    protected constructor(name: Name, type: Int, dclass: Int, ttl: Long) : super(name, type, dclass, ttl)
+    protected constructor(name: Name, type: Int, dclass: Int, ttl: Long, string: String) : this(
+        name,
+        type,
+        dclass,
+        ttl,
+        listOf<String>(string)
+    )
 
-    private static final long serialVersionUID = -4319510507246305931L;
+    protected constructor(name: Name, type: Int, dclass: Int, ttl: Long, strings: List<String>) : super(
+        name, type, dclass, ttl
+    ) {
+        this.strings = ArrayList(strings.size)
 
-    protected List<byte[]> strings;
-
-    protected
-    TXTBase() {}
-
-    protected
-    TXTBase(Name name, int type, int dclass, long ttl) {
-        super(name, type, dclass, ttl);
-    }
-
-    protected
-    TXTBase(Name name, int type, int dclass, long ttl, String string) {
-        this(name, type, dclass, ttl, Collections.singletonList(string));
-    }
-
-    protected
-    TXTBase(Name name, int type, int dclass, long ttl, List<String> strings) {
-        super(name, type, dclass, ttl);
-        if (strings == null) {
-            throw new IllegalArgumentException("strings must not be null");
-        }
-        this.strings = new ArrayList<byte[]>(strings.size());
-
-        Iterator<String> it = strings.iterator();
+        val it = strings.iterator()
         try {
             while (it.hasNext()) {
-                String s = it.next();
-                this.strings.add(byteArrayFromString(s));
+                val s = it.next()
+                this.strings.add(byteArrayFromString(s))
             }
-        } catch (TextParseException e) {
-            throw new IllegalArgumentException(e.getMessage());
+        } catch (e: TextParseException) {
+            throw IllegalArgumentException(e.message)
         }
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        strings = new ArrayList<byte[]>(2);
-
-        while (in.remaining() > 0) {
-            byte[] b = in.readCountedString();
-            strings.add(b);
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        strings = ArrayList(2)
+        while (`in`.remaining() > 0) {
+            val b = `in`.readCountedString()
+            strings.add(b)
         }
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        for (final byte[] b : strings) {
-            out.writeCountedString(b);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        for (b in strings) {
+            out.writeCountedString(b)
         }
     }
 
     /**
      * converts to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        Iterator<byte[]> it = strings.iterator();
+    override fun rrToString(sb: StringBuilder) {
+        val it: Iterator<ByteArray> = strings.iterator()
         while (it.hasNext()) {
-            byte[] array = it.next();
-            sb.append(byteArrayToString(array, true));
+            val array = it.next()
+            sb.append(byteArrayToString(array, true))
             if (it.hasNext()) {
-                sb.append(" ");
+                sb.append(" ")
             }
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        strings = new ArrayList<byte[]>(2);
-
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        strings = ArrayList(2)
         while (true) {
-            Tokenizer.Token t = st.get();
-            if (!t.isString()) {
-                break;
+            val t = st.get()
+            if (!t.isString) {
+                break
             }
             try {
-                strings.add(byteArrayFromString(t.value));
-            } catch (TextParseException e) {
-                throw st.exception(e.getMessage());
+                strings.add(byteArrayFromString(t.value!!))
+            } catch (e: TextParseException) {
+                throw st.exception(e.message ?: "")
             }
-
         }
-        st.unget();
+        st.unget()
     }
 
     /**
@@ -131,14 +108,12 @@ class TXTBase extends DnsRecord {
      *
      * @return A list of Strings corresponding to the text strings.
      */
-    public
-    List<String> getStrings() {
-        List<String> list = new ArrayList<>(strings.size());
-
-        for (int i = 0; i < strings.size(); i++) {
-            list.add(byteArrayToString(strings.get(i), false));
+    fun getStrings(): List<String> {
+        val list: MutableList<String> = ArrayList(strings.size)
+        for (i in strings.indices) {
+            list.add(byteArrayToString(strings[i], false))
         }
-        return list;
+        return list
     }
 
     /**
@@ -146,8 +121,10 @@ class TXTBase extends DnsRecord {
      *
      * @return A list of byte arrays corresponding to the text strings.
      */
-    public
-    List<byte[]> getStringsAsByteArrays() {
-        return strings;
+    val stringsAsByteArrays: List<ByteArray>
+        get() = strings
+
+    companion object {
+        private const val serialVersionUID = -4319510507246305931L
     }
 }

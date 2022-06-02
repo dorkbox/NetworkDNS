@@ -13,80 +13,71 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsClass
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.exceptions.TextParseException
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * Certification Authority Authorization
  *
  * @author Brian Wellington
  */
+class CAARecord : DnsRecord {
+    /**
+     * Returns the flags.
+     */
+    var flags = 0
+        private set
 
-public
-class CAARecord extends DnsRecord {
+    private var tag: ByteArray
+    private var value: ByteArray
 
-    private static final long serialVersionUID = 8544304287274216443L;
-    private int flags;
-    private byte[] tag;
-    private byte[] value;
-
-
-    public static
-    class Flags {
-        public static final int IssuerCritical = 128;
-
-        private
-        Flags() {}
+    object Flags {
+        const val IssuerCritical = 128
     }
 
-    CAARecord() {}
+    internal constructor() : this(Name.empty, DnsClass.ANY, 0, 0, "", "")
 
-    @Override
-    DnsRecord getObject() {
-        return new CAARecord();
+    override val `object`: DnsRecord
+        get() = CAARecord()
+
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        flags = `in`.readU8()
+        tag = `in`.readCountedString()
+        value = `in`.readByteArray()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        flags = in.readU8();
-        tag = in.readCountedString();
-        value = in.readByteArray();
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU8(flags)
+        out.writeCountedString(tag)
+        out.writeByteArray(value)
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU8(flags);
-        out.writeCountedString(tag);
-        out.writeByteArray(value);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(flags)
+        sb.append(" ")
+        sb.append(byteArrayToString(tag, false))
+        sb.append(" ")
+        sb.append(byteArrayToString(value, true))
     }
 
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(flags);
-        sb.append(" ");
-        sb.append(byteArrayToString(tag, false));
-        sb.append(" ");
-        sb.append(byteArrayToString(value, true));
-    }
-
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        flags = st.getUInt8();
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        flags = st.getUInt8()
         try {
-            tag = byteArrayFromString(st.getString());
-            value = byteArrayFromString(st.getString());
-        } catch (TextParseException e) {
-            throw st.exception(e.getMessage());
+            tag = byteArrayFromString(st.getString())
+            value = byteArrayFromString(st.getString())
+        } catch (e: TextParseException) {
+            throw st.exception(e.message ?: "")
         }
     }
 
@@ -97,40 +88,33 @@ class CAARecord extends DnsRecord {
      * @param tag The tag.
      * @param value The value.
      */
-    public
-    CAARecord(Name name, int dclass, long ttl, int flags, String tag, String value) {
-        super(name, DnsRecordType.CAA, dclass, ttl);
-        this.flags = checkU8("flags", flags);
+    constructor(name: Name, dclass: Int, ttl: Long, flags: Int, tag: String, value: String) : super(
+        name, DnsRecordType.CAA, dclass, ttl
+    ) {
+        this.flags = checkU8("flags", flags)
         try {
-            this.tag = byteArrayFromString(tag);
-            this.value = byteArrayFromString(value);
-        } catch (TextParseException e) {
-            throw new IllegalArgumentException(e.getMessage());
+            this.tag = byteArrayFromString(tag)
+            this.value = byteArrayFromString(value)
+        } catch (e: TextParseException) {
+            throw IllegalArgumentException(e.message)
         }
-    }
-
-    /**
-     * Returns the flags.
-     */
-    public
-    int getFlags() {
-        return flags;
     }
 
     /**
      * Returns the tag.
      */
-    public
-    String getTag() {
-        return byteArrayToString(tag, false);
+    fun getTag(): String {
+        return byteArrayToString(tag, false)
     }
 
     /**
      * Returns the value
      */
-    public
-    String getValue() {
-        return byteArrayToString(value, false);
+    fun getValue(): String {
+        return byteArrayToString(value, false)
     }
 
+    companion object {
+        private const val serialVersionUID = 8544304287274216443L
+    }
 }

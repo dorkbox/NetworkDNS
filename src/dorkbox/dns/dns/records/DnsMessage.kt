@@ -13,32 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsClass;
-import dorkbox.dns.dns.constants.DnsOpCode;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.constants.DnsSection;
-import dorkbox.dns.dns.constants.Flags;
-import dorkbox.dns.dns.exceptions.WireParseException;
-import dorkbox.os.OS;
-import io.netty.buffer.ByteBuf;
-import io.netty.util.AbstractReferenceCounted;
-import io.netty.util.ReferenceCounted;
-import io.netty.util.ResourceLeakDetector;
-import io.netty.util.ResourceLeakDetectorFactory;
-import io.netty.util.ResourceLeakTracker;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsClass
+import dorkbox.dns.dns.constants.DnsOpCode
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.constants.DnsSection
+import dorkbox.dns.dns.constants.Flags
+import dorkbox.dns.dns.exceptions.WireParseException
+import dorkbox.dns.dns.records.DnsRecord.Companion.fromWire
+import dorkbox.os.OS.LINE_SEPARATOR
+import io.netty.buffer.ByteBuf
+import io.netty.util.AbstractReferenceCounted
+import io.netty.util.ReferenceCounted
+import io.netty.util.ResourceLeakDetectorFactory
 
 /**
  * A DNS DnsMessage.  A message is the basic unit of communication between
@@ -47,172 +39,84 @@ import io.netty.util.ResourceLeakTracker;
  *
  * @author Brian Wellington
  * @see Header
+ *
  * @see DnsSection
  */
-@SuppressWarnings({"unused", "WeakerAccess"})
-public
-class DnsMessage extends AbstractReferenceCounted implements Cloneable, ReferenceCounted {
-
-    private static final ResourceLeakDetector<DnsMessage> leakDetector = ResourceLeakDetectorFactory.instance().newResourceLeakDetector(DnsMessage.class);
-    private final ResourceLeakTracker<DnsMessage> leak = leakDetector.track(this);
-
-    /**
-     * The maximum length of a message in wire format.
-     */
-    public static final int MAXLENGTH = 65535;
-
-    private Header header;
+open class DnsMessage private constructor(var header: Header) : AbstractReferenceCounted(), Cloneable, ReferenceCounted {
+    private val leak = leakDetector.track(this)
 
     // To reduce the memory footprint of a message,
     // each of the following fields is a single record or a list of records.
-    private Object questions;
-    private Object answers;
-    private Object authorities;
-    private Object additionals;
+    private var questions: Any? = null
+    private var answers: Any? = null
+    private var authorities: Any? = null
+    private var additionals: Any? = null
 
-    private int size;
+    private var size = 0
+    private var tsigkey: TSIG? = null
+    private var querytsig: TSIGRecord? = null
+    private var tsigerror = 0
 
-
-    private TSIG tsigkey;
-    private TSIGRecord querytsig;
-    private int tsigerror;
-
-    int tsigstart;
-    int tsigState;
-    int sig0start;
-
-    /* The message was not signed */
-    static final int TSIG_UNSIGNED = 0;
-
-    /* The message was signed and verification succeeded */
-    static final int TSIG_VERIFIED = 1;
-
-    /* The message was an unsigned message in multiple-message response */
-    static final int TSIG_INTERMEDIATE = 2;
-
-    /* The message was signed and no verification was attempted.  */
-    static final int TSIG_SIGNED = 3;
-
-    /*
-     * The message was signed and verification failed, or was not signed
-     * when it should have been.
-     */
-    static final int TSIG_FAILED = 4;
-
-
-    private static DnsRecord[] emptyRecordArray = new DnsRecord[0];
-    private static RRset[] emptyRRsetArray = new RRset[0];
+    var tsigstart = 0
+    var tsigState = 0
+    var sig0start = 0
 
     /**
      * Creates a new DnsMessage with the specified DnsMessage ID
      */
-    public
-    DnsMessage(int id) {
-        this(new Header(id));
-    }
-
-    private
-    DnsMessage(Header header) {
-        this.header = header;
-    }
+    constructor(id: Int) : this(Header(id)) {}
 
     /**
      * Creates a new DnsMessage with a random DnsMessage ID
      */
-    public
-    DnsMessage() {
-        this(new Header());
-    }
-
-    /**
-     * Creates a new DnsMessage with a random DnsMessage ID suitable for sending as a
-     * query.
-     *
-     * @param r A record containing the question
-     */
-    public static
-    DnsMessage newQuery(DnsRecord r) {
-        DnsMessage m = new DnsMessage();
-        m.header.setOpcode(DnsOpCode.QUERY);
-        m.header.setFlag(Flags.RD);
-        m.addRecord(r, DnsSection.QUESTION);
-        return m;
-    }
-
-    /**
-     * Creates a new DnsMessage to contain a dynamic update.  A random DnsMessage ID
-     * and the zone are filled in.
-     *
-     * @param zone The zone to be updated
-     */
-    public static
-    DnsMessage newUpdate(Name zone) {
-        return new Update(zone);
-    }
-
-
-
-
-
-
-
+    constructor() : this(Header()) {}
 
     /**
      * Creates a new DnsMessage from its DNS wire format representation
      *
      * @param b A byte array containing the DNS DnsMessage.
      */
-    public
-    DnsMessage(byte[] b) throws IOException {
-        this(new DnsInput(b));
-    }
+    constructor(b: ByteArray) : this(DnsInput(b)) {}
 
     /**
      * Creates a new DnsMessage from its DNS wire format representation
      *
      * @param in A DnsInput containing the DNS DnsMessage.
      */
-    public
-    DnsMessage(DnsInput in) throws IOException {
-        this(new Header(in));
-        boolean isUpdate = (header.getOpcode() == DnsOpCode.UPDATE);
-        boolean truncated = header.getFlag(Flags.TC);
+    constructor(`in`: DnsInput) : this(Header(`in`)) {
+        val isUpdate = header.opcode == DnsOpCode.UPDATE
+        val truncated = header.getFlag(Flags.TC)
         try {
-            for (int i = 0; i < DnsSection.TOTAL_SECTION_COUNT; i++) {
-                int count = header.getCount(i);
-                List<DnsRecord> records;
-
+            for (i in 0 until DnsSection.TOTAL_SECTION_COUNT) {
+                val count = header.getCount(i)
+                var records: MutableList<DnsRecord?>
                 if (count > 0) {
-                    records = newRecordList(count);
-                    setSection(i, records);
-
-
-                    for (int j = 0; j < count; j++) {
-                        int pos = in.readIndex();
-                        DnsRecord record = DnsRecord.fromWire(in, i, isUpdate);
-
-                        records.add(record);
-
+                    records = newRecordList(count)
+                    setSection(i, records)
+                    for (j in 0 until count) {
+                        val pos = `in`.readIndex()
+                        val record = fromWire(`in`, i, isUpdate)
+                        records.add(record)
                         if (i == DnsSection.ADDITIONAL) {
-                            if (record.getType() == DnsRecordType.TSIG) {
-                                tsigstart = pos;
+                            if (record.type === DnsRecordType.TSIG) {
+                                tsigstart = pos
                             }
-                            if (record.getType() == DnsRecordType.SIG) {
-                                SIGRecord sig = (SIGRecord) record;
-                                if (sig.getTypeCovered() == 0) {
-                                    sig0start = pos;
+                            if (record.type === DnsRecordType.SIG) {
+                                val sig = record as SIGRecord
+                                if (sig.typeCovered == 0) {
+                                    sig0start = pos
                                 }
                             }
                         }
                     }
                 }
             }
-        } catch (WireParseException e) {
+        } catch (e: WireParseException) {
             if (!truncated) {
-                throw e;
+                throw e
             }
         }
-        size = in.readIndex();
+        size = `in`.readIndex()
     }
 
     /**
@@ -220,197 +124,136 @@ class DnsMessage extends AbstractReferenceCounted implements Cloneable, Referenc
      *
      * @param byteBuffer A ByteBuf containing the DNS DnsMessage.
      */
-    public
-    DnsMessage(ByteBuf byteBuffer) throws IOException {
-        this(new DnsInput(byteBuffer));
-    }
+    constructor(byteBuffer: ByteBuf) : this(DnsInput(byteBuffer))
 
-    @SuppressWarnings("unchecked")
-    private static
-    <T extends DnsRecord> T castRecord(Object record) {
-        return (T) record;
-    }
-
-    private static
-    ArrayList<DnsRecord> newRecordList(int count) {
-        return new ArrayList<DnsRecord>(count);
-    }
-
-    private static
-    ArrayList<DnsRecord> newRecordList() {
-        return new ArrayList<DnsRecord>(2);
-    }
-
-    private
-    Object sectionAt(int section) {
-        switch (section) {
-            case DnsSection.QUESTION:
-                return questions;
-            case DnsSection.ANSWER:
-                return answers;
-            case DnsSection.AUTHORITY:
-                return authorities;
-            case DnsSection.ADDITIONAL:
-                return additionals;
+    private fun sectionAt(section: Int): Any? {
+        when (section) {
+            DnsSection.QUESTION -> return questions
+            DnsSection.ANSWER -> return answers
+            DnsSection.AUTHORITY -> return authorities
+            DnsSection.ADDITIONAL -> return additionals
         }
 
-        throw new IndexOutOfBoundsException(); // Should never reach here.
+        throw IndexOutOfBoundsException() // Should never reach here.
     }
 
-    private
-    void setSection(int section, Object value) {
-        switch (section) {
-            case DnsSection.QUESTION:
-                questions = value;
-                return;
-            case DnsSection.ANSWER:
-                answers = value;
-                return;
-            case DnsSection.AUTHORITY:
-                authorities = value;
-                return;
-            case DnsSection.ADDITIONAL:
-                additionals = value;
-                return;
+    private fun setSection(section: Int, value: Any?) {
+        when (section) {
+            DnsSection.QUESTION -> {
+                questions = value
+                return
+            }
+            DnsSection.ANSWER -> {
+                answers = value
+                return
+            }
+            DnsSection.AUTHORITY -> {
+                authorities = value
+                return
+            }
+            DnsSection.ADDITIONAL -> {
+                additionals = value
+                return
+            }
         }
-
-        throw new IndexOutOfBoundsException(); // Should never reach here.
-    }
-
-
-    /**
-     * Retrieves the Header.
-     *
-     * @see Header
-     */
-    public
-    Header getHeader() {
-        return header;
-    }
-
-    /**
-     * Replaces the Header with a new one.
-     *
-     * @see Header
-     */
-    public
-    void setHeader(Header h) {
-        header = h;
+        throw IndexOutOfBoundsException() // Should never reach here.
     }
 
     /**
      * Adds a record to a section of the DnsMessage, and adjusts the header.
      *
      * @see DnsRecord
+     *
      * @see DnsSection
      */
-    public
-    void addRecord(DnsRecord record, int section) {
-        final Object records = sectionAt(section);
-        header.incCount(section);
-
+    fun addRecord(record: DnsRecord?, section: Int) {
+        val records = sectionAt(section)
+        header.incCount(section)
         if (records == null) {
             // it holds no records, so add a single record...
-            setSection(section, record);
-            return;
+            setSection(section, record)
+            return
         }
-
-        if (records instanceof DnsRecord) {
+        if (records is DnsRecord) {
             // it holds a single record, so convert it to multiple records
-            final List<DnsRecord> recordList = newRecordList();
-            recordList.add(castRecord(records));
-            recordList.add(record);
-            setSection(section, recordList);
-            return;
+            val recordList: MutableList<DnsRecord?> = newRecordList()
+            recordList.add(castRecord<DnsRecord>(records))
+            recordList.add(record)
+            setSection(section, recordList)
+            return
         }
 
         // holds a list of records
-        @SuppressWarnings("unchecked")
-        final List<DnsRecord> recordList = (List<DnsRecord>) records;
-        recordList.add(record);
+        val recordList = records as MutableList<DnsRecord?>
+        recordList.add(record)
     }
 
     /**
      * Removes a record from a section of the DnsMessage, and adjusts the header.
      *
      * @see DnsRecord
+     *
      * @see DnsSection
      */
-    public
-    boolean removeRecord(DnsRecord record, int section) {
-        final Object records = sectionAt(section);
-        if (records == null) {
-            // can't remove a record if there are none
-            return false;
+    fun removeRecord(record: DnsRecord, section: Int): Boolean {
+        val records = sectionAt(section) ?: // can't remove a record if there are none
+        return false
+        if (records is DnsRecord) {
+            setSection(section, null)
+            header.decCount(section)
+            return true
         }
-
-        if (records instanceof DnsRecord) {
-            setSection(section, null);
-            header.decCount(section);
-            return true;
-        }
-
-        @SuppressWarnings("unchecked")
-        final List<DnsRecord> recordList = (List<DnsRecord>) records;
-        boolean remove = recordList.remove(record);
-
+        val recordList = records as MutableList<DnsRecord>
+        val remove = recordList.remove(record)
         if (remove) {
-            header.decCount(section);
-            return true;
+            header.decCount(section)
+            return true
         }
-
-        return false;
+        return false
     }
 
     /**
      * Removes all records from a section of the DnsMessage, and adjusts the header.
      *
      * @see DnsRecord
+     *
      * @see DnsSection
      */
-    public
-    void removeAllRecords(int section) {
-        setSection(section, null);
-        header.setCount(section, 0);
+    fun removeAllRecords(section: Int) {
+        setSection(section, null)
+        header.setCount(section, 0)
     }
 
     /**
      * Determines if the given record is already present in the given section.
      *
      * @see DnsRecord
+     *
      * @see DnsSection
      */
-    public
-    boolean findRecord(DnsRecord record, int section) {
-        final Object records = sectionAt(section);
-        if (records == null) {
-            return false;
+    fun findRecord(record: DnsRecord, section: Int): Boolean {
+        val records = sectionAt(section) ?: return false
+        if (records is DnsRecord) {
+            return records == record
         }
-
-        if (records instanceof DnsRecord) {
-            return records.equals(record);
-        }
-
-        @SuppressWarnings("unchecked")
-        final List<DnsRecord> recordList = (List<DnsRecord>) records;
-        return recordList.contains(record);
+        val recordList = records as List<DnsRecord>
+        return recordList.contains(record)
     }
 
     /**
      * Determines if the given record is already present in any section.
      *
      * @see DnsRecord
+     *
      * @see DnsSection
      */
-    public
-    boolean findRecord(DnsRecord record) {
-        for (int i = DnsSection.ANSWER; i <= DnsSection.ADDITIONAL; i++) {
+    fun findRecord(record: DnsRecord): Boolean {
+        for (i in DnsSection.ANSWER..DnsSection.ADDITIONAL) {
             if (findRecord(record, i)) {
-                return true;
+                return true
             }
         }
-
-        return false;
+        return false
     }
 
     /**
@@ -418,13 +261,13 @@ class DnsMessage extends AbstractReferenceCounted implements Cloneable, Referenc
      * present in any section.
      *
      * @see RRset
+     *
      * @see DnsSection
      */
-    public
-    boolean findRRset(Name name, int type) {
-        return (findRRset(name, type, DnsSection.ANSWER) || findRRset(name, type, DnsSection.AUTHORITY) || findRRset(name,
-                                                                                                                     type,
-                                                                                                                     DnsSection.ADDITIONAL));
+    fun findRRset(name: Name, type: Int): Boolean {
+        return findRRset(name, type, DnsSection.ANSWER) || findRRset(name, type, DnsSection.AUTHORITY) || findRRset(
+            name, type, DnsSection.ADDITIONAL
+        )
     }
 
     /**
@@ -432,151 +275,114 @@ class DnsMessage extends AbstractReferenceCounted implements Cloneable, Referenc
      * present in the given section.
      *
      * @see RRset
+     *
      * @see DnsSection
      */
-    public
-    boolean findRRset(Name name, int type, int section) {
-        final Object records = sectionAt(section);
-        if (records == null) {
-            return false;
+    fun findRRset(name: Name, type: Int, section: Int): Boolean {
+        val records = sectionAt(section) ?: return false
+        if (records is DnsRecord) {
+            val record = records
+            return record.type === type && name == record.name
         }
-
-
-        if (records instanceof DnsRecord) {
-            DnsRecord record = (DnsRecord) records;
-            return record.getType() == type && name.equals(record.getName());
-        }
-
-
-        @SuppressWarnings("unchecked")
-        final List<DnsRecord> recordList = (List<DnsRecord>) records;
-        for (int i = 0; i < recordList.size(); i++) {
-            final DnsRecord record = recordList.get(i);
-
-            if (record.getType() == type && name.equals(record.getName())) {
-                return true;
+        val recordList = records as List<DnsRecord>
+        for (i in recordList.indices) {
+            val record = recordList[i]
+            if (record.type === type && name == record.name) {
+                return true
             }
         }
-
-        return false;
+        return false
     }
 
     /**
      * Returns the first record in the QUESTION section.
      *
      * @see DnsRecord
+     *
      * @see DnsSection
      */
-    public
-    DnsRecord getQuestion() {
-        final Object records = sectionAt(DnsSection.QUESTION);
-        if (records == null) {
-            return null;
-        }
+    val question: DnsRecord?
+        get() {
+            val records = sectionAt(DnsSection.QUESTION) ?: return null
+            if (records is DnsRecord) {
+                return records
+            }
 
-        if (records instanceof DnsRecord) {
-            return (DnsRecord) records;
+            val recordList = records as List<DnsRecord>
+            return recordList[0]
         }
-
-        @SuppressWarnings("unchecked")
-        final List<DnsRecord> recordList = (List<DnsRecord>) records;
-        return recordList.get(0);
-    }
 
     /**
      * Returns the TSIG record from the ADDITIONAL section, if one is present.
      *
      * @see TSIGRecord
+     *
      * @see TSIG
+     *
      * @see DnsSection
      */
-    public
-    TSIGRecord getTSIG() {
-        final Object records = sectionAt(DnsSection.ADDITIONAL);
-        if (records == null) {
-            return null;
-        }
-
-        if (records instanceof DnsRecord) {
-            DnsRecord record = (DnsRecord) records;
-            if (record.type != DnsRecordType.TSIG) {
-                return null;
+    val tSIG: TSIGRecord?
+        get() {
+            val records = sectionAt(DnsSection.ADDITIONAL) ?: return null
+            if (records is DnsRecord) {
+                val record = records
+                return if (record.type != DnsRecordType.TSIG) {
+                    null
+                } else {
+                    record as TSIGRecord
+                }
+            }
+            val recordList = records as List<DnsRecord>
+            val record = recordList[recordList.size - 1]
+            return if (record.type != DnsRecordType.TSIG) {
+                null
             } else {
-                return (TSIGRecord) record;
+                record as TSIGRecord
             }
         }
-
-        @SuppressWarnings("unchecked")
-        final List<DnsRecord> recordList = (List<DnsRecord>) records;
-
-        DnsRecord record = recordList.get(recordList.size() - 1);
-        if (record.type != DnsRecordType.TSIG) {
-            return null;
-        }
-        else {
-            return (TSIGRecord) record;
-        }
-    }
 
     /**
      * Returns an array containing all records in the given section grouped into
      * RRsets.
      *
      * @see RRset
+     *
      * @see DnsSection
      */
-    public
-    RRset[] getSectionRRsets(int section) {
-        final Object records = sectionAt(section);
-        if (records == null) {
-            return emptyRRsetArray;
-        }
-
-        List<RRset> sets = new ArrayList<RRset>(header.getCount(section));
-        Set<Name> hash = new HashSet<Name>();
-
-
-        if (records instanceof DnsRecord) {
-            DnsRecord record = (DnsRecord) records;
+    fun getSectionRRsets(section: Int): Array<RRset> {
+        val records = sectionAt(section) ?: return emptyRRsetArray
+        val sets: MutableList<RRset> = ArrayList(header.getCount(section))
+        val hash: MutableSet<Name> = HashSet()
+        if (records is DnsRecord) {
 
             // only 1, so no need to make it complicated
-            return new RRset[] {new RRset(record)};
+            return arrayOf(RRset(records))
         }
 
 
         // now there are multiple records
-        @SuppressWarnings("unchecked")
-        final List<DnsRecord> recordList = (List<DnsRecord>) records;
-
-        for (int i = 0; i < recordList.size(); i++) {
-            final DnsRecord record = recordList.get(i);
-
-            Name name = record.getName();
-            boolean newset = true;
-
+        val recordList = records as List<DnsRecord>
+        for (i in recordList.indices) {
+            val record = recordList[i]
+            val name: Name = record.name
+            var newset = true
             if (hash.contains(name)) {
-                for (int j = sets.size() - 1; j >= 0; j--) {
-                    RRset set = sets.get(j);
-
-                    if (set.getType() == record.getRRsetType() &&
-                        set.getDClass() == record.getDClass() &&
-                        set.getName().equals(name)) {
-
-                        set.addRR(record);
-                        newset = false;
-                        break;
+                for (j in sets.indices.reversed()) {
+                    val set = sets[j]
+                    if (set.type == record.rRsetType && set.dClass == record.dclass && set.name == name) {
+                        set.addRR(record)
+                        newset = false
+                        break
                     }
                 }
             }
-
             if (newset) {
-                RRset set = new RRset(record);
-                sets.add(set);
-                hash.add(name);
+                val set = RRset(record)
+                sets.add(set)
+                hash.add(name)
             }
         }
-
-        return sets.toArray(new RRset[sets.size()]);
+        return sets.toTypedArray()
     }
 
     /**
@@ -584,59 +390,44 @@ class DnsMessage extends AbstractReferenceCounted implements Cloneable, Referenc
      * empty array if the section is empty.
      *
      * @see DnsRecord
+     *
      * @see DnsSection
      */
-    public
-    DnsRecord[] getSectionArray(int section) {
-        final Object records = sectionAt(section);
-        if (records == null) {
-            return emptyRecordArray;
-        }
-
-        if (records instanceof DnsRecord) {
-            DnsRecord record = (DnsRecord) records;
+    fun getSectionArray(section: Int): Array<DnsRecord> {
+        val records = sectionAt(section) ?: return emptyRecordArray
+        if (records is DnsRecord) {
 
             // only 1, so no need to make it complicated
-            return new DnsRecord[] {record};
+            return arrayOf(records)
         }
-
-        @SuppressWarnings("unchecked")
-        final List<DnsRecord> recordList = (List<DnsRecord>) records;
-        return recordList.toArray(new DnsRecord[recordList.size()]);
+        val recordList = records as List<DnsRecord>
+        return recordList.toTypedArray()
     }
 
     /**
      * Returns an array containing the wire format representation of the DnsMessage.
      */
-    public
-    byte[] toWire() {
-        DnsOutput out = new DnsOutput();
-        toWire(out);
-        size = out.current();
-        return out.toByteArray();
+    fun toWire(): ByteArray {
+        val out = DnsOutput()
+        toWire(out)
+        size = out.current()
+        return out.toByteArray()
     }
 
-    public
-    void toWire(DnsOutput out) {
-        header.toWire(out);
-        Compression c = new Compression();
-        for (int i = 0; i < DnsSection.TOTAL_SECTION_COUNT; i++) {
-            final Object records = sectionAt(i);
-            if (records == null) {
-                continue;
+    fun toWire(out: DnsOutput) {
+        header.toWire(out)
+        val c = Compression()
+        for (i in 0 until DnsSection.TOTAL_SECTION_COUNT) {
+            val records = sectionAt(i) ?: continue
+            if (records is DnsRecord) {
+                records.toWire(out, i, c)
+                continue
             }
 
-            if (records instanceof DnsRecord) {
-                DnsRecord record = (DnsRecord) records;
-                record.toWire(out, i, c);
-                continue;
-            }
-
-            @SuppressWarnings("unchecked")
-            final List<DnsRecord> recordList = (List<DnsRecord>) records;
-            for (int j = 0; j < recordList.size(); j++) {
-                DnsRecord record = recordList.get(j);
-                record.toWire(out, i, c);
+            val recordList = records as List<DnsRecord>
+            for (j in recordList.indices) {
+                val record = recordList[j]
+                record.toWire(out, i, c)
             }
         }
     }
@@ -652,179 +443,141 @@ class DnsMessage extends AbstractReferenceCounted implements Cloneable, Referenc
      * @param maxLength The maximum length of the message.
      *
      * @return The wire format of the message, or null if the message could not be
-     *         rendered into the specified length.
+     * rendered into the specified length.
      *
      * @see Flags
+     *
      * @see TSIG
      */
-    public
-    byte[] toWire(int maxLength) {
-        DnsOutput out = new DnsOutput();
+    fun toWire(maxLength: Int): ByteArray {
+        val out = DnsOutput()
         // this will also prep the output stream.
-        boolean b = toWire(out, maxLength);
+        val b = toWire(out, maxLength)
         if (!b) {
-            System.err.println("ERROR CREATING MESSAGE FROM WIRE!");
+            System.err.println("ERROR CREATING MESSAGE FROM WIRE!")
         }
-        size = out.current();
+        size = out.current()
 
         // we output from the start.
-        out.getByteBuf().readerIndex(0);
-        return out.toByteArray();
+        out.byteBuf.readerIndex(0)
+        return out.toByteArray()
     }
 
-    /** Returns true if the message could be rendered. */
-    private
-    boolean toWire(DnsOutput out, int maxLength) {
+    /** Returns true if the message could be rendered.  */
+    private fun toWire(out: DnsOutput, maxLength: Int): Boolean {
         if (maxLength < Header.LENGTH) {
-            return false;
+            return false
         }
-
-        Header newheader = null;
-
-        int tempMaxLength = maxLength;
+        val newheader: Header? = null
+        var tempMaxLength = maxLength
         if (tsigkey != null) {
-            tempMaxLength -= tsigkey.recordLength();
+            tempMaxLength -= tsigkey!!.recordLength()
         }
-
-        OPTRecord opt = getOPT();
-        byte[] optBytes = null;
+        val opt = oPT
+        var optBytes: ByteArray? = null
         if (opt != null) {
-            optBytes = opt.toWire(DnsSection.ADDITIONAL);
-            tempMaxLength -= optBytes.length;
+            optBytes = opt.toWire(DnsSection.ADDITIONAL)
+            tempMaxLength -= optBytes.size
         }
-
-        int startpos = out.current();
-        header.toWire(out);
-
-        Compression c = new Compression();
-        int flags = header.getFlagsByte();
-        int additionalCount = 0;
-
-        for (int i = 0; i < DnsSection.TOTAL_SECTION_COUNT; i++) {
-            int skipped;
-
-            final Object records = sectionAt(i);
-            if (records == null) {
-                continue;
-            }
-
-            skipped = sectionToWire(out, i, c, tempMaxLength);
+        val startpos = out.current()
+        header.toWire(out)
+        val c = Compression()
+        var flags = header.flagsByte
+        var additionalCount = 0
+        for (i in 0 until DnsSection.TOTAL_SECTION_COUNT) {
+            var skipped: Int
+            val records = sectionAt(i) ?: continue
+            skipped = sectionToWire(out, i, c, tempMaxLength)
             if (skipped != 0 && i != DnsSection.ADDITIONAL) {
-                flags = Header.setFlag(flags, Flags.TC, true);
-                out.writeU16At(header.getCount(i) - skipped, startpos + 4 + 2 * i);
-                for (int j = i + 1; j < DnsSection.ADDITIONAL; j++) {
-                    out.writeU16At(0, startpos + 4 + 2 * j);
+                flags = Header.setFlag(flags, Flags.TC, true)
+                out.writeU16At(header.getCount(i) - skipped, startpos + 4 + 2 * i)
+                for (j in i + 1 until DnsSection.ADDITIONAL) {
+                    out.writeU16At(0, startpos + 4 + 2 * j)
                 }
-                break;
+                break
             }
             if (i == DnsSection.ADDITIONAL) {
-                additionalCount = header.getCount(i) - skipped;
+                additionalCount = header.getCount(i) - skipped
             }
         }
-
         if (optBytes != null) {
-            out.writeByteArray(optBytes);
-            additionalCount++;
+            out.writeByteArray(optBytes)
+            additionalCount++
         }
-
-        if (flags != header.getFlagsByte()) {
-            out.writeU16At(flags, startpos + 2);
+        if (flags != header.flagsByte) {
+            out.writeU16At(flags, startpos + 2)
         }
-
         if (additionalCount != header.getCount(DnsSection.ADDITIONAL)) {
-            out.writeU16At(additionalCount, startpos + 10);
+            out.writeU16At(additionalCount, startpos + 10)
         }
-
         if (tsigkey != null) {
-            TSIGRecord tsigrec = tsigkey.generate(this, out.toByteArray(), tsigerror, querytsig);
-
-            tsigrec.toWire(out, DnsSection.ADDITIONAL, c);
+            val tsigrec = tsigkey!!.generate(this, out.toByteArray(), tsigerror, querytsig)
+            tsigrec.toWire(out, DnsSection.ADDITIONAL, c)
             // write size/position info
-            out.writeU16At(additionalCount + 1, startpos + 10);
+            out.writeU16At(additionalCount + 1, startpos + 10)
         }
-
-        return true;
+        return true
     }
 
     /**
      * Returns the OPT record from the ADDITIONAL section, if one is present.
      *
      * @see OPTRecord
+     *
      * @see DnsSection
      */
-    public
-    OPTRecord getOPT() {
-        DnsRecord[] additional = getSectionArray(DnsSection.ADDITIONAL);
-        for (int i = 0; i < additional.length; i++) {
-            if (additional[i] instanceof OPTRecord) {
-                return (OPTRecord) additional[i];
+    val oPT: OPTRecord?
+        get() {
+            val additional = getSectionArray(DnsSection.ADDITIONAL)
+            for (i in additional.indices) {
+                if (additional[i] is OPTRecord) {
+                    return additional[i] as OPTRecord?
+                }
             }
+            return null
         }
-        return null;
-    }
 
-    /** Returns the number of records not successfully rendered. */
-    private
-    int sectionToWire(DnsOutput out, int section, Compression c, int maxLength) {
-        final Object records = sectionAt(section);
+    /** Returns the number of records not successfully rendered.  */
+    private fun sectionToWire(out: DnsOutput, section: Int, c: Compression, maxLength: Int): Int {
+        val records = sectionAt(section)
         // will never be null, we check earlier
-
-        int pos = out.current();
-        int rendered = 0;
-        int skipped = 0;
-        DnsRecord lastRecord = null;
-
-
-
-        if (records instanceof DnsRecord) {
-            DnsRecord record = (DnsRecord) records;
-
+        var pos = out.current()
+        var rendered = 0
+        var skipped = 0
+        var lastRecord: DnsRecord? = null
+        if (records is DnsRecord) {
+            val record = records
             if (section == DnsSection.ADDITIONAL && record.type == DnsRecordType.OPT) {
-                skipped++;
-                return skipped;
+                skipped++
+                return skipped
             }
-
-            record.toWire(out, section, c);
-
+            record.toWire(out, section, c)
             if (out.current() > maxLength) {
-                out.jump(pos);
-                return 1 - rendered + skipped;
+                out.jump(pos)
+                return 1 - rendered + skipped
             }
-
-            return skipped;
+            return skipped
         }
-
-        @SuppressWarnings("unchecked")
-        final List<DnsRecord> recordList = (List<DnsRecord>) records;
-        int n = recordList.size();
-
-        for (int i = 0; i < n; i++) {
-            DnsRecord record = recordList.get(i);
+        val recordList = records as List<DnsRecord>?
+        val n = recordList!!.size
+        for (i in 0 until n) {
+            val record = recordList[i]
             if (section == DnsSection.ADDITIONAL && record.type == DnsRecordType.OPT) {
-                skipped++;
-                continue;
+                skipped++
+                continue
             }
-
             if (lastRecord != null && !sameSet(record, lastRecord)) {
-                pos = out.current();
-                rendered = i;
+                pos = out.current()
+                rendered = i
             }
-
-            lastRecord = record;
-            record.toWire(out, section, c);
-
+            lastRecord = record
+            record.toWire(out, section, c)
             if (out.current() > maxLength) {
-                out.jump(pos);
-                return n - rendered + skipped;
+                out.jump(pos)
+                return n - rendered + skipped
             }
         }
-        return skipped;
-    }
-
-    private static
-    boolean sameSet(DnsRecord r1, DnsRecord r2) {
-        return (r1.getRRsetType() == r2.getRRsetType() && r1.getDClass() == r2.getDClass() && r1.getName()
-                                                                                                .equals(r2.getName()));
+        return skipped
     }
 
     /**
@@ -834,11 +587,10 @@ class DnsMessage extends AbstractReferenceCounted implements Cloneable, Referenc
      * @param error The value of the TSIG error field.
      * @param querytsig If this is a response, the TSIG from the request.
      */
-    public
-    void setTSIG(TSIG key, int error, TSIGRecord querytsig) {
-        this.tsigkey = key;
-        this.tsigerror = error;
-        this.querytsig = querytsig;
+    fun setTSIG(key: TSIG?, error: Int, querytsig: TSIGRecord?) {
+        tsigkey = key
+        tsigerror = error
+        this.querytsig = querytsig
     }
 
     /**
@@ -846,86 +598,56 @@ class DnsMessage extends AbstractReferenceCounted implements Cloneable, Referenc
      * TSIG and OPT records, for example.
      *
      * @see TSIGRecord
+     *
      * @see OPTRecord
      */
-    @Override
-    public
-    Object clone() {
-        DnsMessage m = new DnsMessage();
-
-        for (int i = 0; i < DnsSection.TOTAL_SECTION_COUNT; i++) {
-            final Object records = sectionAt(i);
-            if (records == null) {
-                continue;
+    public override fun clone(): Any {
+        val m = DnsMessage()
+        for (i in 0 until DnsSection.TOTAL_SECTION_COUNT) {
+            val records = sectionAt(i) ?: continue
+            if (records is DnsRecord) {
+                setSection(i, records)
+                continue
             }
-
-            if (records instanceof DnsRecord) {
-                setSection(i, records);
-                continue;
-            }
-
-            @SuppressWarnings("unchecked")
-            final List<DnsRecord> recordList = (List<DnsRecord>) records;
-            setSection(i, new ArrayList<DnsRecord>(recordList));
+            val recordList = records as List<DnsRecord>
+            setSection(i, ArrayList(recordList))
         }
-
-        m.header = (Header) header.clone();
-        m.size = size;
-        return m;
+        m.header = header.clone() as Header
+        m.size = size
+        return m
     }
 
     /**
      * Converts the DnsMessage to a String.
      */
-    @Override
-    public
-    String toString() {
-        String NL = OS.INSTANCE.getLINE_SEPARATOR();
-
-        StringBuilder sb = new StringBuilder(NL);
-        OPTRecord opt = getOPT();
-
+    override fun toString(): String {
+        val NL = LINE_SEPARATOR
+        val sb = StringBuilder(NL)
+        val opt = oPT
         if (opt != null) {
-            sb.append(header.toStringWithRcode(getRcode()))
-              .append(NL);
+            sb.append(header.toStringWithRcode(rcode)).append(NL)
+        } else {
+            sb.append(header).append(NL)
         }
-        else {
-            sb.append(header)
-              .append(NL);
+        if (isSigned) {
+            sb.append(";; TSIG ")
+            if (isVerified) {
+                sb.append("ok")
+            } else {
+                sb.append("invalid")
+            }
+            sb.append(NL)
         }
-
-        if (isSigned()) {
-            sb.append(";; TSIG ");
-            if (isVerified()) {
-                sb.append("ok");
+        for (i in 0..3) {
+            if (header.opcode != DnsOpCode.UPDATE) {
+                sb.append(";; ").append(DnsSection.longString(i)).append(":").append(NL)
+            } else {
+                sb.append(";; ").append(DnsSection.updString(i)).append(":").append(NL)
             }
-            else {
-                sb.append("invalid");
-            }
-            sb.append(NL);
+            sb.append(sectionToString(i)).append(NL)
         }
-
-        for (int i = 0; i < 4; i++) {
-            if (header.getOpcode() != DnsOpCode.UPDATE) {
-                sb.append(";; ")
-                  .append(DnsSection.longString(i))
-                  .append(":")
-                  .append(NL);
-            }
-            else {
-                sb.append(";; ")
-                  .append(DnsSection.updString(i))
-                  .append(":")
-                  .append(NL);
-            }
-            sb.append(sectionToString(i))
-              .append(NL);
-        }
-
-        sb.append(";; DnsMessage size: ")
-          .append(numBytes())
-          .append(" bytes");
-        return sb.toString();
+        sb.append(";; DnsMessage size: ").append(numBytes()).append(" bytes")
+        return sb.toString()
     }
 
     /**
@@ -933,41 +655,36 @@ class DnsMessage extends AbstractReferenceCounted implements Cloneable, Referenc
      *
      * @see TSIG
      */
-    public
-    boolean isSigned() {
-        return (tsigState == TSIG_SIGNED || tsigState == TSIG_VERIFIED || tsigState == TSIG_FAILED);
-    }
+    val isSigned: Boolean
+        get() = tsigState == TSIG_SIGNED || tsigState == TSIG_VERIFIED || tsigState == TSIG_FAILED
 
     /**
      * If this message was signed by a TSIG, was the TSIG verified?
      *
      * @see TSIG
      */
-    public
-    boolean isVerified() {
-        return (tsigState == TSIG_VERIFIED);
-    }
+    val isVerified: Boolean
+        get() = tsigState == TSIG_VERIFIED
 
     /**
      * Returns the message's rcode (error code).  This incorporates the EDNS
      * extended rcode.
      */
-    public
-    int getRcode() {
-        int rcode = header.getRcode();
-        OPTRecord opt = getOPT();
-        if (opt != null) {
-            rcode += (opt.getExtendedRcode() << 4);
+    val rcode: Int
+        get() {
+            var rcode = header.rcode
+            val opt = oPT
+            if (opt != null) {
+                rcode += opt.extendedRcode shl 4
+            }
+            return rcode
         }
-        return rcode;
-    }
 
     /**
      * Returns the size of the message.  Only valid if the message has been converted to or from wire format.
      */
-    public
-    int numBytes() {
-        return size;
+    fun numBytes(): Int {
+        return size
     }
 
     /**
@@ -975,64 +692,119 @@ class DnsMessage extends AbstractReferenceCounted implements Cloneable, Referenc
      *
      * @see DnsSection
      */
-    public
-    String sectionToString(int i) {
+    fun sectionToString(i: Int): String? {
         if (i > 3) {
-            return null;
+            return null
         }
-
-        StringBuilder sb = new StringBuilder();
-
-        DnsRecord[] records = getSectionArray(i);
-        for (int j = 0; j < records.length; j++) {
-            DnsRecord rec = records[j];
+        val sb = StringBuilder()
+        val records = getSectionArray(i)
+        for (j in records.indices) {
+            val rec = records[j]
             if (i == DnsSection.QUESTION) {
-                sb.append(";;\t")
-                  .append(rec.name);
-                sb.append(", type = ")
-                  .append(DnsRecordType.string(rec.type));
-                sb.append(", class = ")
-                  .append(DnsClass.string(rec.dclass));
+                sb.append(";;\t").append(rec!!.name)
+                sb.append(", type = ").append(DnsRecordType.string(rec.type))
+                sb.append(", class = ").append(DnsClass.string(rec.dclass))
+            } else {
+                sb.append(rec)
             }
-            else {
-                sb.append(rec);
-            }
-
-            sb.append(OS.INSTANCE.getLINE_SEPARATOR());
+            sb.append(LINE_SEPARATOR)
         }
-        return sb.toString();
+        return sb.toString()
     }
 
     /**
      * Removes all the records in this DNS message.
      */
-    @SuppressWarnings("unchecked")
-    public
-    DnsMessage clear() {
-        for (int i = 0; i < DnsSection.TOTAL_SECTION_COUNT; i++) {
-            removeAllRecords(i);
+    fun clear(): DnsMessage {
+        for (i in 0 until DnsSection.TOTAL_SECTION_COUNT) {
+            removeAllRecords(i)
         }
-        return this;
+        return this
     }
 
-    @Override
-    protected
-    void deallocate() {
-        clear();
-
-        final ResourceLeakTracker<DnsMessage> leak = this.leak;
+    override fun deallocate() {
+        clear()
+        val leak = leak
         if (leak != null) {
-            boolean closed = leak.close(this);
-            assert closed;
+            val closed = leak.close(this)
+            assert(closed)
         }
     }
 
-    @Override
-    public
-    DnsMessage touch(Object hint) {
-        if (leak != null) {
-            leak.record(hint);
+    override fun touch(hint: Any): DnsMessage {
+        leak?.record(hint)
+        return this
+    }
+
+    companion object {
+        private val leakDetector = ResourceLeakDetectorFactory.instance().newResourceLeakDetector(
+            DnsMessage::class.java
+        )
+
+        /**
+         * The maximum length of a message in wire format.
+         */
+        const val MAXLENGTH = 65535
+
+        /* The message was not signed */
+        const val TSIG_UNSIGNED = 0
+
+        /* The message was signed and verification succeeded */
+        const val TSIG_VERIFIED = 1
+
+        /* The message was an unsigned message in multiple-message response */
+        const val TSIG_INTERMEDIATE = 2
+
+        /* The message was signed and no verification was attempted.  */
+        const val TSIG_SIGNED = 3
+
+        /*
+     * The message was signed and verification failed, or was not signed
+     * when it should have been.
+     */
+        const val TSIG_FAILED = 4
+        private val emptyRecordArray = arrayOf<DnsRecord>()
+        private val emptyRRsetArray = arrayOf<RRset>()
+
+        /**
+         * Creates a new DnsMessage with a random DnsMessage ID suitable for sending as a
+         * query.
+         *
+         * @param r A record containing the question
+         */
+        @JvmStatic
+        fun newQuery(r: DnsRecord?): DnsMessage {
+            val m = DnsMessage()
+            m.header.opcode = DnsOpCode.QUERY
+            m.header.setFlag(Flags.RD)
+            m.addRecord(r, DnsSection.QUESTION)
+            return m
         }
-        return this;
+
+        /**
+         * Creates a new DnsMessage to contain a dynamic update.  A random DnsMessage ID
+         * and the zone are filled in.
+         *
+         * @param zone The zone to be updated
+         */
+        fun newUpdate(zone: Name): DnsMessage {
+            return Update(zone)
+        }
+
+        private fun <T : DnsRecord?> castRecord(record: Any): T {
+            return record as T
+        }
+
+        private fun newRecordList(count: Int): ArrayList<DnsRecord?> {
+            return ArrayList(count)
+        }
+
+        private fun newRecordList(): ArrayList<DnsRecord?> {
+            return ArrayList(2)
+        }
+
+        private fun sameSet(r1: DnsRecord, r2: DnsRecord): Boolean {
+            return r1.rRsetType == r2.rRsetType && r1.dclass == r2.dclass && r1.name.equals(r2.name)
+        }
     }
 }

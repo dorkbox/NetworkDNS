@@ -13,61 +13,52 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.utils
 
-package dorkbox.dns.dns.utils;
-
-import java.util.StringTokenizer;
-
-import dorkbox.collections.ObjectMap;
+import dorkbox.collections.ObjectMap
+import java.util.*
 
 /**
- * Boolean options:<BR>
- * bindttl - Print TTLs in BIND format<BR>
- * multiline - Print records in multiline format<BR>
- * noprintin - Don't print the class of a record if it's IN<BR>
- * verbose - Turn on general debugging statements<BR>
- * verbosemsg - Print all messages sent or received by SimpleResolver<BR>
- * verbosecompression - Print messages related to name compression<BR>
- * verbosesec - Print messages related to signature verification<BR>
- * verbosecache - Print messages related to cache lookups<BR>
- * <BR>
- * Valued options:<BR>
- * tsigfudge=n - Sets the default TSIG fudge value (in seconds)<BR>
- * sig0validity=n - Sets the default SIG(0) validity period (in seconds)<BR>
+ * Boolean options:<BR></BR>
+ * bindttl - Print TTLs in BIND format<BR></BR>
+ * multiline - Print records in multiline format<BR></BR>
+ * noprintin - Don't print the class of a record if it's IN<BR></BR>
+ * verbose - Turn on general debugging statements<BR></BR>
+ * verbosemsg - Print all messages sent or received by SimpleResolver<BR></BR>
+ * verbosecompression - Print messages related to name compression<BR></BR>
+ * verbosesec - Print messages related to signature verification<BR></BR>
+ * verbosecache - Print messages related to cache lookups<BR></BR>
+ * <BR></BR>
+ * Valued options:<BR></BR>
+ * tsigfudge=n - Sets the default TSIG fudge value (in seconds)<BR></BR>
+ * sig0validity=n - Sets the default SIG(0) validity period (in seconds)<BR></BR>
  *
  * @author Brian Wellington
  */
+object Options {
+    private var table: ObjectMap<String, Any?>? = null
 
-public final
-class Options {
-
-    private static ObjectMap<String, Object> table;
-
-    static {
+    init {
         try {
-            refresh();
-        } catch (SecurityException ignored) {
+            refresh()
+        } catch (ignored: SecurityException) {
         }
     }
 
-    private
-    Options() {}
-
-    public static
-    void refresh() {
-        String s = System.getProperty("dnsjava.options");
+    @JvmStatic
+    fun refresh() {
+        val s = System.getProperty("dnsjava.options")
         if (s != null) {
-            StringTokenizer st = new StringTokenizer(s, ",");
+            val st = StringTokenizer(s, ",")
             while (st.hasMoreTokens()) {
-                String token = st.nextToken();
-                int index = token.indexOf('=');
+                val token = st.nextToken()
+                val index = token.indexOf('=')
                 if (index == -1) {
-                    set(token);
-                }
-                else {
-                    String option = token.substring(0, index);
-                    String value = token.substring(index + 1);
-                    set(option, value);
+                    set(token)
+                } else {
+                    val option = token.substring(0, index)
+                    val value = token.substring(index + 1)
+                    Options[option] = value
                 }
             }
         }
@@ -76,85 +67,78 @@ class Options {
     /**
      * Sets an option to "true"
      */
-    public static
-    void set(String option) {
+    fun set(option: String) {
         if (table == null) {
-            table = new ObjectMap<String, Object>();
+            table = ObjectMap()
         }
-
-        table.put(option.toLowerCase(), "true");
+        table!!.put(option.lowercase(Locale.getDefault()), "true")
     }
 
     /**
      * Sets an option to the the supplied value
      */
-    public static
-    void set(String option, String value) {
+    @JvmStatic
+    operator fun set(option: String, value: String) {
         if (table == null) {
-            table = new ObjectMap<String, Object>();
+            table = ObjectMap()
         }
-        table.put(option.toLowerCase(), value.toLowerCase());
+        table!!.put(option.lowercase(Locale.getDefault()), value.lowercase(Locale.getDefault()))
     }
 
     /**
      * Clears all defined options
      */
-    public static
-    void clear() {
-        table = null;
+    @JvmStatic
+    fun clear() {
+        table = null
     }
 
     /**
      * Removes an option
      */
-    public static
-    void unset(String option) {
+    @JvmStatic
+    fun unset(option: String) {
         if (table == null) {
-            return;
+            return
         }
-        table.remove(option.toLowerCase());
+        table!!.remove(option.lowercase(Locale.getDefault()))
     }
 
     /**
      * Checks if an option is defined
      */
-    public static
-    boolean check(String option) {
-        if (table == null) {
-            return false;
-        }
-
-        return (table.get(option.toLowerCase()) != null);
+    @JvmStatic
+    fun check(option: String): Boolean {
+        return if (table == null) {
+            false
+        } else table!![option.lowercase(Locale.getDefault())] != null
     }
 
     /**
      * Returns the value of an option as an integer, or -1 if not defined.
      */
-    public static
-    int intValue(String option) {
-        String s = value(option);
+    @JvmStatic
+    fun intValue(option: String): Int {
+        val s = value(option)
         if (s != null) {
             try {
-                int val = Integer.parseInt(s);
-                if (val > 0) {
-                    return (val);
+                val `val` = s.toInt()
+                if (`val` > 0) {
+                    return `val`
                 }
-            } catch (NumberFormatException ignored) {
+            } catch (ignored: NumberFormatException) {
             }
         }
-
-        return -1;
+        return -1
     }
 
     /**
      * Returns the value of an option
      */
-    public static
-    String value(String option) {
-        if (table == null) {
-            return null;
-        }
-
-        return ((String) table.get(option.toLowerCase()));
+    @JvmStatic
+    fun value(option: String): String? {
+        return if (table == null) {
+            null
+        } else table!![option.lowercase(Locale.getDefault())] as String?
     }
 }

@@ -27,8 +27,6 @@ import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.RelativeNameException;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.AAAARecord;
-import dorkbox.dns.dns.records.DnsRecord;
 import dorkbox.dns.dns.utils.Tokenizer;
 import junit.framework.TestCase;
 
@@ -43,8 +41,8 @@ class AAAARecordTest extends TestCase {
     @Override
     protected
     void setUp() throws TextParseException, UnknownHostException {
-        m_an = Name.fromString("My.Absolute.Name.");
-        m_rn = Name.fromString("My.Relative.Name");
+        m_an = Name.Companion.fromString("My.Absolute.Name.");
+        m_rn = Name.Companion.fromString("My.Relative.Name");
         m_addr_string = "2001:db8:85a3:8d3:1319:8a2e:370:7334";
         m_addr = InetAddress.getByName(m_addr_string);
         m_addr_bytes = m_addr.getAddress();
@@ -56,8 +54,8 @@ class AAAARecordTest extends TestCase {
         AAAARecord ar = new AAAARecord();
         assertNull(ar.getName());
         assertEquals(0, ar.getType());
-        assertEquals(0, ar.getDClass());
-        assertEquals(0, ar.getTTL());
+        assertEquals(0, ar.getDclass());
+        assertEquals(0, ar.getTtl());
         assertNull(ar.getAddress());
     }
 
@@ -73,8 +71,8 @@ class AAAARecordTest extends TestCase {
         AAAARecord ar = new AAAARecord(m_an, DnsClass.IN, m_ttl, m_addr);
         assertEquals(m_an, ar.getName());
         assertEquals(DnsRecordType.AAAA, ar.getType());
-        assertEquals(DnsClass.IN, ar.getDClass());
-        assertEquals(m_ttl, ar.getTTL());
+        assertEquals(DnsClass.IN, ar.getDclass());
+        assertEquals(m_ttl, ar.getTtl());
         assertEquals(m_addr, ar.getAddress());
 
         // a relative name

@@ -13,40 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.utils
 
-package dorkbox.dns.dns.utils;
+import dorkbox.dns.dns.exceptions.TextParseException
+import java.text.DecimalFormat
+import java.util.*
 
 /**
  * Routines for converting time values to and from YYYYMMDDHHMMSS format.
  *
  * @author Brian Wellington
  */
+object FormattedTime {
+    private val w2 = DecimalFormat()
+    private val w4 = DecimalFormat()
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.TimeZone;
-
-import dorkbox.dns.dns.exceptions.TextParseException;
-
-public final
-class FormattedTime {
-
-    private static NumberFormat w2, w4;
-
-    static {
-        w2 = new DecimalFormat();
-        w2.setMinimumIntegerDigits(2);
-
-        w4 = new DecimalFormat();
-        w4.setMinimumIntegerDigits(4);
-        w4.setGroupingUsed(false);
+    init {
+        w2.minimumIntegerDigits = 2
+        w4.minimumIntegerDigits = 4
+        w4.isGroupingUsed = false
     }
-
-    private
-    FormattedTime() {}
 
     /**
      * Converts a Date into a formatted string.
@@ -55,19 +41,19 @@ class FormattedTime {
      *
      * @return The formatted string.
      */
-    public static
-    String format(Date date) {
-        Calendar c = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
-        StringBuilder sb = new StringBuilder();
+    fun format(date: Date?): String {
+        val c: Calendar = GregorianCalendar(TimeZone.getTimeZone("UTC"))
 
-        c.setTime(date);
-        sb.append(w4.format(c.get(Calendar.YEAR)));
-        sb.append(w2.format(c.get(Calendar.MONTH) + 1));
-        sb.append(w2.format(c.get(Calendar.DAY_OF_MONTH)));
-        sb.append(w2.format(c.get(Calendar.HOUR_OF_DAY)));
-        sb.append(w2.format(c.get(Calendar.MINUTE)));
-        sb.append(w2.format(c.get(Calendar.SECOND)));
-        return sb.toString();
+        val sb = StringBuilder()
+        c.time = date
+
+        sb.append(w4.format(c[Calendar.YEAR].toLong()))
+        sb.append(w2.format((c[Calendar.MONTH] + 1).toLong()))
+        sb.append(w2.format(c[Calendar.DAY_OF_MONTH].toLong()))
+        sb.append(w2.format(c[Calendar.HOUR_OF_DAY].toLong()))
+        sb.append(w2.format(c[Calendar.MINUTE].toLong()))
+        sb.append(w2.format(c[Calendar.SECOND].toLong()))
+        return sb.toString()
     }
 
     /**
@@ -79,26 +65,26 @@ class FormattedTime {
      *
      * @throws TextParseException The string was invalid.
      */
-    public static
-    Date parse(String s) throws TextParseException {
-        if (s.length() != 14) {
-            throw new TextParseException("Invalid time encoding: " + s);
+    @JvmStatic
+    @Throws(TextParseException::class)
+    fun parse(s: String): Date {
+        if (s.length != 14) {
+            throw TextParseException("Invalid time encoding: $s")
         }
+        val c: Calendar = GregorianCalendar(TimeZone.getTimeZone("UTC"))
+        c.clear()
 
-        Calendar c = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
-        c.clear();
         try {
-            int year = Integer.parseInt(s.substring(0, 4));
-            int month = Integer.parseInt(s.substring(4, 6)) - 1;
-            int date = Integer.parseInt(s.substring(6, 8));
-            int hour = Integer.parseInt(s.substring(8, 10));
-            int minute = Integer.parseInt(s.substring(10, 12));
-            int second = Integer.parseInt(s.substring(12, 14));
-            c.set(year, month, date, hour, minute, second);
-        } catch (NumberFormatException e) {
-            throw new TextParseException("Invalid time encoding: " + s);
+            val year = s.substring(0, 4).toInt()
+            val month = s.substring(4, 6).toInt() - 1
+            val date = s.substring(6, 8).toInt()
+            val hour = s.substring(8, 10).toInt()
+            val minute = s.substring(10, 12).toInt()
+            val second = s.substring(12, 14).toInt()
+            c[year, month, date, hour, minute] = second
+        } catch (e: NumberFormatException) {
+            throw TextParseException("Invalid time encoding: $s")
         }
-        return c.getTime();
+        return c.time
     }
-
 }

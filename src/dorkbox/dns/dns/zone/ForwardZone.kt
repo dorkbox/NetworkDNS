@@ -13,35 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.zone;
+package dorkbox.dns.dns.zone
 
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.server.Response
+import java.net.InetAddress
 
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.server.Response;
+class ForwardZone : AbstractZone {
+    protected var forwarders: MutableList<InetAddress> = ArrayList()
 
-public class ForwardZone extends AbstractZone {
+    constructor(name: Name?) : super(ZoneType.forward, name!!) {}
+    constructor(dnsclass: Int, name: Name?) : super(ZoneType.forward, dnsclass, name!!) {}
 
-	protected List<InetAddress> forwarders = new ArrayList<InetAddress>();
+    fun addForwardHost(host: InetAddress) {
+        forwarders.add(host)
+    }
 
-	public ForwardZone(Name name) {
-		super(ZoneType.forward, name);
-	}
-
-	public ForwardZone(int dnsclass, Name name) {
-		super(ZoneType.forward, dnsclass, name);
-	}
-
-	public void addForwardHost(InetAddress host) {
-		this.forwarders.add(host);
-	}
-
-	@Override
-	public
-    Response find(Name qname, int recordType) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    override fun find(qname: Name, recordType: Int): Response? {
+        // TODO Auto-generated method stub
+        return null
+    }
 }

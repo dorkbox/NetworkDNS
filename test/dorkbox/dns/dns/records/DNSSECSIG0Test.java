@@ -23,12 +23,6 @@ import java.security.PublicKey;
 
 import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsClass;
-import dorkbox.dns.dns.records.DNSSEC;
-import dorkbox.dns.dns.records.DnsMessage;
-import dorkbox.dns.dns.records.KEYRecord;
-import dorkbox.dns.dns.records.SIG0;
-import dorkbox.dns.dns.records.TXTRecord;
-import dorkbox.dns.dns.records.Update;
 import junit.framework.TestCase;
 
 public
@@ -70,8 +64,8 @@ class DNSSECSIG0Test extends TestCase {
         Update updateMessage = new Update(sig0zoneName);
         updateMessage.add(txtRecord);
 
-        SIG0.signMessage(updateMessage, keyRecord, privKey, null);
+        SIG0.INSTANCE.signMessage(updateMessage, keyRecord, privKey, null);
         DnsMessage message = new DnsMessage(updateMessage.toWire());
-        SIG0.verifyMessage(message, message.toWire(), keyRecord, null);
+        SIG0.INSTANCE.verifyMessage(message, message.toWire(), keyRecord, null);
     }
 }

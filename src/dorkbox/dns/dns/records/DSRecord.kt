@@ -13,18 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.utils.base16;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.records.DNSSEC.generateDSDigest
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.dns.dns.utils.base16.toString
+import java.io.IOException
 
 /**
  * DS - contains a Delegation Signer record, which acts as a
@@ -34,91 +33,97 @@ import dorkbox.dns.dns.utils.base16;
  * @author Brian Wellington
  * @see DNSSEC
  */
+class DSRecord : DnsRecord {
+    /**
+     * Returns the key's footprint.
+     */
+    var footprint = 0
+        private set
 
-public
-class DSRecord extends DnsRecord {
+    /**
+     * Returns the key's algorithm.
+     */
+    var algorithm = 0
+        private set
 
-    public static final int SHA1_DIGEST_ID = Digest.SHA1;
-    public static final int SHA256_DIGEST_ID = Digest.SHA256;
-    public static final int GOST3411_DIGEST_ID = Digest.GOST3411;
-    public static final int SHA384_DIGEST_ID = Digest.SHA384;
-    private static final long serialVersionUID = -9001819329700081493L;
-    private int footprint;
-    private int alg;
-    private int digestid;
-    private byte[] digest;
+    /**
+     * Returns the key's Digest ID.
+     */
+    var digestID = 0
+        private set
 
+    /**
+     * Returns the binary hash of the key.
+     */
+    var digest: ByteArray = byteArrayOf()
+        private set
 
-    public static
-    class Digest {
+    object Digest {
         /**
          * SHA-1
          */
-        public static final int SHA1 = 1;
+        const val SHA1 = 1
+
         /**
          * SHA-256
          */
-        public static final int SHA256 = 2;
+        const val SHA256 = 2
+
         /**
          * GOST R 34.11-94
          */
-        public static final int GOST3411 = 3;
+        const val GOST3411 = 3
+
         /**
          * SHA-384
          */
-        public static final int SHA384 = 4;
-
-        private
-        Digest() {}
+        const val SHA384 = 4
     }
 
-    DSRecord() {}
+    internal constructor() {}
 
-    @Override
-    DnsRecord getObject() {
-        return new DSRecord();
+    override val `object`: DnsRecord
+        get() = DSRecord()
+
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        footprint = `in`.readU16()
+        algorithm = `in`.readU8()
+        digestID = `in`.readU8()
+        digest = `in`.readByteArray()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        footprint = in.readU16();
-        alg = in.readU8();
-        digestid = in.readU8();
-        digest = in.readByteArray();
-    }
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU16(footprint)
+        out.writeU8(algorithm)
+        out.writeU8(digestID)
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU16(footprint);
-        out.writeU8(alg);
-        out.writeU8(digestid);
-        if (digest != null) {
-            out.writeByteArray(digest);
+        if (digest.isNotEmpty()) {
+            out.writeByteArray(digest)
         }
     }
 
     /**
      * Converts rdata to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(footprint);
-        sb.append(" ");
-        sb.append(alg);
-        sb.append(" ");
-        sb.append(digestid);
-        if (digest != null) {
-            sb.append(" ");
-            sb.append(base16.toString(digest));
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(footprint)
+        sb.append(" ")
+        sb.append(algorithm)
+        sb.append(" ")
+        sb.append(digestID)
+        if (digest.isNotEmpty()) {
+            sb.append(" ")
+            sb.append(toString(digest))
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        footprint = st.getUInt16();
-        alg = st.getUInt8();
-        digestid = st.getUInt8();
-        digest = st.getHex();
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        footprint = st.getUInt16()
+        algorithm = st.getUInt8()
+        digestID = st.getUInt8()
+        digest = st.getHex(true)!!
     }
 
     /**
@@ -127,9 +132,15 @@ class DSRecord extends DnsRecord {
      * @param digestid The digest id code.
      * @param key The key to digest
      */
-    public
-    DSRecord(Name name, int dclass, long ttl, int digestid, DNSKEYRecord key) {
-        this(name, dclass, ttl, key.getFootprint(), key.getAlgorithm(), digestid, DNSSEC.generateDSDigest(key, digestid));
+    constructor(name: Name, dclass: Int, ttl: Long, digestid: Int, key: DNSKEYRecord) : this(
+        name,
+        dclass,
+        ttl,
+        key.footprint,
+        key.algorithm,
+        digestid,
+        generateDSDigest(key, digestid)
+    ) {
     }
 
     /**
@@ -140,45 +151,20 @@ class DSRecord extends DnsRecord {
      * @param digestid The digest id code.
      * @param digest A hash of the original key.
      */
-    public
-    DSRecord(Name name, int dclass, long ttl, int footprint, int alg, int digestid, byte[] digest) {
-        super(name, DnsRecordType.DS, dclass, ttl);
-        this.footprint = checkU16("footprint", footprint);
-        this.alg = checkU8("alg", alg);
-        this.digestid = checkU8("digestid", digestid);
-        this.digest = digest;
+    constructor(name: Name, dclass: Int, ttl: Long, footprint: Int, alg: Int, digestid: Int, digest: ByteArray) : super(
+        name, DnsRecordType.DS, dclass, ttl
+    ) {
+        this.footprint = checkU16("footprint", footprint)
+        algorithm = checkU8("alg", alg)
+        digestID = checkU8("digestid", digestid)
+        this.digest = digest
     }
 
-    /**
-     * Returns the key's algorithm.
-     */
-    public
-    int getAlgorithm() {
-        return alg;
+    companion object {
+        const val SHA1_DIGEST_ID = Digest.SHA1
+        const val SHA256_DIGEST_ID = Digest.SHA256
+        const val GOST3411_DIGEST_ID = Digest.GOST3411
+        const val SHA384_DIGEST_ID = Digest.SHA384
+        private const val serialVersionUID = -9001819329700081493L
     }
-
-    /**
-     * Returns the key's Digest ID.
-     */
-    public
-    int getDigestID() {
-        return digestid;
-    }
-
-    /**
-     * Returns the binary hash of the key.
-     */
-    public
-    byte[] getDigest() {
-        return digest;
-    }
-
-    /**
-     * Returns the key's footprint.
-     */
-    public
-    int getFootprint() {
-        return footprint;
-    }
-
 }

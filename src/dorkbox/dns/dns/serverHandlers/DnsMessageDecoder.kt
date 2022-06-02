@@ -13,57 +13,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.serverHandlers
 
-package dorkbox.dns.dns.serverHandlers;
+import dorkbox.dns.dns.DnsEnvelope
+import dorkbox.dns.dns.exceptions.WireParseException
+import dorkbox.dns.dns.records.Header
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.socket.DatagramPacket
+import io.netty.handler.codec.MessageToMessageDecoder
+import org.slf4j.Logger
 
-import java.net.InetSocketAddress;
-import java.util.List;
-
-import org.slf4j.Logger;
-
-import dorkbox.dns.dns.records.Header;
-import dorkbox.dns.dns.DnsEnvelope;
-import dorkbox.dns.dns.exceptions.WireParseException;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.socket.DatagramPacket;
-import io.netty.handler.codec.MessageToMessageDecoder;
-
-class DnsMessageDecoder extends MessageToMessageDecoder<DatagramPacket> {
-    private final Logger logger;
-
-    DnsMessageDecoder(final Logger logger) {
-        this.logger = logger;
+class DnsMessageDecoder(private val logger: Logger) : MessageToMessageDecoder<DatagramPacket>() {
+    @Throws(Exception::class)
+    override fun exceptionCaught(context: ChannelHandlerContext, cause: Throwable) {
+        logger.error("DnsMessageDecoder#exceptionCaught", cause)
+        super.exceptionCaught(context, cause)
     }
 
-    @Override
-    public
-    void exceptionCaught(final ChannelHandlerContext context, final Throwable cause) throws Exception {
-        logger.error("DnsMessageDecoder#exceptionCaught", cause);
-        super.exceptionCaught(context, cause);
-    }
-
-    @Override
-    protected
-    void decode(ChannelHandlerContext context, DatagramPacket packet, List<Object> out) throws Exception {
-        final ByteBuf buf = packet.content();
+    @Throws(Exception::class)
+    override fun decode(context: ChannelHandlerContext, packet: DatagramPacket, out: MutableList<Any>) {
+        val buf = packet.content()
 
         // Check that the response is long enough.
         if (buf.readableBytes() < Header.LENGTH) {
-            throw new WireParseException("invalid DNS header - " + "too short");
+            throw WireParseException("invalid DNS header - " + "too short")
         }
-
-        boolean success = false;
-        try {
-            InetSocketAddress localAddress = packet.recipient();
-            InetSocketAddress remoteAddress = packet.sender();
-
-            DnsEnvelope dnsEnvelope = new DnsEnvelope(buf, localAddress, remoteAddress);
-            out.add(dnsEnvelope);
-            success = true;
+        var success = false
+        success = try {
+            val localAddress = packet.recipient()
+            val remoteAddress = packet.sender()
+            val dnsEnvelope = DnsEnvelope(buf, localAddress, remoteAddress)
+            out.add(dnsEnvelope)
+            true
         } finally {
             if (!success) {
-                buf.release();
+                buf.release()
             }
         }
     }

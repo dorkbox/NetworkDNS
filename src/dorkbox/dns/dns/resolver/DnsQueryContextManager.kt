@@ -13,145 +13,111 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.resolver
 
-package dorkbox.dns.dns.resolver;
+import dorkbox.netUtil.IPv4
+import dorkbox.netUtil.IPv6
+import io.netty.util.collection.IntObjectHashMap
+import io.netty.util.collection.IntObjectMap
+import io.netty.util.internal.PlatformDependent
+import java.net.Inet4Address
+import java.net.Inet6Address
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.UnknownHostException
 
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.Map;
-
-import dorkbox.netUtil.IPv4;
-import dorkbox.netUtil.IPv6;
-import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
-import io.netty.util.internal.PlatformDependent;
-
-final
-class DnsQueryContextManager {
-
+internal class DnsQueryContextManager {
     /**
-     * A map whose key is the DNS server address and value is the map of the DNS query ID and its corresponding {@link DnsQueryContext}.
+     * A map whose key is the DNS server address and value is the map of the DNS query ID and its corresponding [DnsQueryContext].
      */
-    final Map<InetSocketAddress, IntObjectMap<DnsQueryContext>> map = new HashMap<InetSocketAddress, IntObjectMap<DnsQueryContext>>();
-
-    int add(DnsQueryContext queryContext) {
-        final IntObjectMap<DnsQueryContext> contexts = getOrCreateContextMap(queryContext.nameServerAddr());
-
-        int id = PlatformDependent.threadLocalRandom()
-                                  .nextInt(65536 - 1) + 1;
-        final int maxTries = 65535 << 1;
-        int tries = 0;
-
-        synchronized (contexts) {
-            for (; ; ) {
+    val map: MutableMap<InetSocketAddress, IntObjectMap<DnsQueryContext>> = HashMap()
+    fun add(queryContext: DnsQueryContext): Int {
+        val contexts = getOrCreateContextMap(queryContext.nameServerAddr())
+        var id = PlatformDependent.threadLocalRandom().nextInt(65536 - 1) + 1
+        val maxTries = 65535 shl 1
+        var tries = 0
+        synchronized(contexts) {
+            while (true) {
                 if (!contexts.containsKey(id)) {
-                    contexts.put(id, queryContext);
-                    return id;
+                    contexts.put(id, queryContext)
+                    return id
                 }
-
-                id = id + 1 & 0xFFFF;
-
-                if (++tries >= maxTries) {
-                    throw new IllegalStateException("query ID space exhausted: " + queryContext.question());
-                }
+                id = id + 1 and 0xFFFF
+                check(++tries < maxTries) { "query ID space exhausted: " + queryContext.question() }
             }
         }
     }
 
-    private
-    IntObjectMap<DnsQueryContext> getOrCreateContextMap(InetSocketAddress nameServerAddr) {
-        synchronized (map) {
-            final IntObjectMap<DnsQueryContext> contexts = map.get(nameServerAddr);
+    private fun getOrCreateContextMap(nameServerAddr: InetSocketAddress): IntObjectMap<DnsQueryContext> {
+        synchronized(map) {
+            val contexts = map[nameServerAddr]
             if (contexts != null) {
-                return contexts;
+                return contexts
             }
-
-            final IntObjectMap<DnsQueryContext> newContexts = new IntObjectHashMap<DnsQueryContext>();
-            final InetAddress a = nameServerAddr.getAddress();
-            final int port = nameServerAddr.getPort();
-            map.put(nameServerAddr, newContexts);
-
-            if (a instanceof Inet4Address) {
+            val newContexts: IntObjectMap<DnsQueryContext> = IntObjectHashMap()
+            val a = nameServerAddr.address
+            val port = nameServerAddr.port
+            map[nameServerAddr] = newContexts
+            if (a is Inet4Address) {
                 // Also add the mapping for the IPv4-compatible IPv6 address.
-                final Inet4Address a4 = (Inet4Address) a;
-                if (a4.isLoopbackAddress()) {
-                    map.put(new InetSocketAddress(IPv6.INSTANCE.getLOCALHOST(), port), newContexts);
+                val a4 = a
+                if (a4.isLoopbackAddress) {
+                    map[InetSocketAddress(IPv6.LOCALHOST, port)] = newContexts
+                } else {
+                    map[InetSocketAddress(toCompactAddress(a4), port)] = newContexts
                 }
-                else {
-                    map.put(new InetSocketAddress(toCompactAddress(a4), port), newContexts);
-                }
-            }
-            else if (a instanceof Inet6Address) {
+            } else if (a is Inet6Address) {
                 // Also add the mapping for the IPv4 address if this IPv6 address is compatible.
-                final Inet6Address a6 = (Inet6Address) a;
-                if (a6.isLoopbackAddress()) {
-                    map.put(new InetSocketAddress(IPv4.INSTANCE.getLOCALHOST(), port), newContexts);
-                }
-                else if (a6.isIPv4CompatibleAddress()) {
-                    map.put(new InetSocketAddress(toIPv4Address(a6), port), newContexts);
+                val a6 = a
+                if (a6.isLoopbackAddress) {
+                    map[InetSocketAddress(IPv4.LOCALHOST, port)] = newContexts
+                } else if (a6.isIPv4CompatibleAddress) {
+                    map[InetSocketAddress(toIPv4Address(a6), port)] = newContexts
                 }
             }
-
-            return newContexts;
+            return newContexts
         }
     }
 
-    private static
-    Inet6Address toCompactAddress(Inet4Address a4) {
-        byte[] b4 = a4.getAddress();
-        byte[] b6 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b4[0], b4[1], b4[2], b4[3]};
-        try {
-            return (Inet6Address) InetAddress.getByAddress(b6);
-        } catch (UnknownHostException e) {
-            throw new Error(e);
-        }
-    }
-
-    private static
-    Inet4Address toIPv4Address(Inet6Address a6) {
-        byte[] b6 = a6.getAddress();
-        byte[] b4 = {b6[12], b6[13], b6[14], b6[15]};
-        try {
-            return (Inet4Address) InetAddress.getByAddress(b4);
-        } catch (UnknownHostException e) {
-            throw new Error(e);
-        }
-    }
-
-    DnsQueryContext get(InetSocketAddress nameServerAddr, int id) {
-        final IntObjectMap<DnsQueryContext> contexts = getContextMap(nameServerAddr);
-        final DnsQueryContext qCtx;
+    operator fun get(nameServerAddr: InetSocketAddress, id: Int): DnsQueryContext? {
+        val contexts = getContextMap(nameServerAddr)
+        val qCtx: DnsQueryContext?
         if (contexts != null) {
-            synchronized (contexts) {
-                qCtx = contexts.get(id);
+            synchronized(contexts) { qCtx = contexts[id] }
+        } else {
+            qCtx = null
+        }
+        return qCtx
+    }
+
+    private fun getContextMap(nameServerAddr: InetSocketAddress): IntObjectMap<DnsQueryContext>? {
+        synchronized(map) { return map[nameServerAddr] }
+    }
+
+    fun remove(nameServerAddr: InetSocketAddress, id: Int): DnsQueryContext? {
+        val contexts = getContextMap(nameServerAddr) ?: return null
+        synchronized(contexts) { return contexts.remove(id) }
+    }
+
+    companion object {
+        private fun toCompactAddress(a4: Inet4Address): Inet6Address {
+            val b4 = a4.address
+            val b6 = byteArrayOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b4[0], b4[1], b4[2], b4[3])
+            return try {
+                InetAddress.getByAddress(b6) as Inet6Address
+            } catch (e: UnknownHostException) {
+                throw Error(e)
             }
         }
-        else {
-            qCtx = null;
-        }
 
-        return qCtx;
-    }
-
-    private
-    IntObjectMap<DnsQueryContext> getContextMap(InetSocketAddress nameServerAddr) {
-        synchronized (map) {
-            return map.get(nameServerAddr);
-        }
-    }
-
-    DnsQueryContext remove(InetSocketAddress nameServerAddr, int id) {
-        final IntObjectMap<DnsQueryContext> contexts = getContextMap(nameServerAddr);
-        if (contexts == null) {
-            return null;
-        }
-
-        synchronized (contexts) {
-            return contexts.remove(id);
+        private fun toIPv4Address(a6: Inet6Address): Inet4Address {
+            val b6 = a6.address
+            val b4 = byteArrayOf(b6[12], b6[13], b6[14], b6[15])
+            return try {
+                InetAddress.getByAddress(b4) as Inet4Address
+            } catch (e: UnknownHostException) {
+                throw Error(e)
+            }
         }
     }
 }

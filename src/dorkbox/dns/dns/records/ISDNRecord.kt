@@ -13,79 +13,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.exceptions.TextParseException
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * ISDN - identifies the ISDN number and subaddress associated with a name.
  *
  * @author Brian Wellington
  */
+class ISDNRecord : DnsRecord {
+    private lateinit var address: ByteArray
+    private var subAddress: ByteArray? = null
 
-public
-class ISDNRecord extends DnsRecord {
+    internal constructor() {}
 
-    private static final long serialVersionUID = -8730801385178968798L;
+    override val `object`: DnsRecord
+        get() = ISDNRecord()
 
-    private byte[] address;
-    private byte[] subAddress;
-
-    ISDNRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new ISDNRecord();
-    }
-
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        address = in.readCountedString();
-        if (in.remaining() > 0) {
-            subAddress = in.readCountedString();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        address = `in`.readCountedString()
+        if (`in`.remaining() > 0) {
+            subAddress = `in`.readCountedString()
         }
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeCountedString(address);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeCountedString(address)
         if (subAddress != null) {
-            out.writeCountedString(subAddress);
+            out.writeCountedString(subAddress!!)
         }
     }
 
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(byteArrayToString(address, true));
-
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(byteArrayToString(address, true))
         if (subAddress != null) {
-            sb.append(" ");
-            sb.append(byteArrayToString(subAddress, true));
+            sb.append(" ")
+            sb.append(byteArrayToString(subAddress!!, true))
         }
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
         try {
-            address = byteArrayFromString(st.getString());
-            Tokenizer.Token t = st.get();
-            if (t.isString()) {
-                subAddress = byteArrayFromString(t.value);
+            address = byteArrayFromString(st.getString())
+            val t = st.get()
+            if (t.isString) {
+                subAddress = byteArrayFromString(t.value!!)
+            } else {
+                st.unget()
             }
-            else {
-                st.unget();
-            }
-        } catch (TextParseException e) {
-            throw st.exception(e.getMessage());
+        } catch (e: TextParseException) {
+            throw st.exception(e.message ?: "")
         }
     }
 
@@ -97,36 +84,36 @@ class ISDNRecord extends DnsRecord {
      *
      * @throws IllegalArgumentException One of the strings is invalid.
      */
-    public
-    ISDNRecord(Name name, int dclass, long ttl, String address, String subAddress) {
-        super(name, DnsRecordType.ISDN, dclass, ttl);
+    constructor(name: Name?, dclass: Int, ttl: Long, address: String?, subAddress: String?) : super(
+        name!!, DnsRecordType.ISDN, dclass, ttl
+    ) {
         try {
-            this.address = byteArrayFromString(address);
+            this.address = byteArrayFromString(address!!)
             if (subAddress != null) {
-                this.subAddress = byteArrayFromString(subAddress);
+                this.subAddress = byteArrayFromString(subAddress)
             }
-        } catch (TextParseException e) {
-            throw new IllegalArgumentException(e.getMessage());
+        } catch (e: TextParseException) {
+            throw IllegalArgumentException(e.message)
         }
     }
 
     /**
      * Returns the ISDN number associated with the domain.
      */
-    public
-    String getAddress() {
-        return byteArrayToString(address, false);
+    fun getAddress(): String {
+        return byteArrayToString(address, false)
     }
 
     /**
      * Returns the ISDN subaddress, or null if there is none.
      */
-    public
-    String getSubAddress() {
-        if (subAddress == null) {
-            return null;
-        }
-        return byteArrayToString(subAddress, false);
+    fun getSubAddress(): String? {
+        return if (subAddress == null) {
+            null
+        } else byteArrayToString(subAddress!!, false)
     }
 
+    companion object {
+        private const val serialVersionUID = -8730801385178968798L
+    }
 }

@@ -25,8 +25,6 @@ import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.URIRecord;
 import dorkbox.dns.dns.utils.Tokenizer;
 import junit.framework.TestCase;
 
@@ -37,8 +35,8 @@ class URIRecordTest extends TestCase {
         URIRecord r = new URIRecord();
         assertNull(r.getName());
         assertEquals(0, r.getType());
-        assertEquals(0, r.getDClass());
-        assertEquals(0, r.getTTL());
+        assertEquals(0, r.getDclass());
+        assertEquals(0, r.getTtl());
         assertEquals(0, r.getPriority());
         assertEquals(0, r.getWeight());
         assertTrue("".equals(r.getTarget()));
@@ -53,14 +51,14 @@ class URIRecordTest extends TestCase {
 
     public
     void test_ctor_6arg() throws TextParseException {
-        Name n = Name.fromString("my.name.");
+        Name n = Name.Companion.fromString("my.name.");
         String target = ("http://foo");
 
         URIRecord r = new URIRecord(n, DnsClass.IN, 0xABCDEL, 42, 69, target);
         assertEquals(n, r.getName());
         assertEquals(DnsRecordType.URI, r.getType());
-        assertEquals(DnsClass.IN, r.getDClass());
-        assertEquals(0xABCDEL, r.getTTL());
+        assertEquals(DnsClass.IN, r.getDclass());
+        assertEquals(0xABCDEL, r.getTtl());
         assertEquals(42, r.getPriority());
         assertEquals(69, r.getWeight());
         assertEquals(target, r.getTarget());
@@ -79,7 +77,7 @@ class URIRecordTest extends TestCase {
 
     public
     void test_rdataToWire() throws TextParseException {
-        Name n = Name.fromString("my.name.");
+        Name n = Name.Companion.fromString("my.name.");
         String target = ("http://foo");
         byte[] exp = new byte[] {(byte) 0xbe, (byte) 0xef, (byte) 0xde, (byte) 0xad, (byte) 0x68, (byte) 0x74, (byte) 0x74, (byte) 0x70,
                                  (byte) 0x3a, (byte) 0x2f, (byte) 0x2f, (byte) 0x66, (byte) 0x6f, (byte) 0x6f};
@@ -106,7 +104,7 @@ class URIRecordTest extends TestCase {
     public
     void test_toobig_priority() throws TextParseException {
         try {
-            new URIRecord(Name.fromString("the.name"), DnsClass.IN, 0x1234, 0x10000, 42, "http://foo");
+            new URIRecord(Name.Companion.fromString("the.name"), DnsClass.IN, 0x1234, 0x10000, 42, "http://foo");
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
@@ -115,7 +113,7 @@ class URIRecordTest extends TestCase {
     public
     void test_toosmall_priority() throws TextParseException {
         try {
-            new URIRecord(Name.fromString("the.name"), DnsClass.IN, 0x1234, -1, 42, "http://foo");
+            new URIRecord(Name.Companion.fromString("the.name"), DnsClass.IN, 0x1234, -1, 42, "http://foo");
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
@@ -124,7 +122,7 @@ class URIRecordTest extends TestCase {
     public
     void test_toobig_weight() throws TextParseException {
         try {
-            new URIRecord(Name.fromString("the.name"), DnsClass.IN, 0x1234, 42, 0x10000, "http://foo");
+            new URIRecord(Name.Companion.fromString("the.name"), DnsClass.IN, 0x1234, 42, 0x10000, "http://foo");
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
@@ -133,11 +131,10 @@ class URIRecordTest extends TestCase {
     public
     void test_toosmall_weight() throws TextParseException {
         try {
-            new URIRecord(Name.fromString("the.name"), DnsClass.IN, 0x1234, 42, -1, "http://foo");
+            new URIRecord(Name.Companion.fromString("the.name"), DnsClass.IN, 0x1234, 42, -1, "http://foo");
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
     }
 
 }
-    

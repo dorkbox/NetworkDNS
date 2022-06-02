@@ -23,24 +23,24 @@ class RcodeTest extends TestCase {
     public
     void test_string() {
         // a regular one
-        assertEquals("NXDOMAIN", DnsResponseCode.string(DnsResponseCode.NXDOMAIN));
+        assertEquals("NXDOMAIN", DnsResponseCode.INSTANCE.string(DnsResponseCode.NXDOMAIN));
 
         // one with an alias
-        assertEquals("NOTIMP", DnsResponseCode.string(DnsResponseCode.NOTIMP));
+        assertEquals("NOTIMP", DnsResponseCode.INSTANCE.string(DnsResponseCode.NOTIMP));
 
         // one that doesn't exist
-        assertTrue(DnsResponseCode.string(20)
+        assertTrue(DnsResponseCode.INSTANCE.string(20)
                                   .startsWith("RESERVED"));
 
         try {
-            DnsResponseCode.string(-1);
+            DnsResponseCode.INSTANCE.string(-1);
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException ignored) {
         }
 
         //  (max is 0xFFF)
         try {
-            DnsResponseCode.string(0x1000);
+            DnsResponseCode.INSTANCE.string(0x1000);
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException ignored) {
         }
@@ -49,21 +49,21 @@ class RcodeTest extends TestCase {
     public
     void test_TSIGstring() {
         // a regular one
-        assertEquals("BADSIG", DnsResponseCode.TSIGstring(DnsResponseCode.BADSIG));
+        assertEquals("BADSIG", DnsResponseCode.INSTANCE.TSIGstring(DnsResponseCode.BADSIG));
 
         // one that doesn't exist
-        assertTrue(DnsResponseCode.TSIGstring(22)
+        assertTrue(DnsResponseCode.INSTANCE.TSIGstring(22)
                                   .startsWith("RESERVED"));
 
         try {
-            DnsResponseCode.TSIGstring(-1);
+            DnsResponseCode.INSTANCE.TSIGstring(-1);
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException ignored) {
         }
 
         //  (max is 0xFFFF)
         try {
-            DnsResponseCode.string(0x10000);
+            DnsResponseCode.INSTANCE.string(0x10000);
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException ignored) {
         }
@@ -72,22 +72,22 @@ class RcodeTest extends TestCase {
     public
     void test_value() {
         // regular one
-        assertEquals(DnsResponseCode.FORMERR, DnsResponseCode.value("FORMERR"));
+        assertEquals(DnsResponseCode.FORMERR, DnsResponseCode.INSTANCE.value("FORMERR"));
 
         // one with alias
-        assertEquals(DnsResponseCode.NOTIMP, DnsResponseCode.value("NOTIMP"));
-        assertEquals(DnsResponseCode.NOTIMP, DnsResponseCode.value("NOTIMPL"));
+        assertEquals(DnsResponseCode.NOTIMP, DnsResponseCode.INSTANCE.value("NOTIMP"));
+        assertEquals(DnsResponseCode.NOTIMP, DnsResponseCode.INSTANCE.value("NOTIMPL"));
 
         // one thats undefined but within range
-        assertEquals(35, DnsResponseCode.value("RESERVED35"));
+        assertEquals(35, DnsResponseCode.INSTANCE.value("RESERVED35"));
 
         // one thats undefined but out of range
-        assertEquals(-1, DnsResponseCode.value("RESERVED" + 0x1000));
+        assertEquals(-1, DnsResponseCode.INSTANCE.value("RESERVED" + 0x1000));
 
         // something that unknown
-        assertEquals(-1, DnsResponseCode.value("THIS IS DEFINITELY UNKNOWN"));
+        assertEquals(-1, DnsResponseCode.INSTANCE.value("THIS IS DEFINITELY UNKNOWN"));
 
         // empty string
-        assertEquals(-1, DnsResponseCode.value(""));
+        assertEquals(-1, DnsResponseCode.INSTANCE.value(""));
     }
 }

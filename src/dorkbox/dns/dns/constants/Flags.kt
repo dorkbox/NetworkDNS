@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.constants
 
-package dorkbox.dns.dns.constants;
-
-import dorkbox.dns.dns.Mnemonic;
+import dorkbox.dns.dns.Mnemonic
 
 /**
  * Constants and functions relating to flags in the DNS header.
@@ -25,10 +24,7 @@ import dorkbox.dns.dns.Mnemonic;
  *
  * https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-12
  */
-
-public
-enum Flags {
-
+enum class Flags(flagValue: Int, textValue: String) {
     /**
      * query/response
      */
@@ -72,92 +68,80 @@ enum Flags {
     /**
      * dnssec ok (extended)
      */
-    DO(ExtendedFlags.DO.value(), ExtendedFlags.DO.string());
+    DO(ExtendedFlags.DO.value().toInt(), ExtendedFlags.DO.string());
 
+    private val flagValue: Byte
+    private val textValue: String
 
-    private static Mnemonic flags = new Mnemonic("DNS Header Flag", Mnemonic.CASE_LOWER);
-    static {
-        flags.setMaximum(0xF);
-        flags.setPrefix("FLAG");
-        flags.setNumericAllowed(true);
-
-        flags.add(QR.flagValue, "qr");
-        flags.add(AA.flagValue, "aa");
-        flags.add(TC.flagValue, "tc");
-        flags.add(RD.flagValue, "rd");
-        flags.add(RA.flagValue, "ra");
-        flags.add(AD.flagValue, "ad");
-        flags.add(CD.flagValue, "cd");
+    init {
+        this.flagValue = flagValue.toByte()
+        this.textValue = textValue
     }
 
-    private final byte flagValue;
-    private final String textValue;
-
-    Flags(final int flagValue, final String textValue) {
-        this.flagValue = (byte) flagValue;
-        this.textValue = textValue;
+    fun value(): Byte {
+        return flagValue
     }
 
-    public
-    byte value() {
-        return flagValue;
+    fun string(): String {
+        return textValue
     }
 
-    public
-    String string() {
-        return textValue;
-    }
+    companion object {
+        private val flags = Mnemonic("DNS Header Flag", Mnemonic.CASE_LOWER)
 
+        init {
+            flags.setMaximum(0xF)
+            flags.setPrefix("FLAG")
+            flags.setNumericAllowed(true)
+            flags.add(QR.flagValue.toInt(), "qr")
+            flags.add(AA.flagValue.toInt(), "aa")
+            flags.add(TC.flagValue.toInt(), "tc")
+            flags.add(RD.flagValue.toInt(), "rd")
+            flags.add(RA.flagValue.toInt(), "ra")
+            flags.add(AD.flagValue.toInt(), "ad")
+            flags.add(CD.flagValue.toInt(), "cd")
+        }
 
-    public static
-    Flags toFlag(final int flagBit) {
-        for (Flags flag : values()) {
-            if (flag.value() == flagBit) {
-                return flag;
+        fun toFlag(flagBit: Int): Flags {
+            for (flag in values()) {
+                if (flag.value().toInt() == flagBit) {
+                    return flag
+                }
             }
+            throw IllegalArgumentException("Invalid flag $flagBit")
         }
 
-        throw new IllegalArgumentException("Invalid flag " + flagBit);
-    }
-
-    public static
-    Flags toFlag(final String flagName) {
-        for (Flags flag : values()) {
-            if (flag.string().equals(flagName)) {
-                return flag;
+        fun toFlag(flagName: String): Flags {
+            for (flag in values()) {
+                if (flag.string() == flagName) {
+                    return flag
+                }
             }
+            throw IllegalArgumentException("Invalid flag $flagName")
         }
 
-        throw new IllegalArgumentException("Invalid flag " + flagName);
-    }
+        // /**
+        //  * Converts a numeric Flag into a String
+        //  */
+        // public static
+        // String string(int i) {
+        //     return flags.getText(i);
+        // }
+        //
+        // /**
+        //  * Converts a String representation of an Flag into its numeric value
+        //  */
+        // public static
+        // int value(String s) {
+        //     return flags.getValue(s);
+        // }
 
-
-    // /**
-    //  * Converts a numeric Flag into a String
-    //  */
-    // public static
-    // String string(int i) {
-    //     return flags.getText(i);
-    // }
-    //
-    // /**
-    //  * Converts a String representation of an Flag into its numeric value
-    //  */
-    // public static
-    // int value(String s) {
-    //     return flags.getValue(s);
-    // }
-
-    /**
-     * Indicates if a bit in the flags field is a flag or not.  If it's part of the rcode or opcode, it's not.
-     */
-    public static
-    boolean isFlag(int index) {
-        // Checks that a numeric value is within the range
-        if (index < 0 || index > 0xF || (index >= 1 && index <= 4) || (index >= 12)) {
-            return false;
+        /**
+         * Indicates if a bit in the flags field is a flag or not.  If it's part of the rcode or opcode, it's not.
+         */
+        fun isFlag(index: Int): Boolean {
+            // Checks that a numeric value is within the range
+            return !((index < 0 || index > 0xF || index >= 1) && index <= 4 || index >= 12)
         }
-
-        return true;
     }
 }

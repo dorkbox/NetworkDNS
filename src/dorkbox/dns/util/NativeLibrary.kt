@@ -13,137 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.util;
+package dorkbox.dns.util
 
-import java.io.File;
-import java.lang.reflect.Field;
+import dorkbox.dns.util.Shutdownable.Companion.enableNativeLibrary
+import dorkbox.os.OS.isLinux
+import dorkbox.os.OS.isMacOsX
+import io.netty.channel.epoll.Epoll
+import io.netty.channel.kqueue.KQueue
 
-import dorkbox.dns.DnsClient;
-import dorkbox.dns.DnsServer;
-import dorkbox.os.OS;
-import dorkbox.util.NativeLoader;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.kqueue.KQueue;
-import io.netty.util.internal.PlatformDependent;
-import io.netty.util.internal.SystemPropertyUtil;
-
-/**
- *
- */
-public
-class NativeLibrary {
-
-    /**
-     * Tries to extract the native transport libraries for Linux/MacOsX into a "semi-permanent" location. If this is unsuccessful for any
-     * reason, netty will fall back to it's own logic.
-     */
-    static {
-        if ((DnsClient.enableNativeLibrary || DnsServer.enableNativeLibrary) && (OS.INSTANCE.isLinux() || OS.INSTANCE.isMacOsX())) {
-            // try to load the native libraries for Linux/MacOsX...
-            String originalLibraryPath = SystemPropertyUtil.get("java.library.path");
-            File outputDirectory;
-
-            String workdir = SystemPropertyUtil.get("io.netty.native.workdir");
-            if (workdir != null) {
-                File f = new File(workdir);
-                if (!f.isDirectory()) {
-                    f.mkdirs();
-                }
-
-                try {
-                    f = f.getAbsoluteFile();
-                } catch (Exception ignored) {
-                    // Good to have an absolute path, but it's OK.
-                }
-
-                outputDirectory = f;
-                // logger.debug("-Dio.netty.native.workdir: " + WORKDIR);
-            }
-            else {
-                outputDirectory = PlatformDependent.tmpdir();
-                // logger.debug("-Dio.netty.native.workdir: " + WORKDIR + " (io.netty.tmpdir)");
-            }
-
-            try {
-                System.setProperty("java.library.path", originalLibraryPath + File.pathSeparator + outputDirectory.getAbsolutePath());
-
-                // reset the classloader library path.
-                Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
-                fieldSysPath.setAccessible(true);
-                fieldSysPath.set(null, null);
-            } catch (Exception ignored) {
-            }
-
-
-            String staticLibName;
-            if (OS.INSTANCE.isLinux()) {
-                staticLibName = "netty_transport_native_epoll";
-            }
-            else {
-                staticLibName = "netty_transport_native_kqueue";
-            }
-
-            staticLibName = "lib" + staticLibName + '_' + PlatformDependent.normalizedArch();
-
-
-
-            String jarLibName = "META-INF/native/" + staticLibName;
-            if (OS.INSTANCE.isLinux()) {
-                jarLibName += ".so";
-            }
-            else {
-                jarLibName += ".jnilib";
-            }
-
-
-            try {
-                NativeLoader.extractLibrary(jarLibName, outputDirectory.getAbsolutePath(), staticLibName, null);
-
-                // we have to try to load the native library HERE, while the java.library.path has it
-                if (OS.INSTANCE.isLinux()) {
-                    //noinspection ResultOfMethodCallIgnored
-                    Epoll.isAvailable();
-                }
-                else if (OS.INSTANCE.isMacOsX()) {
-                    //noinspection ResultOfMethodCallIgnored
-                    KQueue.isAvailable();
-                }
-            } catch (Exception ignored) {
-
-            } finally {
-                System.setProperty("java.library.path", originalLibraryPath);
-
-                try {
-                    // reset the classloader library path.
-                    Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
-                    fieldSysPath.setAccessible(true);
-                    fieldSysPath.set(null, null);
-                } catch (Exception ignored) {
-                }
-            }
-        }
-
-        // either not Linux/MacOsX, or loading the library failed.
-    }
-
-
+object NativeLibrary {
     /**
      * @return true if the (possibly) required native libraries have been loaded
      */
-    public static
-    boolean isAvailable() {
-        if (!(DnsClient.enableNativeLibrary || DnsServer.enableNativeLibrary)) {
-            return false;
-        }
+    val isAvailable: Boolean
+        get() {
+            if (!enableNativeLibrary) {
+                return false
+            }
+            if (isLinux) {
+                return Epoll.isAvailable()
+            } else if (isMacOsX) {
+                return KQueue.isAvailable()
+            }
 
-        if (OS.INSTANCE.isLinux()) {
-            return Epoll.isAvailable();
+            // not Linux/MacOsX
+            return false
         }
-        else if (OS.INSTANCE.isMacOsX()) {
-            return KQueue.isAvailable();
-        }
-
-        // not Linux/MacOsX
-        return true;
-    }
 }

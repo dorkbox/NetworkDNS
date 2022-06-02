@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns
 
-package dorkbox.dns.dns;
-
-import dorkbox.collections.IntMap;
-import dorkbox.collections.ObjectIntMap;
+import dorkbox.collections.IntMap
+import dorkbox.collections.ObjectIntMap
+import java.util.*
 
 /**
  * A utility class for converting between numeric codes and mnemonics
@@ -25,81 +25,57 @@ import dorkbox.collections.ObjectIntMap;
  *
  * @author Brian Wellington
  */
-public
-class Mnemonic {
-
-    /** Strings are case-sensitive. */
-    public static final int CASE_SENSITIVE = 1;
-
-    /** Strings will be stored/searched for in uppercase. */
-    public static final int CASE_UPPER = 2;
-
-    /** Strings will be stored/searched for in lowercase. */
-    public static final int CASE_LOWER = 3;
-
-    private static final int INVALID_VALUE = -1;
-
-    private ObjectIntMap<String> strings;
-    private IntMap<String> values;
-
-    private String description;
-    private int wordcase;
-    private String prefix;
-    private int max;
-    private boolean numericok;
+open class Mnemonic(private val description: String, private val wordcase: Int) {
+    private val strings: ObjectIntMap<String>
+    private val values: IntMap<String>
+    private var prefix: String? = null
+    private var max: Int
+    private var numericok = false
 
     /**
      * Creates a new Mnemonic table.
      *
      * @param description A short description of the mnemonic to use when
      * @param wordcase Whether to convert strings into uppercase, lowercase,
-     *         or leave them unchanged.
-     *         throwing exceptions.
+     * or leave them unchanged.
+     * throwing exceptions.
      */
-    public
-    Mnemonic(String description, int wordcase) {
-        this.description = description;
-        this.wordcase = wordcase;
-        strings = new ObjectIntMap<String>();
-        values = new IntMap<String>();
-        max = Integer.MAX_VALUE;
+    init {
+        strings = ObjectIntMap()
+        values = IntMap()
+        max = Int.MAX_VALUE
     }
 
     /**
      * Sets the maximum numeric value
      */
-    public
-    void setMaximum(int max) {
-        this.max = max;
+    fun setMaximum(max: Int) {
+        this.max = max
     }
 
     /**
      * Sets the prefix to use when converting to and from values that don't
      * have mnemonics.
      */
-    public
-    void setPrefix(String prefix) {
-        this.prefix = sanitize(prefix);
+    fun setPrefix(prefix: String) {
+        this.prefix = sanitize(prefix)
     }
 
     /* Converts a String to the correct case. */
-    private
-    String sanitize(String str) {
+    private fun sanitize(str: String): String {
         if (wordcase == CASE_UPPER) {
-            return str.toUpperCase();
+            return str.uppercase(Locale.getDefault())
+        } else if (wordcase == CASE_LOWER) {
+            return str.lowercase(Locale.getDefault())
         }
-        else if (wordcase == CASE_LOWER) {
-            return str.toLowerCase();
-        }
-        return str;
+        return str
     }
 
     /**
      * Sets whether numeric values stored in strings are acceptable.
      */
-    public
-    void setNumericAllowed(boolean numeric) {
-        this.numericok = numeric;
+    fun setNumericAllowed(numeric: Boolean) {
+        numericok = numeric
     }
 
     /**
@@ -108,22 +84,19 @@ class Mnemonic {
      * @param value The numeric value
      * @param string The text string
      */
-    public
-    void add(int value, String string) {
-        check(value);
-        string = sanitize(string);
-        strings.put(string, value);
-        values.put(value, string);
+    fun add(value: Int, string: String) {
+        var string = string
+        check(value)
+        string = sanitize(string)
+        strings.put(string, value)
+        values.put(value, string)
     }
 
     /**
      * Checks that a numeric value is within the range [0..max]
      */
-    public
-    void check(int val) {
-        if (val < 0 || val > max) {
-            throw new IllegalArgumentException(description + " " + val + "is out of range");
-        }
+    open fun check(`val`: Int) {
+        require(!(`val` < 0 || `val` > max)) { description + " " + `val` + "is out of range" }
     }
 
     /**
@@ -133,11 +106,11 @@ class Mnemonic {
      * @param value The numeric value
      * @param string The text string
      */
-    public
-    void addAlias(int value, String string) {
-        check(value);
-        string = sanitize(string);
-        strings.put(string, value);
+    fun addAlias(value: Int, string: String) {
+        var string = string
+        check(value)
+        string = sanitize(string)
+        strings.put(string, value)
     }
 
     /**
@@ -146,16 +119,12 @@ class Mnemonic {
      * @param source The Mnemonic source to add from
      *
      * @throws IllegalArgumentException The wordcases of the Mnemonics do not
-     *         match.
+     * match.
      */
-    public
-    void addAll(Mnemonic source) {
-        if (wordcase != source.wordcase) {
-            throw new IllegalArgumentException(source.description + ": wordcases do not match");
-        }
-
-        strings.putAll(source.strings);
-        values.putAll(source.values);
+    fun addAll(source: Mnemonic) {
+        require(wordcase == source.wordcase) { source.description + ": wordcases do not match" }
+        strings.putAll(source.strings)
+        values.putAll(source.values)
     }
 
     /**
@@ -165,19 +134,16 @@ class Mnemonic {
      *
      * @return The corresponding text mnemonic.
      */
-    public
-    String getText(int value) {
-        check(value);
-        String str = values.get(value);
+    fun getText(value: Int): String {
+        check(value)
+        var str = values[value]
         if (str != null) {
-            return str;
+            return str
         }
-
-        str = Integer.toString(value);
-        if (prefix != null) {
-            return prefix + str;
-        }
-        return str;
+        str = Integer.toString(value)
+        return if (prefix != null) {
+            prefix + str
+        } else str
     }
 
     /**
@@ -187,39 +153,46 @@ class Mnemonic {
      *
      * @return The corresponding numeric value, or -1 if there is none
      */
-    public
-    int getValue(String str) {
-        str = sanitize(str);
-        int value = strings.get(str, INVALID_VALUE);
-
+    fun getValue(str: String): Int {
+        var str = str
+        str = sanitize(str)
+        val value = strings[str, INVALID_VALUE]
         if (value != INVALID_VALUE) {
-            return value;
+            return value
         }
         if (prefix != null) {
-            if (str.startsWith(prefix)) {
-                int val = parseNumeric(str.substring(prefix.length()));
-                if (val >= 0) {
-                    return val;
+            if (str.startsWith(prefix!!)) {
+                val `val` = parseNumeric(str.substring(prefix!!.length))
+                if (`val` >= 0) {
+                    return `val`
                 }
             }
         }
-        if (numericok) {
-            return parseNumeric(str);
-        }
-
-        return INVALID_VALUE;
+        return if (numericok) {
+            parseNumeric(str)
+        } else INVALID_VALUE
     }
 
-    private
-    int parseNumeric(String s) {
+    private fun parseNumeric(s: String): Int {
         try {
-            int val = Integer.parseInt(s);
-            if (val >= 0 && val <= max) {
-                return val;
+            val `val` = s.toInt()
+            if (`val` >= 0 && `val` <= max) {
+                return `val`
             }
-        } catch (NumberFormatException ignored) {
+        } catch (ignored: NumberFormatException) {
         }
+        return INVALID_VALUE
+    }
 
-        return INVALID_VALUE;
+    companion object {
+        /** Strings are case-sensitive.  */
+        const val CASE_SENSITIVE = 1
+
+        /** Strings will be stored/searched for in uppercase.  */
+        const val CASE_UPPER = 2
+
+        /** Strings will be stored/searched for in lowercase.  */
+        const val CASE_LOWER = 3
+        private const val INVALID_VALUE = -1
     }
 }

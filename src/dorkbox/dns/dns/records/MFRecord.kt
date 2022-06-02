@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
 
 /**
  * Mail Forwarder Record  - specifies a mail agent which forwards mail
@@ -25,41 +24,36 @@ import dorkbox.dns.dns.constants.DnsRecordType;
  *
  * @author Brian Wellington
  */
-@Deprecated
-public
-class MFRecord extends SingleNameBase {
+@Deprecated("")
+class MFRecord : SingleNameBase {
+    internal constructor() {}
 
-    private static final long serialVersionUID = -6670449036843028169L;
+    override val `object`: DnsRecord
+        get() = MFRecord()
 
-    MFRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new MFRecord();
-    }
-
-    @Override
-    public
-    Name getAdditionalName() {
-        return getSingleName();
-    }
+    /**
+     * Gets the mail agent for the domain
+     */
+    val mailAgent: Name
+        get() = singleName
 
     /**
      * Creates a new MF Record with the given data
      *
      * @param mailAgent The mail agent that forwards mail for the domain.
      */
-    public
-    MFRecord(Name name, int dclass, long ttl, Name mailAgent) {
-        super(name, DnsRecordType.MF, dclass, ttl, mailAgent, "mail agent");
+    constructor(name: Name, dclass: Int, ttl: Long, mailAgent: Name) : super(
+        name,
+        DnsRecordType.MF,
+        dclass,
+        ttl,
+        mailAgent,
+        "mail agent"
+    ) {
+        this.additionalName = singleName
     }
 
-    /**
-     * Gets the mail agent for the domain
-     */
-    public
-    Name getMailAgent() {
-        return getSingleName();
+    companion object {
+        private const val serialVersionUID = -6670449036843028169L
     }
-
 }

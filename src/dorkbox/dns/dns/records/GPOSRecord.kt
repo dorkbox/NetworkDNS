@@ -13,84 +13,76 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.exceptions.WireParseException;
-import dorkbox.dns.dns.utils.Tokenizer;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.exceptions.TextParseException
+import dorkbox.dns.dns.exceptions.WireParseException
+import dorkbox.dns.dns.utils.Tokenizer
+import java.io.IOException
 
 /**
  * Geographical Location - describes the physical location of a host.
  *
  * @author Brian Wellington
  */
-@Deprecated
-public
-class GPOSRecord extends DnsRecord {
+@Deprecated("")
+class GPOSRecord : DnsRecord {
+    private lateinit var latitude: ByteArray
+    private lateinit var longitude: ByteArray
+    private lateinit var altitude: ByteArray
 
-    private static final long serialVersionUID = -6349714958085750705L;
+    internal constructor() {}
 
-    private byte[] latitude, longitude, altitude;
+    override val `object`: DnsRecord
+        get() = GPOSRecord()
 
-    GPOSRecord() {}
-
-    @Override
-    DnsRecord getObject() {
-        return new GPOSRecord();
-    }
-
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        longitude = in.readCountedString();
-        latitude = in.readCountedString();
-        altitude = in.readCountedString();
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        longitude = `in`.readCountedString()
+        latitude = `in`.readCountedString()
+        altitude = `in`.readCountedString()
         try {
-            validate(getLongitude(), getLatitude());
-        } catch (IllegalArgumentException e) {
-            throw new WireParseException(e.getMessage());
+            validate(getLongitude(), getLatitude())
+        } catch (e: IllegalArgumentException) {
+            throw WireParseException(e.message!!)
         }
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeCountedString(longitude);
-        out.writeCountedString(latitude);
-        out.writeCountedString(altitude);
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeCountedString(longitude)
+        out.writeCountedString(latitude)
+        out.writeCountedString(altitude)
     }
 
     /**
      * Convert to a String
      */
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(byteArrayToString(longitude, true));
-        sb.append(" ");
-        sb.append(byteArrayToString(latitude, true));
-        sb.append(" ");
-        sb.append(byteArrayToString(altitude, true));
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(byteArrayToString(longitude, true))
+        sb.append(" ")
+        sb.append(byteArrayToString(latitude, true))
+        sb.append(" ")
+        sb.append(byteArrayToString(altitude, true))
     }
 
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
         try {
-            longitude = byteArrayFromString(st.getString());
-            latitude = byteArrayFromString(st.getString());
-            altitude = byteArrayFromString(st.getString());
-        } catch (TextParseException e) {
-            throw st.exception(e.getMessage());
+            longitude = byteArrayFromString(st.getString())
+            latitude = byteArrayFromString(st.getString())
+            altitude = byteArrayFromString(st.getString())
+        } catch (e: TextParseException) {
+            throw st.exception(e.message ?: "")
         }
         try {
-            validate(getLongitude(), getLatitude());
-        } catch (IllegalArgumentException e) {
-            throw new WireParseException(e.getMessage());
+            validate(getLongitude(), getLatitude())
+        } catch (e: IllegalArgumentException) {
+            throw WireParseException(e.message ?: "")
         }
     }
 
@@ -100,25 +92,21 @@ class GPOSRecord extends DnsRecord {
      * @param longitude The longitude component of the location.
      * @param latitude The latitude component of the location.
      * @param altitude The altitude component of the location (in meters above sea
-     *         level).
+     * level).
      */
-    public
-    GPOSRecord(Name name, int dclass, long ttl, double longitude, double latitude, double altitude) {
-        super(name, DnsRecordType.GPOS, dclass, ttl);
-        validate(longitude, latitude);
-        this.longitude = Double.toString(longitude).getBytes();
-        this.latitude = Double.toString(latitude).getBytes();
-        this.altitude = Double.toString(altitude).getBytes();
+    constructor(name: Name?, dclass: Int, ttl: Long, longitude: Double, latitude: Double, altitude: Double) : super(
+        name!!, DnsRecordType.GPOS, dclass, ttl
+    ) {
+        validate(longitude, latitude)
+        this.longitude = java.lang.Double.toString(longitude).toByteArray()
+        this.latitude = java.lang.Double.toString(latitude).toByteArray()
+        this.altitude = java.lang.Double.toString(altitude).toByteArray()
     }
 
-    private
-    void validate(double longitude, double latitude) throws IllegalArgumentException {
-        if (longitude < -90.0 || longitude > 90.0) {
-            throw new IllegalArgumentException("illegal longitude " + longitude);
-        }
-        if (latitude < -180.0 || latitude > 180.0) {
-            throw new IllegalArgumentException("illegal latitude " + latitude);
-        }
+    @Throws(IllegalArgumentException::class)
+    private fun validate(longitude: Double, latitude: Double) {
+        require(!(longitude < -90.0 || longitude > 90.0)) { "illegal longitude $longitude" }
+        require(!(latitude < -180.0 || latitude > 180.0)) { "illegal latitude $latitude" }
     }
 
     /**
@@ -127,18 +115,18 @@ class GPOSRecord extends DnsRecord {
      * @param longitude The longitude component of the location.
      * @param latitude The latitude component of the location.
      * @param altitude The altitude component of the location (in meters above sea
-     *         level).
+     * level).
      */
-    public
-    GPOSRecord(Name name, int dclass, long ttl, String longitude, String latitude, String altitude) {
-        super(name, DnsRecordType.GPOS, dclass, ttl);
+    constructor(name: Name?, dclass: Int, ttl: Long, longitude: String?, latitude: String?, altitude: String?) : super(
+        name!!, DnsRecordType.GPOS, dclass, ttl
+    ) {
         try {
-            this.longitude = byteArrayFromString(longitude);
-            this.latitude = byteArrayFromString(latitude);
-            validate(getLongitude(), getLatitude());
-            this.altitude = byteArrayFromString(altitude);
-        } catch (TextParseException e) {
-            throw new IllegalArgumentException(e.getMessage());
+            this.longitude = byteArrayFromString(longitude!!)
+            this.latitude = byteArrayFromString(latitude!!)
+            validate(getLongitude(), getLatitude())
+            this.altitude = byteArrayFromString(altitude!!)
+        } catch (e: TextParseException) {
+            throw IllegalArgumentException(e.message)
         }
     }
 
@@ -146,57 +134,51 @@ class GPOSRecord extends DnsRecord {
      * Returns the longitude as a double
      *
      * @throws NumberFormatException The string does not contain a valid numeric
-     *         value.
+     * value.
      */
-    public
-    double getLongitude() {
-        return Double.parseDouble(getLongitudeString());
+    fun getLongitude(): Double {
+        return longitudeString.toDouble()
     }
 
     /**
      * Returns the longitude as a string
      */
-    public
-    String getLongitudeString() {
-        return byteArrayToString(longitude, false);
-    }
+    val longitudeString: String
+        get() = byteArrayToString(longitude, false)
 
     /**
      * Returns the latitude as a double
      *
      * @throws NumberFormatException The string does not contain a valid numeric
-     *         value.
+     * value.
      */
-    public
-    double getLatitude() {
-        return Double.parseDouble(getLatitudeString());
+    fun getLatitude(): Double {
+        return latitudeString.toDouble()
     }
 
     /**
      * Returns the latitude as a string
      */
-    public
-    String getLatitudeString() {
-        return byteArrayToString(latitude, false);
-    }
+    val latitudeString: String
+        get() = byteArrayToString(latitude, false)
 
     /**
      * Returns the altitude as a double
      *
      * @throws NumberFormatException The string does not contain a valid numeric
-     *         value.
+     * value.
      */
-    public
-    double getAltitude() {
-        return Double.parseDouble(getAltitudeString());
+    fun getAltitude(): Double {
+        return altitudeString.toDouble()
     }
 
     /**
      * Returns the altitude as a string
      */
-    public
-    String getAltitudeString() {
-        return byteArrayToString(altitude, false);
-    }
+    val altitudeString: String
+        get() = byteArrayToString(altitude, false)
 
+    companion object {
+        private const val serialVersionUID = -6349714958085750705L
+    }
 }

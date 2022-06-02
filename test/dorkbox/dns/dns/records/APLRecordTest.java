@@ -30,9 +30,7 @@ import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.RelativeNameException;
 import dorkbox.dns.dns.exceptions.TextParseException;
 import dorkbox.dns.dns.exceptions.WireParseException;
-import dorkbox.dns.dns.records.APLRecord;
 import dorkbox.dns.dns.records.APLRecord.Element;
-import dorkbox.dns.dns.records.DnsRecord;
 import dorkbox.dns.dns.utils.Address;
 import dorkbox.dns.dns.utils.Tokenizer;
 import junit.framework.Test;
@@ -56,10 +54,10 @@ class APLRecordTest {
         public
         void test_valid_IPv4() {
             Element el = new Element(true, m_addr4, 16);
-            assertEquals(Address.IPv4, el.family);
-            assertEquals(true, el.negative);
-            assertEquals(m_addr4, el.address);
-            assertEquals(16, el.prefixLength);
+            assertEquals(Address.IPv4, el.getFamily());
+            assertEquals(true, el.getNegative());
+            assertEquals(m_addr4, el.getAddress());
+            assertEquals(16, el.getPrefixLength());
         }
 
         public
@@ -74,10 +72,10 @@ class APLRecordTest {
         public
         void test_valid_IPv6() {
             Element el = new Element(false, m_addr6, 74);
-            assertEquals(Address.IPv6, el.family);
-            assertEquals(false, el.negative);
-            assertEquals(m_addr6, el.address);
-            assertEquals(74, el.prefixLength);
+            assertEquals(Address.IPv6, el.getFamily());
+            assertEquals(false, el.getNegative());
+            assertEquals(m_addr6, el.getAddress());
+            assertEquals(74, el.getPrefixLength());
         }
 
         public
@@ -108,8 +106,8 @@ class APLRecordTest {
             APLRecord ar = new APLRecord();
             assertNull(ar.getName());
             assertEquals(0, ar.getType());
-            assertEquals(0, ar.getDClass());
-            assertEquals(0, ar.getTTL());
+            assertEquals(0, ar.getDclass());
+            assertEquals(0, ar.getTtl());
             assertNull(ar.getElements());
         }
 
@@ -121,8 +119,8 @@ class APLRecordTest {
         }        @Override
         protected
         void setUp() throws TextParseException, UnknownHostException {
-            m_an = Name.fromString("My.Absolute.Name.");
-            m_rn = Name.fromString("My.Relative.Name");
+            m_an = Name.Companion.fromString("My.Absolute.Name.");
+            m_rn = Name.Companion.fromString("My.Relative.Name");
             m_ttl = 0x13579;
             m_addr4_string = "193.160.232.5";
             m_addr4 = InetAddress.getByName(m_addr4_string);
@@ -145,8 +143,8 @@ class APLRecordTest {
             APLRecord ar = new APLRecord(m_an, DnsClass.IN, m_ttl, m_elements);
             assertEquals(m_an, ar.getName());
             assertEquals(DnsRecordType.APL, ar.getType());
-            assertEquals(DnsClass.IN, ar.getDClass());
-            assertEquals(m_ttl, ar.getTTL());
+            assertEquals(DnsClass.IN, ar.getDclass());
+            assertEquals(m_ttl, ar.getTtl());
             assertEquals(m_elements, ar.getElements());
         }
 
@@ -294,10 +292,10 @@ class APLRecordTest {
             assertEquals(1, l.size());
 
             Element el = (Element) l.get(0);
-            assertEquals(3, el.family);
-            assertEquals(true, el.negative);
-            assertEquals(130, el.prefixLength);
-            assertTrue(Arrays.equals(new byte[] {1, 2, 3, 4, 5}, (byte[]) el.address));
+            assertEquals(3, el.getFamily());
+            assertEquals(true, el.getNegative());
+            assertEquals(130, el.getPrefixLength());
+            assertTrue(Arrays.equals(new byte[] {1, 2, 3, 4, 5}, (byte[]) el.getAddress()));
         }
     }
 
@@ -323,7 +321,7 @@ class APLRecordTest {
             assertEquals(exp, ar.getElements());
 
             // make sure extra token is put back
-            assertEquals(Tokenizer.EOL, t.get().type);
+            assertEquals(Tokenizer.EOL, t.get().getType());
         }
 
         public
@@ -363,7 +361,7 @@ class APLRecordTest {
             assertEquals(exp, ar.getElements());
 
             // make sure extra token is put back
-            assertEquals(Tokenizer.EOL, t.get().type);
+            assertEquals(Tokenizer.EOL, t.get().getType());
         }
 
         public
@@ -512,8 +510,8 @@ class APLRecordTest {
         @Override
         protected
         void setUp() throws TextParseException, UnknownHostException {
-            m_an = Name.fromString("My.Absolute.Name.");
-            m_rn = Name.fromString("My.Relative.Name");
+            m_an = Name.Companion.fromString("My.Absolute.Name.");
+            m_rn = Name.Companion.fromString("My.Relative.Name");
             m_ttl = 0x13579;
             m_addr4_string = "193.160.232.5";
             m_addr4 = InetAddress.getByName(m_addr4_string);
@@ -575,8 +573,8 @@ class APLRecordTest {
         @Override
         protected
         void setUp() throws TextParseException, UnknownHostException {
-            m_an = Name.fromString("My.Absolute.Name.");
-            m_rn = Name.fromString("My.Relative.Name");
+            m_an = Name.Companion.fromString("My.Absolute.Name.");
+            m_rn = Name.Companion.fromString("My.Relative.Name");
             m_ttl = 0x13579;
             m_addr4_string = "193.160.232.5";
             m_addr4 = InetAddress.getByName(m_addr4_string);

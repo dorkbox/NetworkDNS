@@ -17,7 +17,6 @@ package dorkbox.dns.dns;
 
 import org.junit.Test;
 
-import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.exceptions.TextParseException;
 import dorkbox.dns.dns.server.Response;
@@ -32,7 +31,7 @@ class ZoneDatabaseTest extends TestCase {
     class TestZone extends AbstractZone {
         public
         TestZone(String name) throws TextParseException {
-            super(ZoneType.master, Name.fromString(name));
+            super(ZoneType.master, Name.Companion.fromString(name));
         }
 
         @Override
@@ -51,7 +50,7 @@ class ZoneDatabaseTest extends TestCase {
         db.add(new TestZone("jp."));
         db.add(new TestZone("ne.jp."));
 
-        assertNotNull(db.prepare(Name.fromString("jp."), DnsClass.IN));
-        assertNull(db.prepare(Name.fromString("com."), DnsClass.IN));
+        assertNotNull(db.prepare(Name.Companion.fromString("jp."), DnsClass.IN));
+        assertNull(db.prepare(Name.Companion.fromString("com."), DnsClass.IN));
     }
 }

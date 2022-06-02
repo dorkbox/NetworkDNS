@@ -13,42 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns
 
-package dorkbox.dns.dns;
-
-import dorkbox.dns.dns.records.DnsMessage;
-import dorkbox.dns.dns.utils.Options;
+import dorkbox.dns.dns.utils.Options.check
 
 /**
  * DNS Name Compression object.
  *
  * @author Brian Wellington
  * @see DnsMessage
+ *
  * @see Name
  */
-
-public
 class Compression {
-
-    private static final int TABLE_SIZE = 17;
-    private static final int MAX_POINTER = 0x3FFF;
-    private Entry[] table;
-    private boolean verbose = Options.check("verbosecompression");
-
-
-    private static
-    class Entry {
-        Name name;
-        int pos;
-        Entry next;
+    companion object {
+        private const val TABLE_SIZE = 17
+        private const val MAX_POINTER = 0x3FFF
     }
 
-    /**
-     * Creates a new Compression object.
-     */
-    public
-    Compression() {
-        table = new Entry[TABLE_SIZE];
+    private val table = arrayOfNulls<Entry?>(TABLE_SIZE)
+    private val verbose = check("verbosecompression")
+
+    private class Entry {
+        var name: Name? = null
+        var pos = 0
+        var next: Entry? = null
     }
 
     /**
@@ -57,19 +46,20 @@ class Compression {
      * @param pos The position at which the name is added.
      * @param name The name being added to the message.
      */
-    public
-    void add(int pos, Name name) {
+    fun add(pos: Int, name: Name) {
         if (pos > MAX_POINTER) {
-            return;
+            return
         }
-        int row = (name.hashCode() & 0x7FFFFFFF) % TABLE_SIZE;
-        Entry entry = new Entry();
-        entry.name = name;
-        entry.pos = pos;
-        entry.next = table[row];
-        table[row] = entry;
+        val row = (name.hashCode() and 0x7FFFFFFF) % TABLE_SIZE
+
+        val entry = Entry()
+        entry.name = name
+        entry.pos = pos
+        entry.next = table[row]
+        table[row] = entry
+
         if (verbose) {
-            System.err.println("Adding " + name + " at " + pos);
+            System.err.println("Adding $name at $pos")
         }
     }
 
@@ -81,19 +71,20 @@ class Compression {
      *
      * @return The position of the name, or -1 if not found.
      */
-    public
-    int get(Name name) {
-        int row = (name.hashCode() & 0x7FFFFFFF) % TABLE_SIZE;
-        int pos = -1;
-        for (Entry entry = table[row]; entry != null; entry = entry.next) {
-            if (entry.name.equals(name)) {
-                pos = entry.pos;
+    operator fun get(name: Name): Int {
+        val row = (name.hashCode() and 0x7FFFFFFF) % TABLE_SIZE
+        var pos = -1
+        var entry = table[row]
+
+        while (entry != null) {
+            if (entry.name!!.equals(name)) {
+                pos = entry.pos
             }
+            entry = entry.next
         }
         if (verbose) {
-            System.err.println("Looking for " + name + ", found " + pos);
+            System.err.println("Looking for $name, found $pos")
         }
-        return pos;
+        return pos
     }
-
 }

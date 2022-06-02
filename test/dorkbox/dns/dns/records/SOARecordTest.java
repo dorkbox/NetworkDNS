@@ -27,8 +27,6 @@ import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.RelativeNameException;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.SOARecord;
 import dorkbox.dns.dns.utils.Options;
 import dorkbox.dns.dns.utils.Tokenizer;
 import junit.framework.Test;
@@ -57,10 +55,10 @@ class SOARecordTest {
         @Override
         protected
         void setUp() throws TextParseException, UnknownHostException {
-            m_an = Name.fromString("My.Absolute.Name.");
-            m_rn = Name.fromString("My.Relative.Name");
-            m_host = Name.fromString("My.Host.Name.");
-            m_admin = Name.fromString("My.Administrative.Name.");
+            m_an = Name.Companion.fromString("My.Absolute.Name.");
+            m_rn = Name.Companion.fromString("My.Relative.Name");
+            m_host = Name.Companion.fromString("My.Host.Name.");
+            m_admin = Name.Companion.fromString("My.Administrative.Name.");
             m_ttl = randomU16();
             m_serial = randomU32();
             m_refresh = randomU32();
@@ -74,8 +72,8 @@ class SOARecordTest {
             SOARecord ar = new SOARecord();
             assertNull(ar.getName());
             assertEquals(0, ar.getType());
-            assertEquals(0, ar.getDClass());
-            assertEquals(0, ar.getTTL());
+            assertEquals(0, ar.getDclass());
+            assertEquals(0, ar.getTtl());
             assertNull(ar.getHost());
             assertNull(ar.getAdmin());
             assertEquals(0, ar.getSerial());
@@ -97,8 +95,8 @@ class SOARecordTest {
             SOARecord ar = new SOARecord(m_an, DnsClass.IN, m_ttl, m_host, m_admin, m_serial, m_refresh, m_retry, m_expire, m_minimum);
             assertEquals(m_an, ar.getName());
             assertEquals(DnsRecordType.SOA, ar.getType());
-            assertEquals(DnsClass.IN, ar.getDClass());
-            assertEquals(m_ttl, ar.getTTL());
+            assertEquals(DnsClass.IN, ar.getDclass());
+            assertEquals(m_ttl, ar.getTtl());
             assertEquals(m_host, ar.getHost());
             assertEquals(m_admin, ar.getAdmin());
             assertEquals(m_serial, ar.getSerial());
@@ -257,8 +255,8 @@ class SOARecordTest {
         }        @Override
         protected
         void setUp() throws TextParseException, UnknownHostException {
-            m_host = Name.fromString("M.h.N.");
-            m_admin = Name.fromString("M.a.n.");
+            m_host = Name.Companion.fromString("M.h.N.");
+            m_admin = Name.Companion.fromString("M.a.n.");
             m_serial = 0xABCDEF12L;
             m_refresh = 0xCDEF1234L;
             m_retry = 0xEF123456L;
@@ -293,9 +291,9 @@ class SOARecordTest {
         }        @Override
         protected
         void setUp() throws TextParseException, UnknownHostException {
-            m_origin = Name.fromString("O.");
-            m_host = Name.fromString("M.h", m_origin);
-            m_admin = Name.fromString("M.a.n.");
+            m_origin = Name.Companion.fromString("O.");
+            m_host = Name.Companion.fromString("M.h", m_origin);
+            m_admin = Name.Companion.fromString("M.a.n.");
             m_serial = 0xABCDEF12L;
             m_refresh = 0xCDEF1234L;
             m_retry = 0xEF123456L;
@@ -338,10 +336,10 @@ class SOARecordTest {
         }        @Override
         protected
         void setUp() throws TextParseException {
-            m_an = Name.fromString("My.absolute.name.");
+            m_an = Name.Companion.fromString("My.absolute.name.");
             m_ttl = 0x13A8;
-            m_host = Name.fromString("M.h.N.");
-            m_admin = Name.fromString("M.a.n.");
+            m_host = Name.Companion.fromString("M.h.N.");
+            m_admin = Name.Companion.fromString("M.a.n.");
             m_serial = 0xABCDEF12L;
             m_refresh = 0xCDEF1234L;
             m_retry = 0xEF123456L;
@@ -358,7 +356,7 @@ class SOARecordTest {
                         "\\s*" + m_expire + "\\s*;\\s*expire\\n" + // expire
                         "\\s*" + m_minimum + "\\s*\\)\\s*;\\s*minimum$"; // minimum
 
-            Options.set("multiline");
+            Options.INSTANCE.set("multiline");
             StringBuilder sb = new StringBuilder();
             ar.rrToString(sb);
             String out = sb.toString();
@@ -394,10 +392,10 @@ class SOARecordTest {
         }        @Override
         protected
         void setUp() throws TextParseException {
-            m_an = Name.fromString("My.Abs.Name.");
+            m_an = Name.Companion.fromString("My.Abs.Name.");
             m_ttl = 0x13A8;
-            m_host = Name.fromString("M.h.N.");
-            m_admin = Name.fromString("M.a.n.");
+            m_host = Name.Companion.fromString("M.h.N.");
+            m_admin = Name.Companion.fromString("M.a.n.");
             m_serial = 0xABCDEF12L;
             m_refresh = 0xCDEF1234L;
             m_retry = 0xEF123456L;

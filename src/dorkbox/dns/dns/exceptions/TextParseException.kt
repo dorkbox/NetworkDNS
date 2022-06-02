@@ -13,32 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.exceptions
 
-package dorkbox.dns.dns.exceptions;
-
-import java.io.IOException;
+import java.io.IOException
 
 /**
  * An exception thrown when unable to parse text.
  *
  * @author Brian Wellington
  */
-
-public
-class TextParseException extends IOException {
-
-    public
-    TextParseException() {
-        super();
-    }
-
-    public
-    TextParseException(String s) {
-        super(s);
-    }
-
-    public
-    TextParseException(String s, Exception e) {
-        super(s, e);
-    }
+open class TextParseException : IOException {
+    constructor() : super()
+    constructor(s: String) : super(s)
+    constructor(s: String, e: Exception?) : super(s, e)
 }

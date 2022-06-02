@@ -13,51 +13,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.zone;
+package dorkbox.dns.dns.zone
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
+import dorkbox.dns.dns.Name
+import java.util.concurrent.*
 
-import dorkbox.dns.dns.Name;
-
-public
 class ZoneDatabase {
+    var zones: MutableMap<ZoneDatabaseKey, Zone> = ConcurrentSkipListMap()
 
-    protected Map<ZoneDatabaseKey, Zone> zones = new ConcurrentSkipListMap<ZoneDatabaseKey, Zone>();
-
-    public
-    void add(Zone zone/* TODO ZoneConfig? */) {
-        this.zones.put(new ZoneDatabaseKey(zone), zone);
+    fun add(zone: Zone /* TODO ZoneConfig? */) {
+        zones[ZoneDatabaseKey(zone)] = zone
     }
 
-    public
-    Query prepare(Name name, int dnsClass) {
-        ZoneDatabaseKey zk = new ZoneDatabaseKey(name, dnsClass);
-        Zone found = this.zones.get(zk);
+    fun prepare(name: Name, dnsClass: Int): Query? {
+        val zk = ZoneDatabaseKey(name, dnsClass)
+        var found = zones[zk]
         if (found != null) {
             // exact match
-            return new Query(name, name, dnsClass, found, this);
+            return Query(name, name, dnsClass, found, this)
         }
-
-        Name child = name;
+        var child = name
         // partial match
-        for (int i = 0, size = this.zones.size(); i < size; i++) {
-            Name p = child.parent(1);
-            zk.name(p);
-            found = this.zones.get(zk);
-            if (found == null) {
+        var i = 0
+        val size = zones.size
+        while (i < size) {
+            val p = child.parent(1)
+            zk.name(p)
+            found = zones[zk]
+            child = if (found == null) {
                 if (p.labels() <= 1) {
-                    break;
+                    break
                 }
-
-                child = p;
+                p
+            } else {
+                return Query(name, p, dnsClass, found, this)
             }
-            else {
-                return new Query(name, p, dnsClass, found, this);
-            }
+            i++
         }
 
         // not found.
-        return null;
+        return null
     }
 }

@@ -13,86 +13,81 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns.dns.records
 
-package dorkbox.dns.dns.records;
-
-import java.io.IOException;
-
-import dorkbox.dns.dns.Compression;
-import dorkbox.dns.dns.DnsInput;
-import dorkbox.dns.dns.DnsOutput;
-import dorkbox.dns.dns.Name;
-import dorkbox.dns.dns.utils.Tokenizer;
-import dorkbox.dns.dns.constants.DnsRecordType;
-import dorkbox.dns.dns.utils.base16;
+import dorkbox.dns.dns.Compression
+import dorkbox.dns.dns.DnsInput
+import dorkbox.dns.dns.DnsOutput
+import dorkbox.dns.dns.Name
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.utils.Tokenizer
+import dorkbox.dns.dns.utils.base16.toString
+import java.io.IOException
 
 /**
  * SSH Fingerprint - stores the fingerprint of an SSH host key.
  *
  * @author Brian Wellington
  */
+class SSHFPRecord : DnsRecord {
+    /**
+     * Returns the public key's algorithm.
+     */
+    var algorithm = 0
+        private set
 
-public
-class SSHFPRecord extends DnsRecord {
+    /**
+     * Returns the public key's digest type.
+     */
+    var digestType = 0
+        private set
 
-    private static final long serialVersionUID = -8104701402654687025L;
-    private int alg;
-    private int digestType;
-    private byte[] fingerprint;
+    /**
+     * Returns the fingerprint
+     */
+    var fingerPrint: ByteArray? = null
+        private set
 
-
-    public static
-    class Algorithm {
-        public static final int RSA = 1;
-        public static final int DSS = 2;
-        private
-        Algorithm() {}
+    object Algorithm {
+        const val RSA = 1
+        const val DSS = 2
     }
 
-
-    public static
-    class Digest {
-        public static final int SHA1 = 1;
-
-        private
-        Digest() {}
+    object Digest {
+        const val SHA1 = 1
     }
 
-    SSHFPRecord() {}
+    internal constructor() {}
 
-    @Override
-    DnsRecord getObject() {
-        return new SSHFPRecord();
+    override val `object`: DnsRecord
+        get() = SSHFPRecord()
+
+    @Throws(IOException::class)
+    override fun rrFromWire(`in`: DnsInput) {
+        algorithm = `in`.readU8()
+        digestType = `in`.readU8()
+        fingerPrint = `in`.readByteArray()
     }
 
-    @Override
-    void rrFromWire(DnsInput in) throws IOException {
-        alg = in.readU8();
-        digestType = in.readU8();
-        fingerprint = in.readByteArray();
+    override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
+        out.writeU8(algorithm)
+        out.writeU8(digestType)
+        out.writeByteArray(fingerPrint!!)
     }
 
-    @Override
-    void rrToWire(DnsOutput out, Compression c, boolean canonical) {
-        out.writeU8(alg);
-        out.writeU8(digestType);
-        out.writeByteArray(fingerprint);
+    override fun rrToString(sb: StringBuilder) {
+        sb.append(algorithm)
+        sb.append(" ")
+        sb.append(digestType)
+        sb.append(" ")
+        sb.append(toString(fingerPrint!!))
     }
 
-    @Override
-    void rrToString(StringBuilder sb) {
-        sb.append(alg);
-        sb.append(" ");
-        sb.append(digestType);
-        sb.append(" ");
-        sb.append(base16.toString(fingerprint));
-    }
-
-    @Override
-    void rdataFromString(Tokenizer st, Name origin) throws IOException {
-        alg = st.getUInt8();
-        digestType = st.getUInt8();
-        fingerprint = st.getHex(true);
+    @Throws(IOException::class)
+    override fun rdataFromString(st: Tokenizer, origin: Name?) {
+        algorithm = st.getUInt8()
+        digestType = st.getUInt8()
+        fingerPrint = st.getHex(true)
     }
 
     /**
@@ -102,36 +97,15 @@ class SSHFPRecord extends DnsRecord {
      * @param digestType The public key's digest type.
      * @param fingerprint The public key's fingerprint.
      */
-    public
-    SSHFPRecord(Name name, int dclass, long ttl, int alg, int digestType, byte[] fingerprint) {
-        super(name, DnsRecordType.SSHFP, dclass, ttl);
-        this.alg = checkU8("alg", alg);
-        this.digestType = checkU8("digestType", digestType);
-        this.fingerprint = fingerprint;
+    constructor(name: Name?, dclass: Int, ttl: Long, alg: Int, digestType: Int, fingerprint: ByteArray?) : super(
+        name!!, DnsRecordType.SSHFP, dclass, ttl
+    ) {
+        algorithm = checkU8("alg", alg)
+        this.digestType = checkU8("digestType", digestType)
+        fingerPrint = fingerprint
     }
 
-    /**
-     * Returns the public key's algorithm.
-     */
-    public
-    int getAlgorithm() {
-        return alg;
+    companion object {
+        private const val serialVersionUID = -8104701402654687025L
     }
-
-    /**
-     * Returns the public key's digest type.
-     */
-    public
-    int getDigestType() {
-        return digestType;
-    }
-
-    /**
-     * Returns the fingerprint
-     */
-    public
-    byte[] getFingerPrint() {
-        return fingerprint;
-    }
-
 }

@@ -24,8 +24,6 @@ import dorkbox.dns.dns.Name;
 import dorkbox.dns.dns.constants.DnsClass;
 import dorkbox.dns.dns.constants.DnsRecordType;
 import dorkbox.dns.dns.exceptions.TextParseException;
-import dorkbox.dns.dns.records.DnsRecord;
-import dorkbox.dns.dns.records.HINFORecord;
 import dorkbox.dns.dns.utils.Tokenizer;
 import junit.framework.TestCase;
 
@@ -36,8 +34,8 @@ class HINFORecordTest extends TestCase {
         HINFORecord dr = new HINFORecord();
         assertNull(dr.getName());
         assertEquals(0, dr.getType());
-        assertEquals(0, dr.getDClass());
-        assertEquals(0, dr.getTTL());
+        assertEquals(0, dr.getDclass());
+        assertEquals(0, dr.getTtl());
     }
 
     public
@@ -49,23 +47,23 @@ class HINFORecordTest extends TestCase {
 
     public
     void test_ctor_5arg() throws TextParseException {
-        Name n = Name.fromString("The.Name.");
+        Name n = Name.Companion.fromString("The.Name.");
         long ttl = 0xABCDL;
         String cpu = "i686 Intel(R) Pentium(R) M processor 1.70GHz GenuineIntel GNU/Linux";
         String os = "Linux troy 2.6.10-gentoo-r6 #8 Wed Apr 6 21:25:04 MDT 2005";
 
         HINFORecord dr = new HINFORecord(n, DnsClass.IN, ttl, cpu, os);
         assertEquals(n, dr.getName());
-        assertEquals(DnsClass.IN, dr.getDClass());
+        assertEquals(DnsClass.IN, dr.getDclass());
         assertEquals(DnsRecordType.HINFO, dr.getType());
-        assertEquals(ttl, dr.getTTL());
+        assertEquals(ttl, dr.getTtl());
         assertEquals(cpu, dr.getCPU());
         assertEquals(os, dr.getOS());
     }
 
     public
     void test_ctor_5arg_invalid_CPU() throws TextParseException {
-        Name n = Name.fromString("The.Name.");
+        Name n = Name.Companion.fromString("The.Name.");
         long ttl = 0xABCDL;
         String cpu = "i686 Intel(R) Pentium(R) M \\256 processor 1.70GHz GenuineIntel GNU/Linux";
         String os = "Linux troy 2.6.10-gentoo-r6 #8 Wed Apr 6 21:25:04 MDT 2005";
@@ -79,7 +77,7 @@ class HINFORecordTest extends TestCase {
 
     public
     void test_ctor_5arg_invalid_OS() throws TextParseException {
-        Name n = Name.fromString("The.Name.");
+        Name n = Name.Companion.fromString("The.Name.");
         long ttl = 0xABCDL;
         String cpu = "i686 Intel(R) Pentium(R) M processor 1.70GHz GenuineIntel GNU/Linux";
         String os = "Linux troy 2.6.10-gentoo-r6 \\1 #8 Wed Apr 6 21:25:04 MDT 2005";
@@ -158,7 +156,7 @@ class HINFORecordTest extends TestCase {
 
         String exp = "\"" + cpu + "\" \"" + os + "\"";
 
-        HINFORecord dr = new HINFORecord(Name.fromString("The.Name."), DnsClass.IN, 0x123, cpu, os);
+        HINFORecord dr = new HINFORecord(Name.Companion.fromString("The.Name."), DnsClass.IN, 0x123, cpu, os);
         StringBuilder sb = new StringBuilder();
         dr.rrToString(sb);
         assertEquals(exp, sb.toString());
@@ -173,7 +171,7 @@ class HINFORecordTest extends TestCase {
                                  'i', 'n', 'u', 'x', ' ', 't', 'r', 'o', 'y', ' ', '2', '.', '6', '.', '1', '0', '-', 'g', 'e', 'n', 't',
                                  'o', 'o', '-', 'r', '6'};
 
-        HINFORecord dr = new HINFORecord(Name.fromString("The.Name."), DnsClass.IN, 0x123, cpu, os);
+        HINFORecord dr = new HINFORecord(Name.Companion.fromString("The.Name."), DnsClass.IN, 0x123, cpu, os);
 
         DnsOutput out = new DnsOutput();
         dr.rrToWire(out, null, true);

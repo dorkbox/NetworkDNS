@@ -13,57 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver;
+package dorkbox.dns.dns.resolver
 
-import java.net.InetSocketAddress;
-import java.util.List;
+import dorkbox.dns.dns.records.DnsMessage
+import io.netty.channel.ChannelFuture
+import java.net.InetSocketAddress
 
-import dorkbox.dns.dns.records.DnsMessage;
-import io.netty.channel.ChannelFuture;
-
-final
-class NoopDnsQueryLifecycleObserver implements DnsQueryLifecycleObserver {
-    static final NoopDnsQueryLifecycleObserver INSTANCE = new NoopDnsQueryLifecycleObserver();
-
-    private
-    NoopDnsQueryLifecycleObserver() {
+internal class NoopDnsQueryLifecycleObserver private constructor() : DnsQueryLifecycleObserver {
+    override fun queryWritten(dnsServerAddress: InetSocketAddress, future: ChannelFuture) {}
+    override fun queryCancelled(queriesRemaining: Int) {}
+    override fun queryRedirected(nameServers: List<InetSocketAddress>): DnsQueryLifecycleObserver {
+        return this
     }
 
-    @Override
-    public
-    void queryWritten(InetSocketAddress dnsServerAddress, ChannelFuture future) {
+    override fun queryCNAMEd(cnameQuestion: DnsMessage): DnsQueryLifecycleObserver {
+        return this
     }
 
-    @Override
-    public
-    void queryCancelled(int queriesRemaining) {
+    override fun queryNoAnswer(code: Int): DnsQueryLifecycleObserver {
+        return this
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver queryRedirected(List<InetSocketAddress> nameServers) {
-        return this;
-    }
+    override fun queryFailed(cause: Throwable) {}
+    override fun querySucceed() {}
 
-    @Override
-    public
-    DnsQueryLifecycleObserver queryCNAMEd(DnsMessage cnameQuestion) {
-        return this;
-    }
-
-    @Override
-    public
-    DnsQueryLifecycleObserver queryNoAnswer(int code) {
-        return this;
-    }
-
-    @Override
-    public
-    void queryFailed(Throwable cause) {
-    }
-
-    @Override
-    public
-    void querySucceed() {
+    companion object {
+        @JvmField
+        val INSTANCE = NoopDnsQueryLifecycleObserver()
     }
 }

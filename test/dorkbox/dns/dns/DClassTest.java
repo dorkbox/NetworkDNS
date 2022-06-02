@@ -23,24 +23,24 @@ class DClassTest extends TestCase {
     public
     void test_string() {
         // a regular one
-        assertEquals("IN", DnsClass.string(DnsClass.IN));
+        assertEquals("IN", DnsClass.INSTANCE.string(DnsClass.IN));
 
         // one with an alias
-        assertEquals("CH", DnsClass.string(DnsClass.CH));
+        assertEquals("CH", DnsClass.INSTANCE.string(DnsClass.CH));
 
         // one that doesn't exist
-        assertTrue(DnsClass.string(20)
+        assertTrue(DnsClass.INSTANCE.string(20)
                            .startsWith("CLASS"));
 
         try {
-            DnsClass.string(-1);
+            DnsClass.INSTANCE.string(-1);
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
 
         //  (max is 0xFFFF)
         try {
-            DnsClass.string(0x10000);
+            DnsClass.INSTANCE.string(0x10000);
             fail("IllegalArgumentException not thrown");
         } catch (IllegalArgumentException e) {
         }
@@ -49,19 +49,19 @@ class DClassTest extends TestCase {
     public
     void test_value() {
         // regular one
-        assertEquals(DnsClass.NONE, DnsClass.value("NONE"));
+        assertEquals(DnsClass.NONE, DnsClass.INSTANCE.value("NONE"));
 
         // one with alias
-        assertEquals(DnsClass.HS, DnsClass.value("HS"));
-        assertEquals(DnsClass.HS, DnsClass.value("HESIOD"));
+        assertEquals(DnsClass.HS, DnsClass.INSTANCE.value("HS"));
+        assertEquals(DnsClass.HS, DnsClass.INSTANCE.value("HESIOD"));
 
         // one thats undefined but within range
-        assertEquals(21, DnsClass.value("CLASS21"));
+        assertEquals(21, DnsClass.INSTANCE.value("CLASS21"));
 
         // something that unknown
-        assertEquals(-1, DnsClass.value("THIS IS DEFINITELY UNKNOWN"));
+        assertEquals(-1, DnsClass.INSTANCE.value("THIS IS DEFINITELY UNKNOWN"));
 
         // empty string
-        assertEquals(-1, DnsClass.value(""));
+        assertEquals(-1, DnsClass.INSTANCE.value(""));
     }
 }

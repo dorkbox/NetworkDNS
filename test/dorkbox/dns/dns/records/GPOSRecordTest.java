@@ -29,6 +29,7 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
+@SuppressWarnings("deprecation")
 public
 class GPOSRecordTest extends TestCase {
     public
@@ -36,8 +37,8 @@ class GPOSRecordTest extends TestCase {
         GPOSRecord gr = new GPOSRecord();
         assertNull(gr.getName());
         assertEquals(0, gr.getType());
-        assertEquals(0, gr.getDClass());
-        assertEquals(0, gr.getTTL());
+        assertEquals(0, gr.getDclass());
+        assertEquals(0, gr.getTtl());
     }
 
     public
@@ -56,7 +57,7 @@ class GPOSRecordTest extends TestCase {
         @Override
         protected
         void setUp() throws TextParseException {
-            m_n = Name.fromString("The.Name.");
+            m_n = Name.Companion.fromString("The.Name.");
             m_ttl = 0xABCDL;
             m_lat = -10.43;
             m_long = 76.12;
@@ -67,9 +68,9 @@ class GPOSRecordTest extends TestCase {
         void test_basic() throws TextParseException {
             GPOSRecord gr = new GPOSRecord(m_n, DnsClass.IN, m_ttl, m_long, m_lat, m_alt);
             assertEquals(m_n, gr.getName());
-            assertEquals(DnsClass.IN, gr.getDClass());
+            assertEquals(DnsClass.IN, gr.getDclass());
             assertEquals(DnsRecordType.GPOS, gr.getType());
-            assertEquals(m_ttl, gr.getTTL());
+            assertEquals(m_ttl, gr.getTtl());
             assertEquals(m_long, gr.getLongitude());
             assertEquals(m_lat, gr.getLatitude());
             assertEquals(m_alt, gr.getAltitude());
@@ -137,9 +138,9 @@ class GPOSRecordTest extends TestCase {
                                            DnsClass.IN,
                                            m_ttl, Double.toString(m_long), Double.toString(m_lat), Double.toString(m_alt));
             assertEquals(m_n, gr.getName());
-            assertEquals(DnsClass.IN, gr.getDClass());
+            assertEquals(DnsClass.IN, gr.getDclass());
             assertEquals(DnsRecordType.GPOS, gr.getType());
-            assertEquals(m_ttl, gr.getTTL());
+            assertEquals(m_ttl, gr.getTtl());
             assertEquals(m_long, gr.getLongitude());
             assertEquals(m_lat, gr.getLatitude());
             assertEquals(m_alt, gr.getAltitude());
@@ -158,7 +159,7 @@ class GPOSRecordTest extends TestCase {
         }        @Override
         protected
         void setUp() throws TextParseException {
-            m_n = Name.fromString("The.Name.");
+            m_n = Name.Companion.fromString("The.Name.");
             m_ttl = 0xABCDL;
             m_lat = -10.43;
             m_long = 76.12;
@@ -342,7 +343,7 @@ class GPOSRecordTest extends TestCase {
     void test_rrToString() throws TextParseException {
         String exp = "\"10.45\" \"171.121212\" \"1010787.0\"";
 
-        GPOSRecord gr = new GPOSRecord(Name.fromString("The.Name."), DnsClass.IN, 0x123, 10.45, 171.121212, 1010787);
+        GPOSRecord gr = new GPOSRecord(Name.Companion.fromString("The.Name."), DnsClass.IN, 0x123, 10.45, 171.121212, 1010787);
 
         StringBuilder sb = new StringBuilder();
         gr.rrToString(sb);
@@ -351,7 +352,7 @@ class GPOSRecordTest extends TestCase {
 
     public
     void test_rrToWire() throws TextParseException {
-        GPOSRecord gr = new GPOSRecord(Name.fromString("The.Name."), DnsClass.IN, 0x123, -10.45, 120.0, 111.0);
+        GPOSRecord gr = new GPOSRecord(Name.Companion.fromString("The.Name."), DnsClass.IN, 0x123, -10.45, 120.0, 111.0);
 
         byte[] exp = new byte[] {6, '-', '1', '0', '.', '4', '5', 5, '1', '2', '0', '.', '0', 5, '1', '1', '1', '.', '0'};
 

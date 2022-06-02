@@ -100,19 +100,23 @@ class A6Record : DnsRecord {
         }
     }
 
-    @Throws(IOException::class)
+    @Throws(IOException::class, TextParseException::class)
     override fun rdataFromString(st: Tokenizer, origin: Name?) {
         prefixBits = st.getUInt8()
         if (prefixBits > 128) {
             throw st.exception("prefix bits must be [0..128]")
         } else if (prefixBits < 128) {
             val s = st.getString()
-            suffix = try {
-                toAddress(s)
+            try {
+                suffix = toAddress(s)
+                if (suffix == null) {
+                    throw TextParseException("Invalid address: $s")
+                }
             } catch (e: Exception) {
                 throw TextParseException("Invalid address: $s", e)
             }
         }
+
         if (prefixBits > 0) {
             prefix = st.getName(origin)
         }

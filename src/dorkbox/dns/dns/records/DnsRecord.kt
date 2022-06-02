@@ -40,38 +40,49 @@ import java.util.*
  *
  * @author Brian Wellington
  */
-abstract class DnsRecord constructor(
+abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
     /**
      * Returns the record's name
      *
      * @see Name
      */
-    var name: Name,
+    lateinit var name: Name
 
     /**
      * Returns the record's type
      *
      * @see DnsRecordType
      */
-    var type: Int,
+    var type: Int = 0
 
     /**
      * Returns the record's class
      */
-    var dclass: Int,
+    var dclass: Int = 0
 
     /**
      * Returns the record's TTL
      */
-    var ttl: Long
-) : Cloneable, Comparable<Any?>, Serializable {
-
-    protected constructor() : this(Name.empty, DnsRecordType.A, DnsClass.ANY, 0L)
+    var ttl: Long = 0
 
     /**
      * Creates an empty record of the correct type; must be overriden
      */
     abstract val `object`: DnsRecord
+
+    internal constructor(name: Name, type: Int, dclass: Int, ttl: Long) : this() {
+        if (!name.isAbsolute) {
+            throw RelativeNameException(name)
+        }
+        DnsRecordType.check(type)
+        DnsClass.check(dclass)
+        TTL.check(ttl)
+
+        this.name = name
+        this.type = type
+        this.dclass = dclass
+        this.ttl = ttl
+    }
 
     /**
      * Converts the type-specific RR to wire format - must be overriden
@@ -698,14 +709,5 @@ abstract class DnsRecord constructor(
             System.arraycopy(array, 0, out, 0, array.size)
             return out
         }
-    }
-
-    init {
-        if (!name.isAbsolute) {
-            throw RelativeNameException(name)
-        }
-        DnsRecordType.check(type)
-        DnsClass.check(dclass)
-        TTL.check(ttl)
     }
 }

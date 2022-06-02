@@ -19,7 +19,6 @@ import dorkbox.dns.dns.Compression
 import dorkbox.dns.dns.DnsInput
 import dorkbox.dns.dns.DnsOutput
 import dorkbox.dns.dns.Name
-import dorkbox.dns.dns.constants.DnsClass
 import dorkbox.dns.dns.constants.DnsRecordType
 import dorkbox.dns.dns.exceptions.TextParseException
 import dorkbox.dns.dns.utils.Tokenizer
@@ -31,20 +30,20 @@ import java.io.IOException
  * @author Brian Wellington
  */
 class CAARecord : DnsRecord {
+    internal constructor() {}
+
     /**
      * Returns the flags.
      */
     var flags = 0
         private set
 
-    private var tag: ByteArray
-    private var value: ByteArray
+    private lateinit var tag: ByteArray
+    private lateinit var value: ByteArray
 
     object Flags {
         const val IssuerCritical = 128
     }
-
-    internal constructor() : this(Name.empty, DnsClass.ANY, 0, 0, "", "")
 
     override val `object`: DnsRecord
         get() = CAARecord()

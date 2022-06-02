@@ -36,9 +36,10 @@ import java.net.UnknownHostException
  * @author Brian Wellington
  */
 class ARecord : DnsRecord {
+    internal constructor() {}
+
     private var addr = 0
 
-    internal constructor() {}
 
     override val `object`: DnsRecord
         get() = ARecord()
@@ -79,7 +80,7 @@ class ARecord : DnsRecord {
      *
      * @param address The address that the name refers to as a byte array. This value is NOT COPIED.
      */
-    constructor(name: Name?, dclass: Int, ttl: Long, address: ByteArray) : super(name!!, DnsRecordType.A, dclass, ttl) {
+    constructor(name: Name?, dclass: Int, ttl: Long, address: ByteArray) : super(name ?: Name(IP.toString(address), null), DnsRecordType.A, dclass, ttl) {
         require(address.size == length) { "invalid IPv4 address" }
         addr = fromArray(address)
     }

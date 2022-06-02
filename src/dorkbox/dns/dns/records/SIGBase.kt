@@ -19,8 +19,6 @@ import dorkbox.dns.dns.Compression
 import dorkbox.dns.dns.DnsInput
 import dorkbox.dns.dns.DnsOutput
 import dorkbox.dns.dns.Name
-import dorkbox.dns.dns.constants.DnsClass
-import dorkbox.dns.dns.constants.DnsRecordType
 import dorkbox.dns.dns.constants.DnsRecordType.check
 import dorkbox.dns.dns.constants.DnsRecordType.string
 import dorkbox.dns.dns.constants.DnsRecordType.value
@@ -67,13 +65,13 @@ abstract class SIGBase : DnsRecord {
     /**
      * Returns the time at which the signature expires
      */
-    var expire: Date
+    lateinit var expire: Date
         protected set
 
     /**
      * Returns the time at which this signature was generated
      */
-    var timeSigned: Date
+    lateinit var timeSigned: Date
         protected set
 
     /**
@@ -85,17 +83,16 @@ abstract class SIGBase : DnsRecord {
     /**
      * Returns the owner of the signing key
      */
-    var signer: Name
+    lateinit var signer: Name
         protected set
 
     /**
      * Returns the binary data representing the signature
      */
-    var signature: ByteArray
+    lateinit var signature: ByteArray
 
-    protected constructor() : this(
-        Name.empty, DnsRecordType.A, DnsClass.ANY, 0L, DnsRecordType.A, 0, 0, Date(), Date(), 0, Name.root, byteArrayOf()
-    )
+    internal constructor() {}
+
     constructor(
         name: Name,
         type: Int,

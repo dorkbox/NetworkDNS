@@ -30,7 +30,7 @@ import java.io.IOException
  */
 abstract class U16NameBase : DnsRecord {
     protected var u16Field = 0
-    protected var nameField: Name = Name.empty
+    protected lateinit var nameField: Name
 
     protected constructor()
 

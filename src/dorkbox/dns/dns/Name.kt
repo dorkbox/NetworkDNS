@@ -29,7 +29,7 @@ import java.text.DecimalFormat
  *
  * @author Brian Wellington
  */
-class Name : Comparable<Any?>, Serializable {
+class Name : Comparable<Name?>, Serializable {
     companion object {
         private const val serialVersionUID = -7257019940971525644L
         private const val LABEL_NORMAL = 0
@@ -907,7 +907,7 @@ class Name : Comparable<Any?>, Serializable {
      *
      * @throws ClassCastException if the argument is not a Name.
      */
-    override fun compareTo(other: Any?): Int {
+    override fun compareTo(other: Name?): Int {
         if (this === other) {
             return 0
         }
@@ -916,11 +916,7 @@ class Name : Comparable<Any?>, Serializable {
             return -1
         }
 
-        if (other.javaClass != this.javaClass) {
-            return -1
-        }
-
-        val arg = other as Name
+        val arg = other
 
         val labels = labels()
         val alabels = arg.labels()

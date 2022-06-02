@@ -40,7 +40,7 @@ import java.net.InetAddress
  * this could change if more constants are defined for APL records.
  */
 class APLRecord : DnsRecord {
-    private var elements: MutableList<Element>? = null
+    private lateinit var elements: MutableList<Element>
 
     class Element(val family: Int, val negative: Boolean, val address: Any, val prefixLength: Int) {
         /**
@@ -57,8 +57,7 @@ class APLRecord : DnsRecord {
             negative,
             address,
             prefixLength
-        ) {
-        }
+        )
 
         init {
             require(validatePrefixLength(family, prefixLength)) { "invalid prefix " + "length" }
@@ -125,12 +124,12 @@ class APLRecord : DnsRecord {
             } else {
                 element = Element(family, negative, data, prefix)
             }
-            elements!!.add(element)
+            elements.add(element)
         }
     }
 
     override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
-        for (element in elements!!) {
+        for (element in elements) {
             var length = 0
             var data: ByteArray
             if (element.family == Address.IPv4 || element.family == Address.IPv6) {
@@ -153,7 +152,7 @@ class APLRecord : DnsRecord {
     }
 
     override fun rrToString(sb: StringBuilder) {
-        val it: Iterator<*> = elements!!.iterator()
+        val it: Iterator<*> = elements.iterator()
         while (it.hasNext()) {
             val element = it.next() as Element
             sb.append(element)
@@ -232,14 +231,14 @@ class APLRecord : DnsRecord {
         for (o in elements) {
             require(o is Element) { "illegal element" }
             require(!(o.family != Address.IPv4 && o.family != Address.IPv6)) { "unknown family" }
-            this.elements!!.add(o)
+            this.elements.add(o)
         }
     }
 
     /**
      * Returns the list of APL elements.
      */
-    fun getElements(): List<Element>? {
+    fun getElements(): List<Element> {
         return elements
     }
 

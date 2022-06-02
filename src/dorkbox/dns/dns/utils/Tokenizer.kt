@@ -40,15 +40,15 @@ import java.util.*
  */
 class Tokenizer(inputStream: InputStream) : AutoCloseable {
     private val `is`: PushbackInputStream
-    private var ungottenToken: Boolean
-    private var multiline: Int
-    private var quoting: Boolean
-    private var delimiters: String
-    private val current: Token
-    private val sb: StringBuilder
+    private var ungottenToken = false
+    private var multiline = 0
+    private var quoting = false
+    private var delimiters = delim
+    private val current = Token()
+    private val sb = StringBuilder()
     private var wantClose = false
-    private var filename: String
-    private var line: Int
+    private var filename = "<none>"
+    private var line = 1
 
     class Token {
         /**
@@ -102,8 +102,55 @@ class Tokenizer(inputStream: InputStream) : AutoCloseable {
             get() = type == EOL || type == EOF
     }
 
-    class TokenizerException(filename: String, line: Int, var baseMessage: String) : TextParseException("$filename:$line: $baseMessage") {
+    class TokenizerException(filename: String, line: Int, var baseMessage: String) : TextParseException("$filename:$line: $baseMessage")
 
+    companion object {
+        private val VALID = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray()
+        private val INTERNAL = IntArray(256)
+
+        init {
+            Arrays.fill(INTERNAL, -1)
+            var i = 0
+            val iS = VALID.size
+            while (i < iS) {
+                INTERNAL[VALID[i].code] = 1
+                i++
+            }
+            INTERNAL['='.code] = 1
+        }
+
+        private const val delim = " \t\n;()\""
+        private const val quotes = "\""
+
+        /**
+         * End of file
+         */
+        const val EOF = 0
+
+        /**
+         * End of line
+         */
+        const val EOL = 1
+
+        /**
+         * Whitespace; only returned when wantWhitespace is set
+         */
+        const val WHITESPACE = 2
+
+        /**
+         * An identifier (unquoted string)
+         */
+        const val IDENTIFIER = 3
+
+        /**
+         * A quoted string
+         */
+        const val QUOTED_STRING = 4
+
+        /**
+         * A comment; only returned when wantComment is set
+         */
+        const val COMMENT = 5
     }
 
     /**
@@ -112,6 +159,16 @@ class Tokenizer(inputStream: InputStream) : AutoCloseable {
      * @param s The String to tokenize.
      */
     constructor(s: String) : this(ByteArrayInputStream(s.toByteArray())) {}
+
+    /**
+     * Creates a Tokenizer from a file.
+     *
+     * @param f The File to tokenize.
+     */
+    constructor(f: File) : this(FileInputStream(f)) {
+        wantClose = true
+        filename = f.name
+    }
 
     /**
      * Creates a Tokenizer from an arbitrary input stream.
@@ -124,24 +181,6 @@ class Tokenizer(inputStream: InputStream) : AutoCloseable {
             `is` = BufferedInputStream(`is`)
         }
         this.`is` = PushbackInputStream(`is`, 2)
-        ungottenToken = false
-        multiline = 0
-        quoting = false
-        delimiters = delim
-        current = Token()
-        sb = StringBuilder()
-        filename = "<none>"
-        line = 1
-    }
-
-    /**
-     * Creates a Tokenizer from a file.
-     *
-     * @param f The File to tokenize.
-     */
-    constructor(f: File) : this(FileInputStream(f)) {
-        wantClose = true
-        filename = f.name
     }
 
     /**
@@ -732,54 +771,5 @@ class Tokenizer(inputStream: InputStream) : AutoCloseable {
             } catch (ignored: IOException) {
             }
         }
-    }
-
-    companion object {
-        private val VALID = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray()
-        private val INTERNAL = IntArray(256)
-
-        init {
-            Arrays.fill(INTERNAL, -1)
-            var i = 0
-            val iS = VALID.size
-            while (i < iS) {
-                INTERNAL[VALID[i].code] = 1
-                i++
-            }
-            INTERNAL['='.code] = 1
-        }
-
-        private const val delim = " \t\n;()\""
-        private const val quotes = "\""
-
-        /**
-         * End of file
-         */
-        const val EOF = 0
-
-        /**
-         * End of line
-         */
-        const val EOL = 1
-
-        /**
-         * Whitespace; only returned when wantWhitespace is set
-         */
-        const val WHITESPACE = 2
-
-        /**
-         * An identifier (unquoted string)
-         */
-        const val IDENTIFIER = 3
-
-        /**
-         * A quoted string
-         */
-        const val QUOTED_STRING = 4
-
-        /**
-         * A comment; only returned when wantComment is set
-         */
-        const val COMMENT = 5
     }
 }

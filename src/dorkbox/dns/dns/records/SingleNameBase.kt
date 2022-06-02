@@ -29,7 +29,7 @@ import java.io.IOException
  * @author Brian Wellington
  */
 abstract class SingleNameBase : DnsRecord {
-    var singleName: Name = Name.empty
+    lateinit var singleName: Name
 
     protected constructor()
     protected constructor(name: Name, type: Int, dclass: Int, ttl: Long) : super(name, type, dclass, ttl)

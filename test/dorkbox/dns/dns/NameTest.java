@@ -1255,14 +1255,11 @@ class NameTest extends TestCase {
         Name n2 = new Name("abc.com.");
 
         assertEquals(n1.toString(true), n1.toString(true));
-        assertFalse(n2.toString(true)
-                      .equals(n2.toString(false)));
+        assertFalse(n2.toString(true).equals(n2.toString(false)));
 
         assertEquals(n2.toString(true) + ".", n2.toString(false));
-        assertEquals(Name.getRoot()
-                         .toString(true), Name.getRoot().toString(false));
-
-        assertEquals(Name.getRoot().toString(true), Name.getEmpty().toString(false));
+        assertEquals(Name.getRoot().toString(true), Name.getRoot().toString(false));
+        assertEquals(Name.getEmpty().toString(true), Name.getEmpty().toString(false));
     }
 
     public

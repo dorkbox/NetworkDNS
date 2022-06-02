@@ -90,7 +90,12 @@ class ARecord : DnsRecord {
      */
     val address: InetAddress?
         get() = try {
-            InetAddress.getByAddress(name.toString(true), toArray(addr))
+            try {
+                // name might not have been initialized
+                InetAddress.getByAddress(name.toString(true), toArray(addr))
+            } catch (e: Exception) {
+                InetAddress.getByAddress(toArray(addr))
+            }
         } catch (e: UnknownHostException) {
             null
         }

@@ -35,7 +35,7 @@ import java.net.UnknownHostException
  * @author Brian Wellington
  */
 class AAAARecord : DnsRecord {
-    private lateinit var address: ByteArray
+    private lateinit var addr: ByteArray
 
     internal constructor() {}
 
@@ -44,11 +44,11 @@ class AAAARecord : DnsRecord {
 
     @Throws(IOException::class)
     override fun rrFromWire(`in`: DnsInput) {
-        address = `in`.readByteArray(16)
+        addr = `in`.readByteArray(16)
     }
 
     override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
-        out.writeByteArray(address)
+        out.writeByteArray(addr)
     }
 
     /**
@@ -56,7 +56,7 @@ class AAAARecord : DnsRecord {
      */
     override fun rrToString(sb: StringBuilder) {
         val addr: InetAddress = try {
-            InetAddress.getByAddress(null, address)
+            InetAddress.getByAddress(null, addr)
         } catch (ignored: UnknownHostException) {
             return
         }
@@ -64,8 +64,8 @@ class AAAARecord : DnsRecord {
         if (addr.address.size == 4) {
             // Deal with Java's broken handling of mapped IPv4 addresses.
             sb.append("0:0:0:0:0:ffff:")
-            val high = (address[12].toInt() and 0xFF shl 8) + (address[13].toInt() and 0xFF)
-            val low = (address[14].toInt() and 0xFF shl 8) + (address[15].toInt() and 0xFF)
+            val high = (this.addr[12].toInt() and 0xFF shl 8) + (this.addr[13].toInt() and 0xFF)
+            val low = (this.addr[14].toInt() and 0xFF shl 8) + (this.addr[15].toInt() and 0xFF)
             sb.append(Integer.toHexString(high))
             sb.append(':')
             sb.append(Integer.toHexString(low))
@@ -76,7 +76,7 @@ class AAAARecord : DnsRecord {
 
     @Throws(IOException::class)
     override fun rdataFromString(st: Tokenizer, origin: Name?) {
-        address = st.getAddressBytes(Address.IPv6)
+        addr = st.getAddressBytes(Address.IPv6)
     }
 
     /**
@@ -86,7 +86,7 @@ class AAAARecord : DnsRecord {
      */
     constructor(name: Name?, dclass: Int, ttl: Long, address: InetAddress) : super(name ?: Name(IP.toString(address), null), DnsRecordType.AAAA, dclass, ttl) {
         require(isFamily(address)) { "invalid IPv6 address" }
-        this.address = address.address
+        this.addr = address.address
     }
 
     /**
@@ -96,19 +96,25 @@ class AAAARecord : DnsRecord {
      */
     constructor(name: Name?, dclass: Int, ttl: Long, address: ByteArray) : super(name ?: Name(IP.toString(address), null), DnsRecordType.AAAA, dclass, ttl) {
         require(address.size == length) { "invalid IPv6 address" }
-        this.address = address
+        this.addr = address
     }
 
     /**
      * Returns the address
      */
-    fun getAddress(): InetAddress? {
-        return try {
-            InetAddress.getByAddress(name.toString(true), address)
-        } catch (e: UnknownHostException) {
-            null
+    val address: InetAddress?
+        get() {
+            return try {
+                try {
+                    InetAddress.getByAddress(name.toString(true), addr)
+                } catch (e: Exception) {
+                    // name wasn't initialized yet!
+                    InetAddress.getByAddress(addr)
+                }
+            } catch (e: UnknownHostException) {
+                null
+            }
         }
-    }
 
     companion object {
         private const val serialVersionUID = -4588601512069748050L

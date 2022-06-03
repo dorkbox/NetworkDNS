@@ -29,17 +29,17 @@ open class DnsEnvelope : DnsMessage, AddressedEnvelope<DnsEnvelope, InetSocketAd
 
     constructor() : super()
 
-    constructor(id: Int, localAddress: InetSocketAddress, remoteAddress: InetSocketAddress) : super(id) {
+    constructor(id: Int, localAddress: InetSocketAddress?, remoteAddress: InetSocketAddress?) : super(id) {
         this.localAddress = localAddress
         this.remoteAddress = remoteAddress
     }
 
-    constructor(buffer: ByteBuf, localAddress: InetSocketAddress?, remoteAddress: InetSocketAddress) : super(buffer) {
+    constructor(buffer: ByteBuf, localAddress: InetSocketAddress?, remoteAddress: InetSocketAddress?) : super(buffer) {
         this.localAddress = localAddress
         this.remoteAddress = remoteAddress
     }
 
-    constructor(input: DnsInput, localAddress: InetSocketAddress, remoteAddress: InetSocketAddress) : super(input) {
+    constructor(input: DnsInput, localAddress: InetSocketAddress?, remoteAddress: InetSocketAddress?) : super(input) {
         this.localAddress = localAddress
         this.remoteAddress = remoteAddress
     }

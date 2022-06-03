@@ -30,12 +30,12 @@ class DnsResponse(dnsInput: DnsInput,
                   /**
                    * @param localAddress the address of the sender
                    */
-                  localAddress: InetSocketAddress,
+                  localAddress: InetSocketAddress?,
 
                   /**
                    * @param remoteAddress the address of the recipient
                    */
-                  remoteAddress: InetSocketAddress) :
+                  remoteAddress: InetSocketAddress?) :
     DnsEnvelope(dnsInput, localAddress, remoteAddress) {
 
     override fun hashCode(): Int {

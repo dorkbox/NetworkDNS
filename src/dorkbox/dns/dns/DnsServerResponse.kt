@@ -25,7 +25,7 @@ import java.net.SocketAddress
  * A [DnsServerResponse] implementation for UDP/IP.
  */
 @UnstableApi
-class DnsServerResponse(dnsQuestion: DnsMessage, localAddress: InetSocketAddress, remoteAddress: InetSocketAddress)
+class DnsServerResponse(dnsQuestion: DnsMessage, localAddress: InetSocketAddress?, remoteAddress: InetSocketAddress?)
     : DnsEnvelope(dnsQuestion.header.id, localAddress, remoteAddress) {
 
     override fun hashCode(): Int {
@@ -39,17 +39,17 @@ class DnsServerResponse(dnsQuestion: DnsMessage, localAddress: InetSocketAddress
         return hashCode
     }
 
-    override fun equals(obj: Any?): Boolean {
-        if (this === obj) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) {
             return true
         }
-        if (!super.equals(obj)) {
+        if (!super.equals(other)) {
             return false
         }
-        if (obj !is AddressedEnvelope<*, *>) {
+        if (other !is AddressedEnvelope<*, *>) {
             return false
         }
-        val that = obj as AddressedEnvelope<*, SocketAddress?>
+        val that = other as AddressedEnvelope<*, SocketAddress?>
         if (sender() == null) {
             if (that.sender() != null) {
                 return false

@@ -54,23 +54,8 @@ object Extras {
 ///////////////////////////////
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.defaults()
-GradleUtils.compileConfiguration(JavaVersion.VERSION_11)
-//GradleUtils.jpms(JavaVersion.VERSION_1_9)
-
-
-val sourceSets = project.extensions.getByName("sourceSets") as SourceSetContainer
-val main = sourceSets.named("main", org.gradle.api.tasks.SourceSet::class.java).get()
-val test = sourceSets.named("test", org.gradle.api.tasks.SourceSet::class.java).get()
-
-main.apply {
-    java.apply {
-        setSrcDirs(project.files("src"))
-        include("**/*.java") // want to include java files for the source. 'setSrcDirs' resets includes...
-    }
-}
-
-
-
+GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
+GradleUtils.jpms(JavaVersion.VERSION_1_9)
 
 licensing {
     license(License.APACHE_2) {

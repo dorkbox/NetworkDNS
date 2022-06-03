@@ -23,24 +23,21 @@ import io.netty.buffer.Unpooled
  *
  * @author Brian Wellington
  */
-class DnsOutput
-/**
- * Create a new DnsOutput with a specified ByteBuf.
- *
- * @param byteBuf The ByteBuf to use
- */(val byteBuf: ByteBuf) {
+class DnsOutput(
+    /**
+     * @param byteBuf The ByteBuf to use
+     */
+    val byteBuf: ByteBuf) {
+
     private var marked = false
+
     /**
      * Create a new DnsOutput with a specified size.
      *
      * @param size The initial size
      */
-    /**
-     * Create a new DnsOutput
-     */
     @JvmOverloads
-    constructor(size: Int = 32) : this(Unpooled.buffer(size)) {
-    }
+    constructor(size: Int = 32) : this(Unpooled.buffer(size))
 
     /**
      * Returns the current position.

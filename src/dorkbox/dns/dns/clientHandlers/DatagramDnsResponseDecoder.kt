@@ -29,19 +29,15 @@ import io.netty.util.internal.UnstableApi
  */
 @UnstableApi
 @Sharable
-class DatagramDnsResponseDecoder
-/**
- * Creates a new DNS Response decoder
- */
-    : MessageToMessageDecoder<DatagramPacket>() {
-    @Throws(Exception::class)
+class DatagramDnsResponseDecoder : MessageToMessageDecoder<DatagramPacket>() {
     override fun decode(ctx: ChannelHandlerContext, packet: DatagramPacket, out: MutableList<Any>) {
         val buf = packet.content()
 
         // Check that the response is long enough.
         if (buf.readableBytes() < Header.LENGTH) {
-            throw WireParseException("invalid DNS header - " + "too short")
+            throw WireParseException("invalid DNS header - ${buf.readableBytes()} is too short (< ${Header.LENGTH})")
         }
+
         val dnsInput = DnsInput(buf)
         val dnsMessage = DnsResponse(dnsInput, packet.sender(), packet.recipient())
         out.add(dnsMessage)

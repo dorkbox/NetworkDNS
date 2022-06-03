@@ -43,6 +43,7 @@ class APLRecord : DnsRecord {
     private lateinit var elements: MutableList<Element>
 
     class Element(val family: Int, val negative: Boolean, val address: Any, val prefixLength: Int) {
+
         /**
          * Creates an APL element corresponding to an IPv4 or IPv6 prefix.
          *
@@ -226,9 +227,9 @@ class APLRecord : DnsRecord {
      *
      * @param elements The list of APL elements.
      */
-    constructor(name: Name, dclass: Int, ttl: Long, elements: List<Element?>) : super(name, DnsRecordType.APL, dclass, ttl) {
+    constructor(name: Name, dclass: Int, ttl: Long, elements: List<Element>) : super(name, DnsRecordType.APL, dclass, ttl) {
         this.elements = ArrayList(elements.size)
-        for (o in elements) {
+        for (o: Any in elements) {
             require(o is Element) { "illegal element" }
             require(!(o.family != Address.IPv4 && o.family != Address.IPv6)) { "unknown family" }
             this.elements.add(o)
@@ -248,7 +249,7 @@ class APLRecord : DnsRecord {
             if (prefixLength < 0 || prefixLength >= 256) {
                 return false
             }
-            return !((family == Address.IPv4 && prefixLength > 32 || family == Address.IPv6) && prefixLength > 128)
+            return !((family == Address.IPv4 && prefixLength > 32) || (family == Address.IPv6 && prefixLength > 128))
         }
 
         @Throws(WireParseException::class)

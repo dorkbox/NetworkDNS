@@ -855,7 +855,7 @@ class Name : Comparable<Name?>, Serializable {
         }
         var code = 0
         for (i in offset(0) until name.size) {
-            code += code shl 3 + lowercase[name[i].toInt() and 0xFF]
+            code += ((code shl 3) + lowercase[name[i].toInt() and 0xFF])
         }
         hashcode = code
         return hashcode
@@ -871,19 +871,24 @@ class Name : Comparable<Name?>, Serializable {
         if (other == null || other !is Name) {
             return false
         }
-        val d = other
-        if (d.hashcode == 0) {
-            d.hashCode()
+
+        if (other.hashcode == 0) {
+            other.hashCode()
         }
+
         if (hashcode == 0) {
             hashCode()
         }
-        if (d.hashcode != hashcode) {
+
+        if (other.hashcode != hashcode) {
             return false
         }
-        return if (d.labels() != labels()) {
-            false
-        } else equals(d.name, d.offset(0))
+
+        if (other.labels() != labels()) {
+            return false
+        }
+
+        return equals(other.name, other.offset(0))
     }
 
     /**
@@ -921,6 +926,7 @@ class Name : Comparable<Name?>, Serializable {
         val labels = labels()
         val alabels = arg.labels()
         val compares = if (labels > alabels) alabels else labels
+
         for (i in 1..compares) {
             val start = offset(labels - i)
             val astart = arg.offset(alabels - i)
@@ -935,10 +941,12 @@ class Name : Comparable<Name?>, Serializable {
                 }
                 j++
             }
+
             if (length != alength) {
                 return length - alength
             }
         }
+
         return labels - alabels
     }
 }

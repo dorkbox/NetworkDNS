@@ -37,7 +37,7 @@ object TTL {
      *
      * @throws NumberFormatException The string was not in a valid TTL format.
      */
-    fun parseTTL(s: String): Long {
+    fun parseTTL(s: String?): Long {
         return parse(s, true)
     }
 
@@ -54,8 +54,8 @@ object TTL {
      *
      * @throws NumberFormatException The string was not in a valid TTL format.
      */
-    fun parse(s: String, clamp: Boolean): Long {
-        if (s.length == 0 || !Character.isDigit(s[0])) {
+    fun parse(s: String?, clamp: Boolean): Long {
+        if (s == null || s.length == 0 || !Character.isDigit(s[0])) {
             throw NumberFormatException()
         }
         var value: Long = 0

@@ -29,8 +29,8 @@ import java.io.IOException
  * @author Brian Wellington
  */
 abstract class U16NameBase : DnsRecord {
-    protected var u16Field = 0
-    protected lateinit var nameField: Name
+    internal var u16Field = 0
+    internal lateinit var nameField: Name
 
     protected constructor()
 

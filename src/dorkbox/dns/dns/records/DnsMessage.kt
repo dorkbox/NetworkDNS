@@ -43,7 +43,79 @@ import io.netty.util.ResourceLeakDetectorFactory
  * @see DnsSection
  */
 open class DnsMessage private constructor(var header: Header) : AbstractReferenceCounted(), Cloneable, ReferenceCounted {
-    private val leak = leakDetector.track(this)
+    companion object {
+        private val leakDetector = ResourceLeakDetectorFactory.instance().newResourceLeakDetector(DnsMessage::class.java)
+
+        /**
+         * The maximum length of a message in wire format.
+         */
+        const val MAXLENGTH = 65535
+
+        /* The message was not signed */
+        const val TSIG_UNSIGNED = 0
+
+        /* The message was signed and verification succeeded */
+        const val TSIG_VERIFIED = 1
+
+        /* The message was an unsigned message in multiple-message response */
+        const val TSIG_INTERMEDIATE = 2
+
+        /* The message was signed and no verification was attempted.  */
+        const val TSIG_SIGNED = 3
+
+        /*
+         * The message was signed and verification failed, or was not signed
+         * when it should have been.
+         */
+        const val TSIG_FAILED = 4
+        private val emptyRecordArray = arrayOf<DnsRecord>()
+        private val emptyRRsetArray = arrayOf<RRset>()
+
+        /**
+         * Creates a new DnsMessage with a random DnsMessage ID suitable for sending as a
+         * query.
+         *
+         * @param r A record containing the question
+         */
+        @JvmStatic
+        fun newQuery(r: DnsRecord): DnsMessage {
+            val m = DnsMessage()
+            m.header.opcode = DnsOpCode.QUERY
+            m.header.setFlag(Flags.RD)
+            m.addRecord(r, DnsSection.QUESTION)
+            return m
+        }
+
+        /**
+         * Creates a new DnsMessage to contain a dynamic update.  A random DnsMessage ID
+         * and the zone are filled in.
+         *
+         * @param zone The zone to be updated
+         */
+        fun newUpdate(zone: Name): DnsMessage {
+            return Update(zone)
+        }
+
+        private fun <T : DnsRecord?> castRecord(record: Any): T {
+            return record as T
+        }
+
+        private fun newRecordList(count: Int): ArrayList<DnsRecord?> {
+            return ArrayList(count)
+        }
+
+        private fun newRecordList(): ArrayList<DnsRecord?> {
+            return ArrayList(2)
+        }
+
+        private fun sameSet(r1: DnsRecord, r2: DnsRecord): Boolean {
+            return r1.rRsetType == r2.rRsetType && r1.dclass == r2.dclass && r1.name.equals(r2.name)
+        }
+    }
+
+
+    private val leakTracking = leakDetector.track(this)
+
 
     // To reduce the memory footprint of a message,
     // each of the following fields is a single record or a list of records.
@@ -74,18 +146,19 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
     /**
      * Creates a new DnsMessage from its DNS wire format representation
      *
-     * @param b A byte array containing the DNS DnsMessage.
+     * @param byteArray A byte array containing the DNS DnsMessage.
      */
-    constructor(b: ByteArray) : this(DnsInput(b)) {}
+    constructor(byteArray: ByteArray) : this(DnsInput(byteArray))
 
     /**
      * Creates a new DnsMessage from its DNS wire format representation
      *
-     * @param in A DnsInput containing the DNS DnsMessage.
+     * @param dnsInput A DnsInput containing the DNS DnsMessage.
      */
-    constructor(`in`: DnsInput) : this(Header(`in`)) {
+    constructor(dnsInput: DnsInput) : this(Header(dnsInput)) {
         val isUpdate = header.opcode == DnsOpCode.UPDATE
         val truncated = header.getFlag(Flags.TC)
+
         try {
             for (i in 0 until DnsSection.TOTAL_SECTION_COUNT) {
                 val count = header.getCount(i)
@@ -93,15 +166,17 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
                 if (count > 0) {
                     records = newRecordList(count)
                     setSection(i, records)
+
                     for (j in 0 until count) {
-                        val pos = `in`.readIndex()
-                        val record = fromWire(`in`, i, isUpdate)
+                        val pos = dnsInput.readIndex()
+                        val record = fromWire(dnsInput, i, isUpdate)
                         records.add(record)
+
                         if (i == DnsSection.ADDITIONAL) {
-                            if (record.type === DnsRecordType.TSIG) {
+                            if (record.type == DnsRecordType.TSIG) {
                                 tsigstart = pos
                             }
-                            if (record.type === DnsRecordType.SIG) {
+                            else if (record.type == DnsRecordType.SIG) {
                                 val sig = record as SIGRecord
                                 if (sig.typeCovered == 0) {
                                     sig0start = pos
@@ -116,7 +191,7 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
                 throw e
             }
         }
-        size = `in`.readIndex()
+        size = dnsInput.readIndex()
     }
 
     /**
@@ -166,14 +241,16 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
      *
      * @see DnsSection
      */
-    fun addRecord(record: DnsRecord?, section: Int) {
+    fun addRecord(record: DnsRecord, section: Int) {
         val records = sectionAt(section)
+
         header.incCount(section)
         if (records == null) {
             // it holds no records, so add a single record...
             setSection(section, record)
             return
         }
+
         if (records is DnsRecord) {
             // it holds a single record, so convert it to multiple records
             val recordList: MutableList<DnsRecord?> = newRecordList()
@@ -184,7 +261,7 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
         }
 
         // holds a list of records
-        val recordList = records as MutableList<DnsRecord?>
+        val recordList = records as MutableList<DnsRecord>
         recordList.add(record)
     }
 
@@ -196,19 +273,20 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
      * @see DnsSection
      */
     fun removeRecord(record: DnsRecord, section: Int): Boolean {
-        val records = sectionAt(section) ?: // can't remove a record if there are none
-        return false
+        val records = sectionAt(section) ?: return false // can't remove a record if there are none
         if (records is DnsRecord) {
             setSection(section, null)
             header.decCount(section)
             return true
         }
+
         val recordList = records as MutableList<DnsRecord>
         val remove = recordList.remove(record)
         if (remove) {
             header.decCount(section)
             return true
         }
+
         return false
     }
 
@@ -236,6 +314,7 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
         if (records is DnsRecord) {
             return records == record
         }
+
         val recordList = records as List<DnsRecord>
         return recordList.contains(record)
     }
@@ -253,6 +332,7 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
                 return true
             }
         }
+
         return false
     }
 
@@ -265,8 +345,9 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
      * @see DnsSection
      */
     fun findRRset(name: Name, type: Int): Boolean {
-        return findRRset(name, type, DnsSection.ANSWER) || findRRset(name, type, DnsSection.AUTHORITY) || findRRset(
-            name, type, DnsSection.ADDITIONAL
+        return findRRset(name, type, DnsSection.ANSWER) ||
+               findRRset(name, type, DnsSection.AUTHORITY) ||
+               findRRset(name, type, DnsSection.ADDITIONAL
         )
     }
 
@@ -279,18 +360,20 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
      * @see DnsSection
      */
     fun findRRset(name: Name, type: Int, section: Int): Boolean {
-        val records = sectionAt(section) ?: return false
-        if (records is DnsRecord) {
-            val record = records
-            return record.type === type && name == record.name
+        val record = sectionAt(section) ?: return false
+        if (record is DnsRecord) {
+            return record.type == type && name == record.name
         }
-        val recordList = records as List<DnsRecord>
+
+        // this is a list instead of a single entry
+        val recordList = record as List<DnsRecord>
         for (i in recordList.indices) {
             val record = recordList[i]
-            if (record.type === type && name == record.name) {
+            if (record.type == type && name == record.name) {
                 return true
             }
         }
+
         return false
     }
 
@@ -332,8 +415,10 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
                     record as TSIGRecord
                 }
             }
+
             val recordList = records as List<DnsRecord>
             val record = recordList[recordList.size - 1]
+
             return if (record.type != DnsRecordType.TSIG) {
                 null
             } else {
@@ -342,8 +427,7 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
         }
 
     /**
-     * Returns an array containing all records in the given section grouped into
-     * RRsets.
+     * Returns an array containing all records in the given section grouped into RRsets.
      *
      * @see RRset
      *
@@ -352,9 +436,9 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
     fun getSectionRRsets(section: Int): Array<RRset> {
         val records = sectionAt(section) ?: return emptyRRsetArray
         val sets: MutableList<RRset> = ArrayList(header.getCount(section))
-        val hash: MutableSet<Name> = HashSet()
-        if (records is DnsRecord) {
+        val hash = mutableSetOf<Name>()
 
+        if (records is DnsRecord) {
             // only 1, so no need to make it complicated
             return arrayOf(RRset(records))
         }
@@ -366,6 +450,7 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
             val record = recordList[i]
             val name: Name = record.name
             var newset = true
+
             if (hash.contains(name)) {
                 for (j in sets.indices.reversed()) {
                     val set = sets[j]
@@ -376,6 +461,8 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
                     }
                 }
             }
+
+
             if (newset) {
                 val set = RRset(record)
                 sets.add(set)
@@ -396,10 +483,10 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
     fun getSectionArray(section: Int): Array<DnsRecord> {
         val records = sectionAt(section) ?: return emptyRecordArray
         if (records is DnsRecord) {
-
             // only 1, so no need to make it complicated
             return arrayOf(records)
         }
+
         val recordList = records as List<DnsRecord>
         return recordList.toTypedArray()
     }
@@ -468,25 +555,29 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
         if (maxLength < Header.LENGTH) {
             return false
         }
-        val newheader: Header? = null
         var tempMaxLength = maxLength
         if (tsigkey != null) {
             tempMaxLength -= tsigkey!!.recordLength()
         }
-        val opt = oPT
+
+        val opt = optRecord
         var optBytes: ByteArray? = null
         if (opt != null) {
             optBytes = opt.toWire(DnsSection.ADDITIONAL)
             tempMaxLength -= optBytes.size
         }
+
         val startpos = out.current()
         header.toWire(out)
+
+
         val c = Compression()
         var flags = header.flagsByte
         var additionalCount = 0
         for (i in 0 until DnsSection.TOTAL_SECTION_COUNT) {
             var skipped: Int
             val records = sectionAt(i) ?: continue
+
             skipped = sectionToWire(out, i, c, tempMaxLength)
             if (skipped != 0 && i != DnsSection.ADDITIONAL) {
                 flags = Header.setFlag(flags, Flags.TC, true)
@@ -500,22 +591,27 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
                 additionalCount = header.getCount(i) - skipped
             }
         }
+
         if (optBytes != null) {
             out.writeByteArray(optBytes)
             additionalCount++
         }
+
         if (flags != header.flagsByte) {
             out.writeU16At(flags, startpos + 2)
         }
+
         if (additionalCount != header.getCount(DnsSection.ADDITIONAL)) {
             out.writeU16At(additionalCount, startpos + 10)
         }
+
         if (tsigkey != null) {
             val tsigrec = tsigkey!!.generate(this, out.toByteArray(), tsigerror, querytsig)
             tsigrec.toWire(out, DnsSection.ADDITIONAL, c)
             // write size/position info
             out.writeU16At(additionalCount + 1, startpos + 10)
         }
+
         return true
     }
 
@@ -526,7 +622,7 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
      *
      * @see DnsSection
      */
-    val oPT: OPTRecord?
+    val optRecord: OPTRecord?
         get() {
             val additional = getSectionArray(DnsSection.ADDITIONAL)
             for (i in additional.indices) {
@@ -545,19 +641,24 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
         var rendered = 0
         var skipped = 0
         var lastRecord: DnsRecord? = null
+
         if (records is DnsRecord) {
             val record = records
             if (section == DnsSection.ADDITIONAL && record.type == DnsRecordType.OPT) {
                 skipped++
                 return skipped
             }
+
             record.toWire(out, section, c)
             if (out.current() > maxLength) {
                 out.jump(pos)
                 return 1 - rendered + skipped
             }
+
             return skipped
         }
+
+
         val recordList = records as List<DnsRecord>?
         val n = recordList!!.size
         for (i in 0 until n) {
@@ -566,12 +667,15 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
                 skipped++
                 continue
             }
+
             if (lastRecord != null && !sameSet(record, lastRecord)) {
                 pos = out.current()
                 rendered = i
             }
+
             lastRecord = record
             record.toWire(out, section, c)
+
             if (out.current() > maxLength) {
                 out.jump(pos)
                 return n - rendered + skipped
@@ -609,9 +713,11 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
                 setSection(i, records)
                 continue
             }
+
             val recordList = records as List<DnsRecord>
             setSection(i, ArrayList(recordList))
         }
+
         m.header = header.clone() as Header
         m.size = size
         return m
@@ -623,12 +729,15 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
     override fun toString(): String {
         val NL = LINE_SEPARATOR
         val sb = StringBuilder(NL)
-        val opt = oPT
+        val opt = optRecord
+
         if (opt != null) {
             sb.append(header.toStringWithRcode(rcode)).append(NL)
         } else {
             sb.append(header).append(NL)
         }
+
+
         if (isSigned) {
             sb.append(";; TSIG ")
             if (isVerified) {
@@ -638,6 +747,8 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
             }
             sb.append(NL)
         }
+
+
         for (i in 0..3) {
             if (header.opcode != DnsOpCode.UPDATE) {
                 sb.append(";; ").append(DnsSection.longString(i)).append(":").append(NL)
@@ -666,6 +777,7 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
     val isVerified: Boolean
         get() = tsigState == TSIG_VERIFIED
 
+
     /**
      * Returns the message's rcode (error code).  This incorporates the EDNS
      * extended rcode.
@@ -673,12 +785,13 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
     val rcode: Int
         get() {
             var rcode = header.rcode
-            val opt = oPT
+            val opt = optRecord
             if (opt != null) {
                 rcode += opt.extendedRcode shl 4
             }
             return rcode
         }
+
 
     /**
      * Returns the size of the message.  Only valid if the message has been converted to or from wire format.
@@ -700,8 +813,9 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
         val records = getSectionArray(i)
         for (j in records.indices) {
             val rec = records[j]
+
             if (i == DnsSection.QUESTION) {
-                sb.append(";;\t").append(rec!!.name)
+                sb.append(";;\t").append(rec.name)
                 sb.append(", type = ").append(DnsRecordType.string(rec.type))
                 sb.append(", class = ").append(DnsClass.string(rec.dclass))
             } else {
@@ -719,12 +833,13 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
         for (i in 0 until DnsSection.TOTAL_SECTION_COUNT) {
             removeAllRecords(i)
         }
+
         return this
     }
 
     override fun deallocate() {
         clear()
-        val leak = leak
+        val leak = leakTracking
         if (leak != null) {
             val closed = leak.close(this)
             assert(closed)
@@ -732,79 +847,7 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
     }
 
     override fun touch(hint: Any): DnsMessage {
-        leak?.record(hint)
+        leakTracking?.record(hint)
         return this
-    }
-
-    companion object {
-        private val leakDetector = ResourceLeakDetectorFactory.instance().newResourceLeakDetector(
-            DnsMessage::class.java
-        )
-
-        /**
-         * The maximum length of a message in wire format.
-         */
-        const val MAXLENGTH = 65535
-
-        /* The message was not signed */
-        const val TSIG_UNSIGNED = 0
-
-        /* The message was signed and verification succeeded */
-        const val TSIG_VERIFIED = 1
-
-        /* The message was an unsigned message in multiple-message response */
-        const val TSIG_INTERMEDIATE = 2
-
-        /* The message was signed and no verification was attempted.  */
-        const val TSIG_SIGNED = 3
-
-        /*
-     * The message was signed and verification failed, or was not signed
-     * when it should have been.
-     */
-        const val TSIG_FAILED = 4
-        private val emptyRecordArray = arrayOf<DnsRecord>()
-        private val emptyRRsetArray = arrayOf<RRset>()
-
-        /**
-         * Creates a new DnsMessage with a random DnsMessage ID suitable for sending as a
-         * query.
-         *
-         * @param r A record containing the question
-         */
-        @JvmStatic
-        fun newQuery(r: DnsRecord?): DnsMessage {
-            val m = DnsMessage()
-            m.header.opcode = DnsOpCode.QUERY
-            m.header.setFlag(Flags.RD)
-            m.addRecord(r, DnsSection.QUESTION)
-            return m
-        }
-
-        /**
-         * Creates a new DnsMessage to contain a dynamic update.  A random DnsMessage ID
-         * and the zone are filled in.
-         *
-         * @param zone The zone to be updated
-         */
-        fun newUpdate(zone: Name): DnsMessage {
-            return Update(zone)
-        }
-
-        private fun <T : DnsRecord?> castRecord(record: Any): T {
-            return record as T
-        }
-
-        private fun newRecordList(count: Int): ArrayList<DnsRecord?> {
-            return ArrayList(count)
-        }
-
-        private fun newRecordList(): ArrayList<DnsRecord?> {
-            return ArrayList(2)
-        }
-
-        private fun sameSet(r1: DnsRecord, r2: DnsRecord): Boolean {
-            return r1.rRsetType == r2.rRsetType && r1.dclass == r2.dclass && r1.name.equals(r2.name)
-        }
     }
 }

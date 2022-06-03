@@ -31,11 +31,13 @@ internal class DnsQueryContextManager {
      * A map whose key is the DNS server address and value is the map of the DNS query ID and its corresponding [DnsQueryContext].
      */
     val map: MutableMap<InetSocketAddress, IntObjectMap<DnsQueryContext>> = HashMap()
+
     fun add(queryContext: DnsQueryContext): Int {
         val contexts = getOrCreateContextMap(queryContext.nameServerAddr())
         var id = PlatformDependent.threadLocalRandom().nextInt(65536 - 1) + 1
         val maxTries = 65535 shl 1
         var tries = 0
+
         synchronized(contexts) {
             while (true) {
                 if (!contexts.containsKey(id)) {
@@ -54,25 +56,25 @@ internal class DnsQueryContextManager {
             if (contexts != null) {
                 return contexts
             }
+
             val newContexts: IntObjectMap<DnsQueryContext> = IntObjectHashMap()
             val a = nameServerAddr.address
             val port = nameServerAddr.port
             map[nameServerAddr] = newContexts
+
             if (a is Inet4Address) {
                 // Also add the mapping for the IPv4-compatible IPv6 address.
-                val a4 = a
-                if (a4.isLoopbackAddress) {
+                if (a.isLoopbackAddress) {
                     map[InetSocketAddress(IPv6.LOCALHOST, port)] = newContexts
                 } else {
-                    map[InetSocketAddress(toCompactAddress(a4), port)] = newContexts
+                    map[InetSocketAddress(toCompactAddress(a), port)] = newContexts
                 }
             } else if (a is Inet6Address) {
                 // Also add the mapping for the IPv4 address if this IPv6 address is compatible.
-                val a6 = a
-                if (a6.isLoopbackAddress) {
+                if (a.isLoopbackAddress) {
                     map[InetSocketAddress(IPv4.LOCALHOST, port)] = newContexts
-                } else if (a6.isIPv4CompatibleAddress) {
-                    map[InetSocketAddress(toIPv4Address(a6), port)] = newContexts
+                } else if (a.isIPv4CompatibleAddress) {
+                    map[InetSocketAddress(toIPv4Address(a), port)] = newContexts
                 }
             }
             return newContexts
@@ -103,6 +105,7 @@ internal class DnsQueryContextManager {
         private fun toCompactAddress(a4: Inet4Address): Inet6Address {
             val b4 = a4.address
             val b6 = byteArrayOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, b4[0], b4[1], b4[2], b4[3])
+
             return try {
                 InetAddress.getByAddress(b6) as Inet6Address
             } catch (e: UnknownHostException) {
@@ -113,6 +116,7 @@ internal class DnsQueryContextManager {
         private fun toIPv4Address(a6: Inet6Address): Inet4Address {
             val b6 = a6.address
             val b4 = byteArrayOf(b6[12], b6[13], b6[14], b6[15])
+
             return try {
                 InetAddress.getByAddress(b4) as Inet4Address
             } catch (e: UnknownHostException) {

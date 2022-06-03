@@ -38,7 +38,6 @@ import dorkbox.os.OS.isLinux
 import dorkbox.os.OS.isMacOsX
 import dorkbox.updates.Updates.add
 import dorkbox.util.NamedThreadFactory
-import io.netty.channel.ChannelFactory
 import io.netty.channel.EventLoopGroup
 import io.netty.channel.ReflectiveChannelFactory
 import io.netty.channel.epoll.EpollDatagramChannel
@@ -59,6 +58,7 @@ import java.util.concurrent.*
 /**
  * A DnsClient for resolving DNS name, with reasonably good defaults.
  */
+@Suppress("unused")
 class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNameServers) : Shutdownable(DnsClient::class.java) {
 
     companion object {
@@ -143,16 +143,17 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
     }
 
 
-    private var channelType: Class<out DatagramChannel>? = null
+    private val channelType: Class<out DatagramChannel>
 
     /**
      * @return the DNS resolver used by the client. This is for more advanced functionality
      */
+    @Volatile
     var resolver: DnsNameResolver? = null
         private set
 
+
     private var eventLoopGroup: EventLoopGroup? = null
-    private val channelFactory: ChannelFactory<out DatagramChannel>? = null
     private var resolveCache: DnsCache? = null
     private var authoritativeDnsServerCache: DnsCache? = null
     private var minTtl = 0
@@ -169,11 +170,7 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
     private var searchDomains: Array<String>? = null
     private var ndots = -1
     private var decodeIdn = true
-    /**
-     * Creates a new DNS client, using the provided server and por tfor DNS query resolution, with a cache that will obey the TTL of the response
-     *
-     * @param nameServerAddresses the server to receive your DNS questions.
-     */
+
     /**
      * Creates a new DNS client, using the provided server (default port 53) for DNS query resolution, with a cache that will obey the TTL of the response
      *
@@ -181,21 +178,16 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
      */
     @JvmOverloads
     constructor(nameServerAddresses: String?, port: Int = 53) : this(
-        listOf<InetSocketAddress>(
-            InetSocketAddress(
-                nameServerAddresses,
-                port
-            )
-        )
-    ) {
-    }
+        listOf<InetSocketAddress>(InetSocketAddress(nameServerAddresses, port))
+    )
 
     /**
      * Creates a new DNS client, using the provided server for DNS query resolution, with a cache that will obey the TTL of the response
      *
      * @param nameServerAddresses the server to receive your DNS questions.
      */
-    constructor(nameServerAddresses: InetSocketAddress) : this(listOf<InetSocketAddress>(nameServerAddresses)) {}
+    constructor(nameServerAddresses: InetSocketAddress) : this(listOf<InetSocketAddress>(nameServerAddresses))
+
     /**
      * Creates a new DNS client.
      *
@@ -203,9 +195,6 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
      * respect the TTL from the DNS server.
      *
      * @param nameServerAddresses the list of servers to receive your DNS questions, until it succeeds
-     */
-    /**
-     * Creates a new DNS client, with default name server addresses.
      */
     init {
         val threadFactory = NamedThreadFactory("$THREAD_NAME-DNS", threadGroup)
@@ -226,6 +215,7 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
             eventLoopGroup = NioEventLoopGroup(1, threadFactory)
             channelType = NioDatagramChannel::class.java
         }
+
         manageForShutdown(eventLoopGroup!!)
         if (nameServerAddresses != null) {
             dnsServerAddressStreamProvider = SequentialDnsServerAddressStreamProvider(nameServerAddresses)
@@ -251,10 +241,7 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
      *
      * @return `this`
      */
-    fun dnsQueryLifecycleObserverFactory(lifecycleObserverFactory: DnsQueryLifecycleObserverFactory?): DnsClient {
-        if (lifecycleObserverFactory == null) {
-            throw NullPointerException("lifecycleObserverFactory")
-        }
+    fun dnsQueryLifecycleObserverFactory(lifecycleObserverFactory: DnsQueryLifecycleObserverFactory): DnsClient {
         dnsQueryLifecycleObserverFactory = lifecycleObserverFactory
         return this
     }
@@ -266,7 +253,7 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
      *
      * @return `this`
      */
-    fun authoritativeDnsServerCache(authoritativeDnsServerCache: DnsCache?): DnsClient {
+    fun authoritativeDnsServerCache(authoritativeDnsServerCache: DnsCache): DnsClient {
         this.authoritativeDnsServerCache = authoritativeDnsServerCache
         return this
     }
@@ -504,19 +491,12 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
             resolver!!.close() // also closes the UDP channel that DNS client uses
         }
     }
-    /**
-     * Resolves a specific hostname A/AAAA record.
-     *
-     * @param hostname the hostname, ie: google.com, that you want to resolve
-     * @param queryTimeoutSeconds the number of seconds to wait for host resolution
-     *
-     * @return the list of resolved InetAddress or throws an exception if the hostname cannot be resolved
-     * @throws UnknownHostException if the hostname cannot be resolved
-     */
+
     /**
      * Resolves a specific hostname A/AAAA record with the default timeout of 5 seconds
      *
      * @param hostname the hostname, ie: google.com, that you want to resolve
+     * @param queryTimeoutSeconds the number of seconds to wait for host resolution
      *
      * @return the list of resolved InetAddress or throws an exception if the hostname cannot be resolved
      * @throws UnknownHostException if the hostname cannot be resolved
@@ -547,12 +527,10 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
         }
         val msg = "Could not ask question to DNS server for A/AAAA record: $hostname"
         logger.error(msg)
-        val cause = resolve.cause() as UnknownHostException
-        if (cause != null) {
-            throw cause
-        }
-        throw UnknownHostException(msg)
+        throw resolve.cause() as UnknownHostException
     }
+
+
     /**
      * Resolves a specific hostname record, of the specified type (PTR, MX, TXT, etc)
      *
@@ -571,28 +549,6 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
      * @param hostname the hostname, ie: google.com, that you want to resolve
      * @param type     the DnsRecordType you want to resolve (PTR, MX, TXT, etc)
      * @param queryTimeoutSeconds the number of seconds to wait for host resolution
-     *
-     * @return the DnsRecords or throws an exception if the hostname cannot be resolved
-     *
-     * @throws @throws UnknownHostException if the hostname cannot be resolved
-     */
-    /**
-     * Resolves a specific hostname record, of the specified type (PTR, MX, TXT, etc) with the default timeout of 5 seconds
-     *
-     *
-     *
-     *
-     * Note: PTR queries absolutely MUST end in '.in-addr.arpa' in order for the DNS server to understand it.
-     * -- because of this, we will automatically fix this in case that clients are unaware of this requirement
-     *
-     *
-     *
-     *
-     * Note: A/AAAA queries absolutely MUST end in a '.' -- because of this we will automatically fix this in case that clients are
-     * unaware of this requirement
-     *
-     * @param hostname the hostname, ie: google.com, that you want to resolve
-     * @param type     the DnsRecordType you want to resolve (PTR, MX, TXT, etc)
      *
      * @return the DnsRecords or throws an exception if the hostname cannot be resolved
      *
@@ -637,6 +593,7 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
         if (questionCount > 1) {
             throw UnknownHostException("Cannot ask more than 1 question at a time! You tried to ask $questionCount questions at once")
         }
+
         val type = dnsMessage.question!!.type
         val query = resolver!!.query(dnsMessage)
         val finished = query.awaitUninterruptibly(queryTimeoutSeconds.toLong(), TimeUnit.SECONDS)
@@ -657,6 +614,7 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
                 response.release()
             }
         }
+
         val msg = "Could not ask question to DNS server for type: " + DnsRecordType.string(type)
         logger.error(msg)
         val cause = query.cause() as UnknownHostException

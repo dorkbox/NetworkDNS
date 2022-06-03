@@ -70,7 +70,7 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
      */
     abstract val `object`: DnsRecord
 
-    internal constructor(name: Name, type: Int, dclass: Int, ttl: Long) : this() {
+    protected constructor(name: Name, type: Int, dclass: Int, ttl: Long) : this() {
         if (!name.isAbsolute) {
             throw RelativeNameException(name)
         }
@@ -209,7 +209,7 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
         val array = toWireCanonical(true)
         var code = 0
         for (i in array.indices) {
-            code += code shl 3 + (array[i].toInt() and 0xFF)
+            code += (code shl 3) + (array[i].toInt() and 0xFF)
         }
         return code
     }
@@ -627,7 +627,7 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
          * @throws IOException The text format was invalid.
          */
         @Throws(IOException::class)
-        fun fromString(name: Name, type: Int, dclass: Int, ttl: Long, st: Tokenizer, origin: Name): DnsRecord {
+        fun fromString(name: Name, type: Int, dclass: Int, ttl: Long, st: Tokenizer, origin: Name?): DnsRecord {
             val rec: DnsRecord
             if (!name.isAbsolute) {
                 throw RelativeNameException(name)
@@ -673,7 +673,7 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
          * @throws IOException The text format was invalid.
          */
         @Throws(IOException::class)
-        fun fromString(name: Name, type: Int, dclass: Int, ttl: Long, s: String, origin: Name): DnsRecord {
+        fun fromString(name: Name, type: Int, dclass: Int, ttl: Long, s: String, origin: Name?): DnsRecord {
             return fromString(name, type, dclass, ttl, Tokenizer(s), origin)
         }
 
@@ -698,7 +698,7 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
         /* Checks that a name is absolute */
         fun checkName(field: String, name: Name): Name {
             if (!name.isAbsolute) {
-                throw RelativeNameException(name)
+                throw RelativeNameException("$field is not relative ($name)!")
             }
             return name
         }

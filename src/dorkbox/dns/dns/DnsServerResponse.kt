@@ -25,20 +25,8 @@ import java.net.SocketAddress
  * A [DnsServerResponse] implementation for UDP/IP.
  */
 @UnstableApi
-class DnsServerResponse(dnsQuestion: DnsMessage, localAddress: InetSocketAddress?, remoteAddress: InetSocketAddress?) : DnsEnvelope(
-    dnsQuestion.header.id, localAddress, remoteAddress
-) {
-    /**
-     * Creates a new instance.
-     *
-     * @param localAddress the address of the sender
-     * @param remoteAddress the address of the recipient
-     */
-    init {
-        if (remoteAddress == null && localAddress == null) {
-            throw NullPointerException("localAddress and remoteAddress")
-        }
-    }
+class DnsServerResponse(dnsQuestion: DnsMessage, localAddress: InetSocketAddress, remoteAddress: InetSocketAddress)
+    : DnsEnvelope(dnsQuestion.header.id, localAddress, remoteAddress) {
 
     override fun hashCode(): Int {
         var hashCode = super.hashCode()

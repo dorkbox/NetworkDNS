@@ -21,7 +21,8 @@ import java.util.concurrent.*
 class ZoneDatabase {
     var zones: MutableMap<ZoneDatabaseKey, Zone> = ConcurrentSkipListMap()
 
-    fun add(zone: Zone /* TODO ZoneConfig? */) {
+    /* TODO ZoneConfig? */
+    fun add(zone: Zone) {
         zones[ZoneDatabaseKey(zone)] = zone
     }
 
@@ -32,7 +33,9 @@ class ZoneDatabase {
             // exact match
             return Query(name, name, dnsClass, found, this)
         }
+
         var child = name
+
         // partial match
         var i = 0
         val size = zones.size
@@ -40,11 +43,12 @@ class ZoneDatabase {
             val p = child.parent(1)
             zk.name(p)
             found = zones[zk]
-            child = if (found == null) {
+
+            if (found == null) {
                 if (p.labels() <= 1) {
                     break
                 }
-                p
+                child = p
             } else {
                 return Query(name, p, dnsClass, found, this)
             }

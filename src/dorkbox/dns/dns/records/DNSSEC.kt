@@ -192,7 +192,7 @@ object DNSSEC {
 
     @Throws(IOException::class, GeneralSecurityException::class)
     private fun toRSAPublicKey(r: KEYBase): PublicKey {
-        val `in` = DnsInput(r.key)
+        val `in` = DnsInput(r.key!!)
         var exponentLength = `in`.readU8()
         if (exponentLength == 0) {
             exponentLength = `in`.readU16()
@@ -216,7 +216,7 @@ object DNSSEC {
 
     @Throws(IOException::class, GeneralSecurityException::class, MalformedKeyException::class)
     private fun toDSAPublicKey(r: KEYBase): PublicKey {
-        val `in` = DnsInput(r.key)
+        val `in` = DnsInput(r.key!!)
         val t = `in`.readU8()
         if (t > 8) {
             throw MalformedKeyException(r)
@@ -231,7 +231,7 @@ object DNSSEC {
 
     @Throws(IOException::class, GeneralSecurityException::class, MalformedKeyException::class)
     private fun toECGOSTPublicKey(r: KEYBase, keyinfo: ECKeyInfo): PublicKey {
-        val `in` = DnsInput(r.key)
+        val `in` = DnsInput(r.key!!)
         val x = readBigIntegerLittleEndian(`in`, keyinfo.length)
         val y = readBigIntegerLittleEndian(`in`, keyinfo.length)
         val q = ECPoint(x, y)
@@ -257,7 +257,7 @@ object DNSSEC {
 
     @Throws(IOException::class, GeneralSecurityException::class, MalformedKeyException::class)
     private fun toECDSAPublicKey(r: KEYBase, keyinfo: ECKeyInfo): PublicKey {
-        val `in` = DnsInput(r.key)
+        val `in` = DnsInput(r.key!!)
 
         // RFC 6605 DnsSection 4
         val x = readBigInteger(`in`, keyinfo.length)

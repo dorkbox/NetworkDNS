@@ -55,7 +55,7 @@ class DSRecord : DnsRecord {
     /**
      * Returns the binary hash of the key.
      */
-    var digest: ByteArray = byteArrayOf()
+    var digest: ByteArray? = null
         private set
 
     object Digest {
@@ -98,8 +98,8 @@ class DSRecord : DnsRecord {
         out.writeU8(algorithm)
         out.writeU8(digestID)
 
-        if (digest.isNotEmpty()) {
-            out.writeByteArray(digest)
+        if (digest != null) {
+            out.writeByteArray(digest!!)
         }
     }
 
@@ -112,9 +112,9 @@ class DSRecord : DnsRecord {
         sb.append(algorithm)
         sb.append(" ")
         sb.append(digestID)
-        if (digest.isNotEmpty()) {
+        if (digest != null) {
             sb.append(" ")
-            sb.append(toString(digest))
+            sb.append(toString(digest!!))
         }
     }
 
@@ -151,7 +151,7 @@ class DSRecord : DnsRecord {
      * @param digestid The digest id code.
      * @param digest A hash of the original key.
      */
-    constructor(name: Name, dclass: Int, ttl: Long, footprint: Int, alg: Int, digestid: Int, digest: ByteArray) : super(
+    constructor(name: Name, dclass: Int, ttl: Long, footprint: Int, alg: Int, digestid: Int, digest: ByteArray?) : super(
         name, DnsRecordType.DS, dclass, ttl
     ) {
         this.footprint = checkU16("footprint", footprint)

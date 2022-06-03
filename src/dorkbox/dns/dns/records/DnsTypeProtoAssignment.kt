@@ -19,7 +19,7 @@ import dorkbox.dns.dns.constants.DnsRecordType
 import dorkbox.dns.dns.constants.DnsRecordType.TypeMnemonic
 
 object DnsTypeProtoAssignment {
-    // this is so we don't have to make each type constructor public
+    // this is in this package so we don't have to make each type constructor public
     fun assign(types: TypeMnemonic) {
         types.add(DnsRecordType.A, "A", ARecord())
         types.add(DnsRecordType.NS, "NS", NSRecord())

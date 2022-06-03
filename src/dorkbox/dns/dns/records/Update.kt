@@ -39,21 +39,20 @@ class Update @JvmOverloads constructor(zone: Name, dclass: Int = DnsClass.IN) : 
      * @param zone The name of the zone being updated.
      * @param dclass The class of the zone being updated.
      */
-    /**
-     * Creates an update message.  The class is assumed to be IN.
-     *
-     * @param zone The name of the zone being updated.
-     */
     init {
         if (!zone.isAbsolute) {
             throw RelativeNameException(zone)
         }
+        origin = zone
+
         check(dclass)
+        this.dclass = dclass
+
         header.opcode = DnsOpCode.UPDATE
+
         val soa = DnsRecord.newRecord(zone, DnsRecordType.SOA, DnsClass.IN)
         addRecord(soa, DnsSection.QUESTION)
-        origin = zone
-        this.dclass = dclass
+
     }
 
     /**
@@ -151,7 +150,7 @@ class Update @JvmOverloads constructor(zone: Name, dclass: Int = DnsClass.IN) : 
     }
 
     /**
-     * Indicates that all of the records in the rrset should be inserted into the
+     * Indicates that all the records in the rrset should be inserted into the
      * zone.
      */
     fun add(rrset: RRset) {
@@ -294,7 +293,7 @@ class Update @JvmOverloads constructor(zone: Name, dclass: Int = DnsClass.IN) : 
     }
 
     /**
-     * Indicates that all of the records in the rrset should be inserted into the
+     * Indicates that all the records in the rrset should be inserted into the
      * zone replacing any other records with the same name and type.
      */
     fun replace(rrset: RRset) {

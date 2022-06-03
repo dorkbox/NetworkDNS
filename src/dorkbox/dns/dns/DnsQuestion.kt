@@ -22,7 +22,6 @@ import dorkbox.dns.dns.constants.DnsSection
 import dorkbox.dns.dns.constants.Flags
 import dorkbox.dns.dns.records.DnsRecord
 import io.netty.channel.AddressedEnvelope
-import io.netty.util.internal.StringUtil
 import java.net.IDN
 import java.net.InetSocketAddress
 import java.net.SocketAddress
@@ -36,59 +35,11 @@ class DnsQuestion
  *
  * @param isResolveQuestion true if it's a resolve question, which means we ALSO are going to keep resolving names until we get an IP
  * address.
- */ private constructor(val isResolveQuestion: Boolean) : DnsEnvelope() {
+ */
 
-    fun init(id: Int, recipient: InetSocketAddress?) {
-        header.id = id
-        setRemoteAddress(recipient)
-    }
-
-    override fun hashCode(): Int {
-        var hashCode = super.hashCode()
-        if (sender() != null) {
-            hashCode = hashCode * 31 + sender().hashCode()
-        }
-        if (recipient() != null) {
-            hashCode = hashCode * 31 + recipient().hashCode()
-        }
-        return hashCode
-    }
-
-    override fun equals(obj: Any?): Boolean {
-        if (this === obj) {
-            return true
-        }
-        if (obj == null) {
-            return false
-        }
-
-        if (!super.equals(obj)) {
-            return false
-        }
-        if (obj !is AddressedEnvelope<*, *>) {
-            return false
-        }
-        val that = obj as AddressedEnvelope<*, SocketAddress?>
-        if (sender() == null) {
-            if (that.sender() != null) {
-                return false
-            }
-        } else if (sender() != that.sender()) {
-            return false
-        }
-        if (recipient() == null) {
-            if (that.recipient() != null) {
-                return false
-            }
-        } else if (recipient() != that.recipient()) {
-            return false
-        }
-        return true
-    }
-
+private constructor(val isResolveQuestion: Boolean) : DnsEnvelope() {
     companion object {
-        @JvmStatic
-        fun newResolveQuestion(inetHost: String, type: Int, isRecursionDesired: Boolean): DnsQuestion? {
+        fun newResolveQuestion(inetHost: String, type: Int, isRecursionDesired: Boolean): DnsQuestion {
             return newQuestion(inetHost, type, isRecursionDesired, true)
         }
 
@@ -102,13 +53,13 @@ class DnsQuestion
             //   - https://github.com/netty/netty/issues/4937
             //   - https://github.com/netty/netty/issues/4935
             // hostNameAsciiFix can throw a TextParseException if it fails to parse
-            var hostName = hostNameAsciiFix(hostName) ?: throw IllegalArgumentException("Hostname '$hostName' is invalid!")
+            var hostName = hostNameAsciiFix(hostName)
             hostName = hostName.lowercase()
 
             // NOTE: have to make sure that the hostname is a FQDN name
             hostName = ensureFQDN(type, hostName)
             return try {
-                Name.Companion.fromString(hostName)
+                Name.fromString(hostName)
             } catch (e: Exception) {
                 // Name.fromString may throw a TextParseException if it fails to parse
                 throw IllegalArgumentException("Hostname '$hostName' is invalid!")
@@ -118,9 +69,10 @@ class DnsQuestion
         private fun newQuestion(inetHost: String, type: Int, isRecursionDesired: Boolean, isResolveQuestion: Boolean): DnsQuestion {
             val name = createName(inetHost, type)
             try {
-                val questionRecord = DnsRecord.newRecord(name!!, type, DnsClass.IN)
+                val questionRecord = DnsRecord.newRecord(name, type, DnsClass.IN)
                 val question = DnsQuestion(isResolveQuestion)
                 question.header.opcode = DnsOpCode.QUERY
+
                 if (isRecursionDesired) {
                     question.header.setFlag(Flags.RD)
                 }
@@ -128,25 +80,79 @@ class DnsQuestion
 
                 // keep the question around so we can compare the response to it.
                 question.retain()
+
                 return question
             } catch (e: Exception) {
                 throw IllegalArgumentException("Unable to create a question for $inetHost", e)
             }
         }
 
-        @JvmStatic
-        fun hostNameAsciiFix(inetHost: String): String? {
+        fun hostNameAsciiFix(inetHost: String): String {
             try {
                 val hostName = IDN.toASCII(inetHost) // can throw IllegalArgumentException
 
                 // Check for http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6894622
-                return if (StringUtil.endsWith(inetHost, '.') && !StringUtil.endsWith(hostName, '.')) {
+
+                return if (inetHost.endsWith('.') && !hostName.endsWith('.')) {
                     "$hostName."
-                } else hostName
+                } else {
+                    hostName
+                }
             } catch (e: Exception) {
                 // java.net.IDN.toASCII(...) may throw an IllegalArgumentException if it fails to parse the hostname
             }
-            return null
+
+            throw IllegalArgumentException("Hostname '$inetHost' is invalid!")
         }
+    }
+
+    fun init(id: Int, recipient: InetSocketAddress) {
+        setRemoteAddress(id, recipient)
+    }
+
+    override fun hashCode(): Int {
+        var hashCode = super.hashCode()
+        if (sender() != null) {
+            hashCode = hashCode * 31 + sender().hashCode()
+        }
+        if (recipient() != null) {
+            hashCode = hashCode * 31 + recipient().hashCode()
+        }
+        return hashCode
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) {
+            return true
+        }
+        if (other == null) {
+            return false
+        }
+
+        if (!super.equals(other)) {
+            return false
+        }
+        if (other !is AddressedEnvelope<*, *>) {
+            return false
+        }
+
+        val that = other as AddressedEnvelope<*, SocketAddress?>
+        if (sender() == null) {
+            if (that.sender() != null) {
+                return false
+            }
+        } else if (sender() != that.sender()) {
+            return false
+        }
+
+        if (recipient() == null) {
+            if (that.recipient() != null) {
+                return false
+            }
+        } else if (recipient() != that.recipient()) {
+            return false
+        }
+
+        return true
     }
 }

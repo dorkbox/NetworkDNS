@@ -21,21 +21,21 @@ import dorkbox.dns.dns.records.DnsRecord
 /**
  *
  */
-class ZoneDatabaseKey(var name: Name, var dnsclass: Int) : Comparable<ZoneDatabaseKey> {
-    constructor(z: Zone) : this(z.name(), z.dnsClass()) {}
-    constructor(rr: DnsRecord) : this(rr.name, rr.dclass) {}
+class ZoneDatabaseKey(var name: Name, val dnsClass: Int) : Comparable<ZoneDatabaseKey?> {
+    constructor(z: Zone) : this(z.name(), z.dnsClass())
+    constructor(rr: DnsRecord) : this(rr.name, rr.dclass)
 
-    override fun compareTo(o: ZoneDatabaseKey): Int {
-        if (o == null) {
+    override fun compareTo(other: ZoneDatabaseKey?): Int {
+        if (other == null) {
             return 1
         }
-        return if (equals(o)) {
+        return if (equals(other)) {
             0
-        } else this.hashCode() - o.hashCode()
+        } else this.hashCode() - other.hashCode()
     }
 
     fun equals(other: ZoneDatabaseKey): Boolean {
-        return dnsclass == other.dnsclass && name.equals(other.name)
+        return dnsClass == other.dnsClass && name == other.name
     }
 
     override fun equals(other: Any?): Boolean {
@@ -53,7 +53,7 @@ class ZoneDatabaseKey(var name: Name, var dnsclass: Int) : Comparable<ZoneDataba
     override fun hashCode(): Int {
         val prime = 31
         var result = 1
-        result = prime * result + dnsclass
+        result = prime * result + dnsClass
         result = prime * result + name.hashCode()
         return result
     }

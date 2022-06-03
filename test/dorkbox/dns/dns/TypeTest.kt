@@ -1,0 +1,62 @@
+/*
+ * Copyright 2021 dorkbox, llc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package dorkbox.dns.dns
+
+import dorkbox.dns.dns.constants.DnsRecordType
+import dorkbox.dns.dns.constants.DnsRecordType.isRR
+import dorkbox.dns.dns.constants.DnsRecordType.string
+import dorkbox.dns.dns.constants.DnsRecordType.value
+import junit.framework.TestCase
+
+class TypeTest : TestCase() {
+    fun test_string() {
+        // a regular one
+        assertEquals("CNAME", string(DnsRecordType.CNAME))
+
+        // one that doesn't exist
+        assertTrue(
+            string(65535).startsWith("TYPE")
+        )
+        try {
+            string(-1)
+            fail("IllegalArgumentException not thrown")
+        } catch (ignored: IllegalArgumentException) {
+        }
+    }
+
+    fun test_value() {
+        // regular one
+        assertEquals(DnsRecordType.MAILB, value("MAILB"))
+
+        // one thats undefined but within range
+        assertEquals(300, value("TYPE300"))
+
+        // something that unknown
+        assertEquals(-1, value("THIS IS DEFINITELY UNKNOWN"))
+
+        // empty string
+        assertEquals(-1, value(""))
+    }
+
+    fun test_value_2arg() {
+        assertEquals(301, value("301", true))
+    }
+
+    fun test_isRR() {
+        assertTrue(isRR(DnsRecordType.CNAME))
+        assertFalse(isRR(DnsRecordType.IXFR))
+    }
+}

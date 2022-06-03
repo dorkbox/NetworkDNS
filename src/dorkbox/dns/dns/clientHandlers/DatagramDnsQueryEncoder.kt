@@ -18,6 +18,7 @@ package dorkbox.dns.dns.clientHandlers
 import dorkbox.dns.dns.DnsOutput
 import dorkbox.dns.dns.DnsQuestion
 import dorkbox.dns.dns.records.DnsMessage
+import dorkbox.util.logger
 import io.netty.channel.AddressedEnvelope
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
@@ -32,26 +33,26 @@ import java.net.InetSocketAddress
 @UnstableApi
 @Sharable
 class DatagramDnsQueryEncoder(private val maxPayloadSize: Int) : MessageToMessageEncoder<AddressedEnvelope<DnsQuestion, InetSocketAddress?>>() {
-    @Throws(Exception::class)
     override fun encode(ctx: ChannelHandlerContext, `in`: AddressedEnvelope<DnsQuestion, InetSocketAddress?>, out: MutableList<Any>) {
         val recipient = `in`.recipient()
         val query: DnsMessage = `in`.content()
         val buf = ctx.alloc().ioBuffer(maxPayloadSize)
 
         var success = false
-        success = try {
+        try {
             val dnsOutput = DnsOutput(buf)
             query.toWire(dnsOutput)
-            true
+            out.add(DatagramPacket(buf, recipient, null))
+            success = true
+        } catch (e: Exception) {
+            logger().error(e) { "UNABLE TO ENCODE MESSAGE?" }
         } finally {
             if (!success) {
                 buf.release()
             }
         }
-        out.add(DatagramPacket(buf, recipient, null))
     }
 
-    @Throws(Exception::class)
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
         cause.printStackTrace()
     }

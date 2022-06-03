@@ -357,7 +357,7 @@ class KEYRecord : KEYBase {
 
         /* If this is a null KEY, there's no key data */
         key = if (flags and Flags.USE_MASK == Flags.NOKEY) {
-            byteArrayOf()
+            null
         } else {
             st.base64!!
         }

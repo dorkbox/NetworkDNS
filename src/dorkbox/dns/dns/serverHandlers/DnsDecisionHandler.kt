@@ -35,13 +35,11 @@ import org.slf4j.Logger
 import java.net.InetSocketAddress
 
 class DnsDecisionHandler(private val logger: Logger) : ChannelInboundHandlerAdapter() {
-    private val aRecordMap: LockFreeHashMap<Name, List<ARecord>>
-    private val dnsClient: DnsClient
+    private val aRecordMap = LockFreeHashMap<Name, List<ARecord>>()
+    private val dnsClient: DnsClient = DnsClient()
 
     init {
-        dnsClient = DnsClient()
         dnsClient.start()
-        aRecordMap = LockFreeHashMap()
     }
 
     /**
@@ -69,7 +67,7 @@ class DnsDecisionHandler(private val logger: Logger) : ChannelInboundHandlerAdap
         val opcode = dnsMessage.header.opcode
         when (opcode) {
             DnsOpCode.QUERY -> {
-                onQuery(context, dnsMessage, dnsMessage.recipient())
+                onQuery(context, dnsMessage, dnsMessage.recipient()!!)
                 return
             }
             DnsOpCode.IQUERY -> {
@@ -77,7 +75,7 @@ class DnsDecisionHandler(private val logger: Logger) : ChannelInboundHandlerAdap
                 return
             }
             DnsOpCode.NOTIFY -> {
-                onNotify(context, dnsMessage, dnsMessage.recipient())
+                onNotify(context, dnsMessage, dnsMessage.recipient()!!)
                 return
             }
             DnsOpCode.STATUS -> {
@@ -99,12 +97,12 @@ class DnsDecisionHandler(private val logger: Logger) : ChannelInboundHandlerAdap
         System.err.println(dnsQuestion)
     }
 
-    private fun onNotify(context: ChannelHandlerContext, dnsQuestion: DnsMessage, recipient: InetSocketAddress?) {
+    private fun onNotify(context: ChannelHandlerContext, dnsQuestion: DnsMessage, recipient: InetSocketAddress) {
         System.err.println("DECISION HANDLER READ")
         System.err.println(dnsQuestion)
     }
 
-    private fun onQuery(context: ChannelHandlerContext, dnsQuestion: DnsMessage, recipient: InetSocketAddress?) {
+    private fun onQuery(context: ChannelHandlerContext, dnsQuestion: DnsMessage, recipient: InetSocketAddress) {
         // either I have an answer, or I don't (and have to forward to another DNS server
         // it might be more than 1 question...
         val header = dnsQuestion.header
@@ -130,10 +128,12 @@ class DnsDecisionHandler(private val logger: Logger) : ChannelInboundHandlerAdap
                     val dnsResponse = DnsServerResponse(
                         dnsQuestion, context.channel().localAddress() as InetSocketAddress, recipient
                     )
+
                     val responseHeader = dnsResponse.header
                     responseHeader.setFlag(Flags.QR)
                     responseHeader.rcode = DnsResponseCode.NOERROR
                     dnsResponse.addRecord(dnsRecord, DnsSection.QUESTION)
+
                     val aRecord = ARecord(name, dnsRecord.dclass, ttl, inetAddress)
                     dnsResponse.addRecord(aRecord, DnsSection.ANSWER)
                     context.channel().write(dnsResponse)
@@ -151,10 +151,12 @@ class DnsDecisionHandler(private val logger: Logger) : ChannelInboundHandlerAdap
                     responseHeader.setFlag(Flags.QR)
                     responseHeader.rcode = DnsResponseCode.NOERROR
                     dnsResponse.addRecord(dnsRecord, DnsSection.QUESTION)
+
                     for (record in records) {
                         dnsResponse.addRecord(record, DnsSection.ANSWER)
                         logger.debug("Writing A record response: {}", record.address)
                     }
+
                     context.channel().write(dnsResponse)
                     return
                 } else {
@@ -168,13 +170,16 @@ class DnsDecisionHandler(private val logger: Logger) : ChannelInboundHandlerAdap
                             val dnsResponse = DnsServerResponse(
                                 dnsQuestion, context.channel().localAddress() as InetSocketAddress, recipient
                             )
+
                             val responseHeader = dnsResponse.header
                             responseHeader.setFlag(Flags.QR)
                             dnsResponse.addRecord(dnsRecord, DnsSection.QUESTION)
+
                             if (resolvedAddresses == null || resolvedAddresses.isEmpty()) {
                                 responseHeader.rcode = DnsResponseCode.NXDOMAIN
                             } else {
                                 responseHeader.rcode = DnsResponseCode.NOERROR
+
                                 val records = ArrayList<ARecord>()
                                 for (i in resolvedAddresses.indices) {
                                     val resolvedAddress = resolvedAddresses[i]

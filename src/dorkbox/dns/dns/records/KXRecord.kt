@@ -26,15 +26,27 @@ import dorkbox.dns.dns.constants.DnsRecordType
 class KXRecord : U16NameBase {
     internal constructor() {}
 
-    /**
-     * Returns the preference of this KX record
-     */
-    open var preference = 0
+    override var additionalName: Name? = null
+        get() {
+            return nameField
+        }
 
     /**
      * Returns the target of the KX record
      */
-    open var target: Name = Name.empty
+    val target: Name
+        get() {
+            return nameField
+        }
+
+    /**
+     * Returns the preference of this KX record
+     */
+    val preference: Int
+        get() {
+            return u16Field
+        }
+
 
 
     override val `object`: DnsRecord
@@ -43,8 +55,7 @@ class KXRecord : U16NameBase {
     /**
      * Creates a KX Record from the given data
      *
-     * @param preference The preference of this KX.  Records with lower priority
-     * are preferred.
+     * @param preference The preference of this KX.  Records with lower priority are preferred.
      * @param target The host that authority is delegated to
      */
     constructor(name: Name, dclass: Int, ttl: Long, preference: Int, target: Name) : super(

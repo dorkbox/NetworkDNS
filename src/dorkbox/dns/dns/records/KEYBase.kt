@@ -53,7 +53,7 @@ abstract class KEYBase : DnsRecord {
     /**
      * Returns the binary data representing the key
      */
-    var key: ByteArray = byteArrayOf()
+    var key: ByteArray? = null
         protected set
 
     /**
@@ -105,7 +105,7 @@ abstract class KEYBase : DnsRecord {
     }
 
     protected constructor() {}
-    constructor(name: Name, type: Int, dclass: Int, ttl: Long, flags: Int, proto: Int, alg: Int, key: ByteArray) : super(
+    constructor(name: Name, type: Int, dclass: Int, ttl: Long, flags: Int, proto: Int, alg: Int, key: ByteArray?) : super(
         name, type, dclass, ttl
     ) {
         this.flags = checkU16("flags", flags)
@@ -130,8 +130,8 @@ abstract class KEYBase : DnsRecord {
         out.writeU8(protocol)
         out.writeU8(algorithm)
 
-        if (key.isNotEmpty()) {
-            out.writeByteArray(key)
+        if (key != null) {
+            out.writeByteArray(key!!)
         }
     }
 
@@ -144,7 +144,7 @@ abstract class KEYBase : DnsRecord {
         sb.append(protocol)
         sb.append(" ")
         sb.append(algorithm)
-        if (key.isNotEmpty()) {
+        if (key != null) {
             if (check("multiline")) {
                 sb.append(" (")
                 sb.append(LINE_SEPARATOR)

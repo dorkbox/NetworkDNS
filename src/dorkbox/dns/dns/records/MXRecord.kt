@@ -44,6 +44,12 @@ class MXRecord : U16NameBase {
     val priority: Int
         get() = u16Field
 
+    override var additionalName: Name? = null
+        get() {
+            return nameField
+        }
+
+
 
     /**
      * Creates an MX Record from the given data
@@ -53,8 +59,7 @@ class MXRecord : U16NameBase {
      */
     constructor(name: Name, dclass: Int, ttl: Long, priority: Int, target: Name) : super(
         name, DnsRecordType.MX, dclass, ttl, priority, "priority", target, "target"
-    ) {
-    }
+    )
 
     override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
         out.writeU16(u16Field)

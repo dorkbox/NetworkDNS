@@ -31,11 +31,9 @@ import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStream
 import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddresses
 import dorkbox.dns.dns.resolver.cache.DnsCache
 import dorkbox.dns.dns.resolver.cache.DnsCacheEntry
-import io.netty.channel.socket.InternetProtocolFamily
 import io.netty.util.concurrent.Future
 import io.netty.util.concurrent.FutureListener
 import io.netty.util.concurrent.Promise
-import io.netty.util.internal.ObjectUtil
 import io.netty.util.internal.PlatformDependent
 import io.netty.util.internal.StringUtil
 import io.netty.util.internal.ThrowableUtil
@@ -48,22 +46,16 @@ internal abstract class DnsNameResolverContext<T>(
     private val parent: DnsNameResolver,
     private val hostname: String,
     private val resolveCache: DnsCache,
-    nameServerAddrs: DnsServerAddressStream
-) {
     private val nameServerAddrs: DnsServerAddressStream
-    private val maxAllowedQueries: Int
-    private val resolvedInternetProtocolFamilies: Array<InternetProtocolFamily>
-    private val queriesInProgress = Collections.newSetFromMap(IdentityHashMap<Future<DnsResponse>, Boolean>())
-    private var resolvedEntries: MutableList<DnsCacheEntry>? = null
-    private var allowedQueries: Int
-    private var triedCNAME = false
+) {
+    private val maxAllowedQueries = parent.maxQueriesPerResolve()
+    private var allowedQueries = maxAllowedQueries
 
-    init {
-        this.nameServerAddrs = ObjectUtil.checkNotNull(nameServerAddrs, "nameServerAddrs")
-        maxAllowedQueries = parent.maxQueriesPerResolve()
-        resolvedInternetProtocolFamilies = parent.resolvedInternetProtocolFamiliesUnsafe()
-        allowedQueries = maxAllowedQueries
-    }
+    private val resolvedInternetProtocolFamilies = parent.resolvedInternetProtocolFamiliesUnsafe()
+    private val queriesInProgress = Collections.newSetFromMap(IdentityHashMap<Future<DnsResponse>, Boolean>())
+
+    private var resolvedEntries: MutableList<DnsCacheEntry>? = null
+    private var triedCNAME = false
 
     fun resolve(promise: Promise<T>) {
         if (parent.searchDomains().size == 0 || parent.ndots() == 0 || StringUtil.endsWith(hostname, '.')) {
@@ -412,7 +404,7 @@ internal abstract class DnsNameResolverContext<T>(
             aRecord.address
         } else if (type == DnsRecordType.AAAA) {
             val aaaaRecord = record as AAAARecord
-            aaaaRecord.getAddress()
+            aaaaRecord.address
         } else {
             null
         }
@@ -576,6 +568,7 @@ internal abstract class DnsNameResolverContext<T>(
         // Use the same server for both CNAME queries
         val stream = DnsServerAddresses.singleton(getNameServers(cname).next()).stream()
         var cnameQuestion: DnsQuestion? = null
+
         try {
             if (parent.supportsARecords()) {
                 cnameQuestion = newResolveQuestion(hostname, DnsRecordType.A, parent.isRecursionDesired)
@@ -587,6 +580,7 @@ internal abstract class DnsNameResolverContext<T>(
             queryLifecycleObserver.queryFailed(cause)
             PlatformDependent.throwException(cause)
         }
+
         if (cnameQuestion != null) {
             resolveQuery(stream, 0, cnameQuestion, queryLifecycleObserver.queryCNAMEd(cnameQuestion), promise)
         }
@@ -730,7 +724,9 @@ internal abstract class DnsNameResolverContext<T>(
             if (authority.size == 0) {
                 return null
             }
+
             System.err.println("TYODO")
+
             val serverNames = AuthoritativeNameServerList(questionName)
             for (i in authority.indices) {
                 val dnsRecord = authority[i]
@@ -749,12 +745,14 @@ internal abstract class DnsNameResolverContext<T>(
                 if (type != DnsRecordType.CNAME) {
                     continue
                 }
+
                 System.err.println("CHECK ME ME! we don't have bytebuf content in this fashion anymore")
                 val re = record as CNAMERecord
                 val domainName = re.alias.toString() ?: continue
                 if (cnames == null) {
                     cnames = HashMap(Math.min(8, length))
                 }
+
                 cnames[record.name.toString().lowercase()] = domainName.lowercase()
             }
             return cnames ?: mutableMapOf()

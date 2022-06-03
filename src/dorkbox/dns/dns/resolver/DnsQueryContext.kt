@@ -23,37 +23,27 @@ import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelPromise
 import io.netty.util.concurrent.Promise
 import io.netty.util.concurrent.ScheduledFuture
-import io.netty.util.internal.ObjectUtil
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
 import java.util.concurrent.*
 
-internal class DnsQueryContext(parent: DnsNameResolver, nameServerAddr: InetSocketAddress, question: DnsQuestion, promise: Promise<DnsResponse>) {
-    private val parent: DnsNameResolver
-    private val promise: Promise<DnsResponse>
-    private val id: Int
-    private val question: DnsQuestion
-    private val nameServerAddr: InetSocketAddress
+internal class DnsQueryContext(
+    private val parent: DnsNameResolver,
+    private val nameServerAddr: InetSocketAddress,
+    private val question: DnsQuestion,
+    private val promise: Promise<DnsResponse>) {
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(DnsQueryContext::class.java)
+    }
+
+    private val id: Int = parent.queryContextManager.add(this)
 
     @Volatile
     private var timeoutFuture: ScheduledFuture<*>? = null
 
     init {
-        this.parent = ObjectUtil.checkNotNull(parent, "parent")
-        this.nameServerAddr = ObjectUtil.checkNotNull(nameServerAddr, "nameServerAddr")
-        this.question = ObjectUtil.checkNotNull(question, "question")
-        this.promise = ObjectUtil.checkNotNull(promise, "promise")
-        id = parent.queryContextManager.add(this)
         question.init(id, nameServerAddr)
-    }
-
-    fun query(writePromise: ChannelPromise) {
-        val question = question()
-        val nameServerAddr = nameServerAddr()
-        if (logger.isDebugEnabled) {
-            logger.debug("{} WRITE: [{}: {}], {}", parent.ch, id, nameServerAddr, question)
-        }
-        sendQuery(question, writePromise)
     }
 
     fun nameServerAddr(): InetSocketAddress {
@@ -62,6 +52,17 @@ internal class DnsQueryContext(parent: DnsNameResolver, nameServerAddr: InetSock
 
     fun question(): DnsQuestion {
         return question
+    }
+
+    fun query(writePromise: ChannelPromise) {
+        val question = question()
+        val nameServerAddr = nameServerAddr()
+
+        if (logger.isDebugEnabled) {
+            logger.debug("{} WRITE: [{}: {}], {}", parent.ch, id, nameServerAddr, question)
+        }
+
+        sendQuery(question, writePromise)
     }
 
     private fun sendQuery(query: DnsQuestion, writePromise: ChannelPromise) {
@@ -112,14 +113,16 @@ internal class DnsQueryContext(parent: DnsNameResolver, nameServerAddr: InetSock
     private fun setFailure(message: String, cause: Throwable?) {
         val nameServerAddr = nameServerAddr()
         parent.queryContextManager.remove(nameServerAddr, id)
+
         val buf = StringBuilder(message.length + 64)
         buf.append('[').append(nameServerAddr).append("] ").append(message).append(" (no stack trace available)")
-        val e: DnsNameResolverException
-        e = if (cause != null) {
+
+        val e = if (cause != null) {
             DnsNameResolverException(nameServerAddr, question(), buf.toString(), cause)
         } else {
             DnsNameResolverException(nameServerAddr, question(), buf.toString())
         }
+
         promise.tryFailure(e)
     }
 
@@ -130,20 +133,23 @@ internal class DnsQueryContext(parent: DnsNameResolver, nameServerAddr: InetSock
                 logger.warn("Received a DNS response with invalid number of questions: {}", response)
                 return
             }
+
             val questionArray = question.getSectionArray(DnsSection.QUESTION)
             if (questionArray.size != 1) {
                 logger.warn("Received a DNS response with invalid number of query questions: {}", response)
                 return
             }
-            if (!questionArray[0].equals(sectionArray[0])) {
+
+            if (questionArray[0] != sectionArray[0]) {
                 logger.warn("Received a mismatching DNS response: {}", response)
                 return
             }
+
             setSuccess(response)
         } finally {
             if (question.isResolveQuestion) {
                 // for resolve questions (always A/AAAA), we convert the answer into InetAddress, however with OTHER TYPES, we pass
-                // back the result to the user, and if we release it, all of the content will be cleared.
+                // back the result to the user, and if we release it, all the content will be cleared.
                 response.release()
             }
         }
@@ -155,6 +161,7 @@ internal class DnsQueryContext(parent: DnsNameResolver, nameServerAddr: InetSock
         // Cancel the timeout task.
         val timeoutFuture = timeoutFuture
         timeoutFuture?.cancel(false)
+
         val promise = promise
         if (promise.setUncancellable()) {
             response.retain()
@@ -165,9 +172,5 @@ internal class DnsQueryContext(parent: DnsNameResolver, nameServerAddr: InetSock
             }
             response.release()
         }
-    }
-
-    companion object {
-        private val logger = LoggerFactory.getLogger(DnsQueryContext::class.java)
     }
 }

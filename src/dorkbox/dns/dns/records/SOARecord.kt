@@ -33,13 +33,13 @@ class SOARecord : DnsRecord {
     /**
      * Returns the primary name server
      */
-    var host: Name? = null
+    lateinit var host: Name
         private set
 
     /**
      * Returns the zone administrator's address
      */
-    var admin: Name? = null
+    lateinit var admin: Name
         private set
 
     /**
@@ -89,8 +89,8 @@ class SOARecord : DnsRecord {
     }
 
     override fun rrToWire(out: DnsOutput, c: Compression?, canonical: Boolean) {
-        host!!.toWire(out, c, canonical)
-        admin!!.toWire(out, c, canonical)
+        host.toWire(out, c, canonical)
+        admin.toWire(out, c, canonical)
         out.writeU32(serial)
         out.writeU32(refresh)
         out.writeU32(retry)
@@ -156,21 +156,21 @@ class SOARecord : DnsRecord {
      * @param minimum The minimum TTL for records in the zone
      */
     constructor(
-        name: Name?,
+        name: Name,
         dclass: Int,
         ttl: Long,
-        host: Name?,
-        admin: Name?,
+        host: Name,
+        admin: Name,
         serial: Long,
         refresh: Long,
         retry: Long,
         expire: Long,
         minimum: Long
     ) : super(
-        name!!, DnsRecordType.SOA, dclass, ttl
+        name, DnsRecordType.SOA, dclass, ttl
     ) {
-        this.host = checkName("host", host!!)
-        this.admin = checkName("admin", admin!!)
+        this.host = checkName("host", host)
+        this.admin = checkName("admin", admin)
         this.serial = checkU32("serial", serial)
         this.refresh = checkU32("refresh", refresh)
         this.retry = checkU32("retry", retry)

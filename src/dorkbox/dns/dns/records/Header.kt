@@ -152,7 +152,7 @@ class Header : Cloneable {
      */
     fun getFlag(flag: Flags): Boolean {
         // bit s are indexed from left to right
-        return flagsByte and (1 shl 15) - flag.value() != 0
+        return flagsByte and (1 shl (15 - flag.value())) != 0
     }
 
     /**
@@ -163,7 +163,7 @@ class Header : Cloneable {
      */
     private fun getFlag(flagValue: Int): Boolean {
         // bits are indexed from left to right
-        return flagsByte and (1 shl 15) - flagValue != 0
+        return flagsByte and (1 shl (15 - flagValue)) != 0
     }
 
     fun setCount(field: Int, value: Int) {

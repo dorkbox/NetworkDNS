@@ -139,7 +139,6 @@ object Address {
      *
      * @return The family, either IPv4 or IPv6.
      */
-    @JvmStatic
     fun familyOf(address: InetAddress?): Int {
         if (address is Inet4Address) {
             return IPv4

@@ -36,7 +36,6 @@ class DnsOutput(
      *
      * @param size The initial size
      */
-    @JvmOverloads
     constructor(size: Int = 32) : this(Unpooled.buffer(size))
 
     /**
@@ -146,7 +145,6 @@ class DnsOutput(
      * @param off The offset of the array to start copying data from.
      * @param len The number of bytes to write.
      */
-    @JvmOverloads
     fun writeByteArray(b: ByteArray, off: Int = 0, len: Int = b.size) {
         byteBuf.ensureWritable(len)
         byteBuf.writeBytes(b, off, len)

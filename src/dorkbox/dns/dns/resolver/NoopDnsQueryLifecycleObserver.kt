@@ -38,7 +38,6 @@ internal class NoopDnsQueryLifecycleObserver private constructor() : DnsQueryLif
     override fun querySucceed() {}
 
     companion object {
-        @JvmField
         val INSTANCE = NoopDnsQueryLifecycleObserver()
     }
 }

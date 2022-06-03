@@ -79,7 +79,6 @@ abstract class DnsServerAddresses {
         /**
          * Returns the [DnsServerAddresses] that yields only a single `address`.
          */
-        @JvmStatic
         fun singleton(address: InetSocketAddress): DnsServerAddresses {
             require(!address.isUnresolved) { "cannot use an unresolved DNS server address: $address" }
             return SingletonDnsServerAddresses(address)
@@ -104,7 +103,6 @@ abstract class DnsServerAddresses {
          * Returns the [DnsServerAddresses] that yields the specified `addresses` sequentially. Once the
          * last address is yielded, it will start again from the first address.
          */
-        @JvmStatic
         fun sequential(vararg addresses: InetSocketAddress): DnsServerAddresses {
             return sequential0(*sanitize(addresses as Array<InetSocketAddress>))
         }

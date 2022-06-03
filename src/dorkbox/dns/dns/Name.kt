@@ -42,13 +42,11 @@ class Name : Comparable<Name?>, Serializable {
         /**
          * The root name
          */
-        @JvmStatic
         val root = Name()
 
         /**
          * The root name
          */
-        @JvmStatic
         val empty = Name()
 
         /**
@@ -129,7 +127,6 @@ class Name : Comparable<Name?>, Serializable {
          *
          * @throws TextParseException The name is invalid.
          */
-        @JvmOverloads
         @Throws(TextParseException::class)
         fun fromString(s: String, origin: Name? = null): Name {
             if (s == "@" && origin != null) {
@@ -189,7 +186,6 @@ class Name : Comparable<Name?>, Serializable {
      *
      * @throws TextParseException The name is invalid.
      */
-    @JvmOverloads
     @Throws(TextParseException::class)
     constructor(s: String, origin: Name? = null) {
         if (s == "") {

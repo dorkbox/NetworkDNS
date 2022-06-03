@@ -20,7 +20,7 @@ import io.netty.util.internal.ObjectUtil
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-internal class TraceDnsQueryLifeCycleObserverFactory @JvmOverloads constructor(logger: Logger = DEFAULT_LOGGER) :
+internal class TraceDnsQueryLifeCycleObserverFactory(logger: Logger = DEFAULT_LOGGER) :
     DnsQueryLifecycleObserverFactory {
     private val logger: Logger
 

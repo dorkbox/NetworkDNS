@@ -43,7 +43,6 @@ internal class SequentialDnsServerAddressStream(private val addresses: Array<Ine
     }
 
     companion object {
-        @JvmStatic
         fun toString(type: String, index: Int, addresses: Array<InetSocketAddress>): String {
             val buf = StringBuilder(type.length + 2 + addresses.size * 16)
             buf.append(type).append("(index: ").append(index)

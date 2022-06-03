@@ -54,12 +54,12 @@ class RRset : Serializable {
     private fun safeAddRR(r: DnsRecord) {
         if (r !is RRSIGRecord) {
             if (nsigs.toInt() == 0) {
-                resourceRecords!!.add(r)
+                resourceRecords.add(r)
             } else {
-                resourceRecords!!.add(resourceRecords!!.size - nsigs, r)
+                resourceRecords.add(resourceRecords.size - nsigs, r)
             }
         } else {
-            resourceRecords!!.add(r)
+            resourceRecords.add(r)
             nsigs++
         }
     }
@@ -82,7 +82,7 @@ class RRset : Serializable {
     @Synchronized
     fun addRR(r: DnsRecord) {
         var r = r
-        if (resourceRecords!!.size == 0) {
+        if (resourceRecords.size == 0) {
             safeAddRR(r)
             return
         }
@@ -93,15 +93,15 @@ class RRset : Serializable {
                 r = r.cloneRecord()
                 r.ttl = first.ttl
             } else {
-                for (i in resourceRecords!!.indices) {
-                    var tmp = resourceRecords!![i]
+                for (i in resourceRecords.indices) {
+                    var tmp = resourceRecords[i]
                     tmp = tmp.cloneRecord()
                     tmp.ttl = r.ttl
-                    resourceRecords!![i] = tmp
+                    resourceRecords[i] = tmp
                 }
             }
         }
-        if (!resourceRecords!!.contains(r)) {
+        if (!resourceRecords.contains(r)) {
             safeAddRR(r)
         }
     }
@@ -113,8 +113,8 @@ class RRset : Serializable {
      */
     @Synchronized
     fun first(): DnsRecord {
-        check(resourceRecords!!.size != 0) { "rrset is empty" }
-        return resourceRecords!![0]
+        check(resourceRecords.size != 0) { "rrset is empty" }
+        return resourceRecords[0]
     }
 
     /**
@@ -122,7 +122,7 @@ class RRset : Serializable {
      */
     @Synchronized
     fun deleteRR(r: DnsRecord) {
-        if (resourceRecords!!.remove(r) && r is RRSIGRecord) {
+        if (resourceRecords.remove(r) && r is RRSIGRecord) {
             nsigs--
         }
     }
@@ -132,7 +132,7 @@ class RRset : Serializable {
      */
     @Synchronized
     fun clear() {
-        resourceRecords!!.clear()
+        resourceRecords.clear()
         position = 0
         nsigs = 0
     }
@@ -153,7 +153,7 @@ class RRset : Serializable {
         val size: Int
         val start: Int
         val total: Int
-        total = resourceRecords!!.size
+        total = resourceRecords.size
         size = if (data) {
             total - nsigs
         } else {
@@ -176,12 +176,12 @@ class RRset : Serializable {
         }
         val list: MutableList<DnsRecord> = ArrayList(size)
         if (data) {
-            list.addAll(resourceRecords!!.subList(start, size))
+            list.addAll(resourceRecords.subList(start, size))
             if (start != 0) {
-                list.addAll(resourceRecords!!.subList(0, start))
+                list.addAll(resourceRecords.subList(0, start))
             }
         } else {
-            list.addAll(resourceRecords!!.subList(start, total))
+            list.addAll(resourceRecords.subList(start, total))
         }
         return list.iterator()
     }
@@ -208,7 +208,7 @@ class RRset : Serializable {
      */
     @Synchronized
     fun size(): Int {
-        return resourceRecords!!.size - nsigs
+        return resourceRecords.size - nsigs
     }
 
     /**

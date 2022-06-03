@@ -35,7 +35,6 @@ object base16 {
      *
      * @return A String containing the encoded data
      */
-    @JvmStatic
     fun toString(b: ByteArray): String {
         val os = ByteArrayOutputStream()
         for (i in b.indices) {

@@ -217,7 +217,7 @@ class APLRecord : DnsRecord {
                 throw st.exception("invalid IP address $addressString")
             }
             val address = InetAddress.getByAddress(bytes)
-            elements!!.add(Element(negative, address, prefix))
+            elements.add(Element(negative, address, prefix))
         }
         st.unget()
     }

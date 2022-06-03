@@ -170,7 +170,6 @@ object DNSSEC {
     /**
      * Converts a KEY/DNSKEY record into a PublicKey
      */
-    @JvmStatic
     @Throws(DNSSECException::class)
     fun toPublicKey(r: KEYBase): PublicKey {
         val alg = r.algorithm
@@ -689,7 +688,7 @@ object DNSSEC {
             throw IOException()
         }
         var bytes = `in`.readByteArray(DSA_LEN)
-        out.writeByteArray(bytes!!)
+        out.writeByteArray(bytes)
         tmp = `in`.readU8()
         if (tmp != ASN1_INT) {
             throw IOException()
@@ -729,7 +728,7 @@ object DNSSEC {
             throw IOException()
         }
         var bytes = `in`.readByteArray(keyinfo.length)
-        out.writeByteArray(bytes!!)
+        out.writeByteArray(bytes)
         tmp = `in`.readU8()
         if (tmp != ASN1_INT) {
             throw IOException()

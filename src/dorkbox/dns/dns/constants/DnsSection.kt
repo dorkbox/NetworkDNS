@@ -83,7 +83,6 @@ object DnsSection {
     /**
      * Converts a numeric DnsSection into an abbreviation String
      */
-    @JvmStatic
     fun string(i: Int): String {
         return sections.getText(i)
     }
@@ -91,7 +90,6 @@ object DnsSection {
     /**
      * Converts a numeric DnsSection into a full description String
      */
-    @JvmStatic
     fun longString(i: Int): String? {
         sections.check(i)
         return longSections[i]
@@ -101,7 +99,6 @@ object DnsSection {
      * Converts a numeric DnsSection into a full description String for an update
      * DnsMessage.
      */
-    @JvmStatic
     fun updString(i: Int): String? {
         sections.check(i)
         return updateSections[i]
@@ -110,7 +107,6 @@ object DnsSection {
     /**
      * Converts a String representation of a DnsSection into its numeric value
      */
-    @JvmStatic
     fun value(s: String?): Int {
         return sections.getValue(s!!)
     }

@@ -373,7 +373,7 @@ class DnsNameResolver(
     }
 
     private fun loopbackAddress(): InetAddress {
-        return preferredAddressType()!!.localhost()
+        return preferredAddressType().localhost()
     }
 
     fun preferredAddressType(): InternetProtocolFamily {

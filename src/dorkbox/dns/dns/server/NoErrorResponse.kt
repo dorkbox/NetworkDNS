@@ -21,7 +21,7 @@ import dorkbox.dns.dns.constants.Flags
 import dorkbox.dns.dns.records.DnsMessage
 import dorkbox.dns.dns.records.DnsRecord
 
-class NoErrorResponse @JvmOverloads constructor(val records: Set<DnsRecord>, val authoritativeAnswer: Boolean = true) :
+class NoErrorResponse(val records: Set<DnsRecord>, val authoritativeAnswer: Boolean = true) :
     DefaultResponse(DnsResponseCode.NOERROR) {
     override fun postProcess(message: DnsMessage) {
         message.header.rcode = responseCode()

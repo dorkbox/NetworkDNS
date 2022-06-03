@@ -27,7 +27,7 @@ import java.util.concurrent.*
  * If any additional [DnsRecord] is used, no caching takes place.
  */
 @UnstableApi
-class DefaultDnsCache @JvmOverloads constructor(minTtl: Int = 0, maxTtl: Int = Int.MAX_VALUE, negativeTtl: Int = 0) : DnsCache {
+class DefaultDnsCache(minTtl: Int = 0, maxTtl: Int = Int.MAX_VALUE, negativeTtl: Int = 0) : DnsCache {
     private val resolveCache = PlatformDependent.newConcurrentHashMap<String, MutableList<DnsCacheEntry>>()
     private val minTtl: Int
     private val maxTtl: Int

@@ -30,7 +30,7 @@ import java.io.IOException
  *
  * @author Brian Wellington
  */
-class Update @JvmOverloads constructor(zone: Name, dclass: Int = DnsClass.IN) : DnsMessage() {
+class Update(zone: Name, dclass: Int = DnsClass.IN) : DnsMessage() {
     private val origin: Name
     private val dclass: Int
     /**

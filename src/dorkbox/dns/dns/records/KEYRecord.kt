@@ -79,7 +79,6 @@ class KEYRecord : KEYBase {
         /**
          * Converts an KEY protocol value into its textual representation
          */
-        @JvmStatic
         fun string(type: Int): String {
             return protocols.getText(type)
         }
@@ -92,7 +91,6 @@ class KEYRecord : KEYBase {
          *
          * @return The protocol code, or -1 on error.
          */
-        @JvmStatic
         fun value(s: String?): Int {
             return protocols.getValue(s!!)
         }
@@ -309,7 +307,6 @@ class KEYRecord : KEYBase {
          *
          * @return The protocol code, or -1 on error.
          */
-        @JvmStatic
         fun value(s: String): Int {
             var value: Int
             try {

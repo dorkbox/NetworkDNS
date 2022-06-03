@@ -45,7 +45,6 @@ object Options {
         }
     }
 
-    @JvmStatic
     fun refresh() {
         val s = System.getProperty("dnsjava.options")
         if (s != null) {
@@ -77,7 +76,6 @@ object Options {
     /**
      * Sets an option to the the supplied value
      */
-    @JvmStatic
     operator fun set(option: String, value: String) {
         if (table == null) {
             table = ObjectMap()
@@ -88,7 +86,6 @@ object Options {
     /**
      * Clears all defined options
      */
-    @JvmStatic
     fun clear() {
         table = null
     }
@@ -96,7 +93,6 @@ object Options {
     /**
      * Removes an option
      */
-    @JvmStatic
     fun unset(option: String) {
         if (table == null) {
             return
@@ -107,7 +103,6 @@ object Options {
     /**
      * Checks if an option is defined
      */
-    @JvmStatic
     fun check(option: String): Boolean {
         return if (table == null) {
             false
@@ -117,7 +112,6 @@ object Options {
     /**
      * Returns the value of an option as an integer, or -1 if not defined.
      */
-    @JvmStatic
     fun intValue(option: String): Int {
         val s = value(option)
         if (s != null) {
@@ -135,7 +129,6 @@ object Options {
     /**
      * Returns the value of an option
      */
-    @JvmStatic
     fun value(option: String): String? {
         return if (table == null) {
             null

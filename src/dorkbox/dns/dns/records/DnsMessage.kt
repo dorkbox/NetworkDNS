@@ -77,7 +77,6 @@ open class DnsMessage private constructor(var header: Header) : AbstractReferenc
          *
          * @param r A record containing the question
          */
-        @JvmStatic
         fun newQuery(r: DnsRecord): DnsMessage {
             val m = DnsMessage()
             m.header.opcode = DnsOpCode.QUERY

@@ -135,7 +135,6 @@ object ReverseMap {
      *
      * @throws UnknownHostException The string does not contain a valid address.
      */
-    @JvmStatic
     @Throws(UnknownHostException::class)
     fun fromAddress(addr: String?): Name {
         var array: ByteArray? = null

@@ -57,7 +57,7 @@ class CERTRecord : DnsRecord {
     /**
      * Returns the binary representation of the certificate
      */
-    var cert: ByteArray = byteArrayOf()
+    var cert: ByteArray? = null
         private set
 
     object CertificateType {

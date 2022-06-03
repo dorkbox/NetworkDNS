@@ -65,7 +65,6 @@ object FormattedTime {
      *
      * @throws TextParseException The string was invalid.
      */
-    @JvmStatic
     @Throws(TextParseException::class)
     fun parse(s: String): Date {
         if (s.length != 14) {

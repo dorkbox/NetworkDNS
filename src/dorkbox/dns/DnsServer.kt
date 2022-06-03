@@ -188,7 +188,6 @@ class DnsServer(host: String?, tcpPort: Int) : Shutdownable(DnsServer::class.jav
      * This method will also BLOCK until the stop method is called, and if you want to continue running code after this method invocation,
      * bind should be called in a separate, non-daemon thread.
      */
-    @JvmOverloads
     fun bind(blockUntilTerminate: Boolean = true) {
         // make sure we are not trying to connect during a close or stop event.
         // This will wait until we have finished starting up/shutting down.

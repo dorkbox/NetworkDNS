@@ -176,7 +176,6 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
      *
      * @param nameServerAddresses the server to receive your DNS questions.
      */
-    @JvmOverloads
     constructor(nameServerAddresses: String?, port: Int = 53) : this(
         listOf<InetSocketAddress>(InetSocketAddress(nameServerAddresses, port))
     )
@@ -501,7 +500,6 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
      * @return the list of resolved InetAddress or throws an exception if the hostname cannot be resolved
      * @throws UnknownHostException if the hostname cannot be resolved
      */
-    @JvmOverloads
     @Throws(UnknownHostException::class)
     fun resolve(hostname: String?, queryTimeoutSeconds: Int = 5): List<InetAddress> {
         if (hostname == null) {
@@ -554,7 +552,6 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
      *
      * @throws @throws UnknownHostException if the hostname cannot be resolved
      */
-    @JvmOverloads
     @Throws(UnknownHostException::class)
     fun query(hostname: String, type: Int, queryTimeoutSeconds: Int = 5): Array<DnsRecord> {
         if (resolver == null) {

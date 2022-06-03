@@ -13,20 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dorkbox.dns
 
-package dorkbox.dns;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.List;
+import java.net.InetAddress
+import java.net.UnknownHostException
 
 /**
  *
  */
-public
-class ServerTest {
-    public static
-    void main(String[] args) {
+object ServerTest {
+    @JvmStatic
+    fun main(args: Array<String>) {
         // DnsServer server = new DnsServer("localhost", 2053);
         // server.aRecord("google.com", DnsClass.IN, 10, "127.0.0.1");
         // server.bind();
@@ -34,17 +31,15 @@ class ServerTest {
         // MasterZone zone = new MasterZone();
 
         // server.bind(false);
-
-
-        DnsClient client = new DnsClient("localhost", 2053);
-        List<InetAddress> resolve = null;
+        val client = DnsClient("localhost", 2053)
+        var resolve: List<InetAddress?>? = null
         try {
-            resolve = client.resolve("google.com");
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
+            resolve = client.resolve("google.com")
+        } catch (e: UnknownHostException) {
+            e.printStackTrace()
         }
-        System.err.println("RESOLVED: " + resolve);
-        client.stop();
+        System.err.println("RESOLVED: $resolve")
+        client.stop()
         // server.stop();
     }
 }

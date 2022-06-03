@@ -587,7 +587,7 @@ internal abstract class DnsNameResolverContext<T>(
     }
 
     private fun resolveQuery(hostname: String, type: Int, dnsServerAddressStream: DnsServerAddressStream, promise: Promise<T>): Boolean {
-        val message = newResolveQuestion(hostname, type, parent.isRecursionDesired) ?: return false
+        val message = newResolveQuestion(hostname, type, parent.isRecursionDesired)
         resolveQuery(dnsServerAddressStream, 0, message, promise)
         return true
     }

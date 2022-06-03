@@ -515,7 +515,6 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
         /**
          * Converts a String into a byte array.
          */
-        @JvmStatic
         @Throws(TextParseException::class)
         fun byteArrayFromString(s: String): ByteArray {
             var array = s.toByteArray()
@@ -576,7 +575,6 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
         /**
          * Converts a byte array into a String.
          */
-        @JvmStatic
         fun byteArrayToString(array: ByteArray, quote: Boolean): String {
             val sb = StringBuilder()
             if (quote) {

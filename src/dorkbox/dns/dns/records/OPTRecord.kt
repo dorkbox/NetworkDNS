@@ -163,7 +163,6 @@ class OPTRecord : DnsRecord {
      *
      * @see ExtendedFlags
      */
-    @JvmOverloads
     constructor(payloadSize: Int, xrcode: Int, version: Int, flags: Int = 0, options: List<EDNSOption?>? = null) : super(
         Name.root,
         DnsRecordType.OPT,

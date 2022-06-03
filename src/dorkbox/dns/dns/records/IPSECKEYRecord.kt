@@ -62,7 +62,7 @@ class IPSECKEYRecord : DnsRecord {
     /**
      * Returns the record's public key
      */
-    var key: ByteArray = byteArrayOf()
+    var key: ByteArray? = null
         private set
 
     object Algorithm {

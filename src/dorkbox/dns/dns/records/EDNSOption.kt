@@ -197,7 +197,6 @@ abstract class EDNSOption(code: Int) {
          *
          * @param in The input stream.
          */
-        @JvmStatic
         @Throws(IOException::class)
         fun fromWire(`in`: DnsInput): EDNSOption {
             val code: Int

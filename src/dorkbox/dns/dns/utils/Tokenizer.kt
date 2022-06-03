@@ -212,7 +212,6 @@ class Tokenizer(inputStream: InputStream) : AutoCloseable {
      * @throws TextParseException The input was invalid.
      * @throws IOException An I/O error occurred.
      */
-    @JvmOverloads
     @Throws(IOException::class, TokenizerException::class)
     operator fun get(wantWhitespace: Boolean = false, wantComment: Boolean = false): Token {
         var type: Int

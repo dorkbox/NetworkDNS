@@ -495,7 +495,6 @@ object DnsRecordType {
      *
      * @return The type code, or -1 on error.
      */
-    @JvmOverloads
     fun value(s: String, numberok: Boolean = false): Int {
         var `val` = types.getValue(s)
         if (`val` == -1 && numberok) {

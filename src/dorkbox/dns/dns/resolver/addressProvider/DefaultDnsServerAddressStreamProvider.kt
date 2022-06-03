@@ -50,7 +50,6 @@ class DefaultDnsServerAddressStreamProvider private constructor() : DnsServerAdd
          * addresses from the environment, it will return `"8.8.8.8"` and `"8.8.4.4"`, the addresses of the
          * Google public DNS servers.
          */
-        @JvmStatic
         fun defaultAddressList(): List<InetSocketAddress> {
             return DEFAULT_NAME_SERVER_LIST
         }
@@ -67,7 +66,6 @@ class DefaultDnsServerAddressStreamProvider private constructor() : DnsServerAdd
         </pre> *
          *
          */
-        @JvmStatic
         fun defaultAddresses(): DnsServerAddresses {
             return DEFAULT_NAME_SERVERS
         }
@@ -77,7 +75,6 @@ class DefaultDnsServerAddressStreamProvider private constructor() : DnsServerAdd
          *
          * @return The array form of [.defaultAddressList].
          */
-        @JvmStatic
         fun defaultAddressArray(): Array<InetSocketAddress> {
             return DEFAULT_NAME_SERVER_ARRAY.clone()
         }

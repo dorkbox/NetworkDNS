@@ -255,11 +255,12 @@ class TSIG {
             }
         }
 
-        /* Digest the message */if (signing) {
+        /* Digest the message */
+        if (signing) {
             hmac!!.update(b)
         }
         var out = DnsOutput()
-        name!!.toWireCanonical(out)
+        name.toWireCanonical(out)
         out.writeU16(DnsClass.ANY) /* class */
         out.writeU32(0) /* ttl */
         alg.toWireCanonical(out)
@@ -419,7 +420,7 @@ class TSIG {
      * @see TSIGRecord
      */
     fun recordLength(): Int {
-        return name!!.length() + 10 + alg.length() + 8 +  // time signed, fudge
+        return name.length() + 10 + alg.length() + 8 +  // time signed, fudge
                 18 +  // 2 byte MAC length, 16 byte MAC
                 4 +  // original id, error
                 8 // 2 byte error length, 6 byte max error field.
@@ -563,7 +564,6 @@ class TSIG {
         /**
          * The domain name representing the HMAC-SHA256 algorithm.
          */
-        @JvmStatic
         val HMAC_SHA256 = Name.fromConstantString("hmac-sha256.")
 
         /**

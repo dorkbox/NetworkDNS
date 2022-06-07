@@ -17,7 +17,6 @@ package dorkbox.dns.dns.utils
 
 import dorkbox.dns.DnsClient
 import dorkbox.dns.dns.constants.DnsRecordType
-import dorkbox.dns.dns.records.DnsRecord
 import dorkbox.dns.dns.records.PTRRecord
 import dorkbox.dns.dns.utils.ReverseMap.fromAddress
 import dorkbox.netUtil.dnsUtils.ResolvedAddressTypes
@@ -59,7 +58,7 @@ object Address {
         val client = DnsClient()
         val records = client.resolve(name)
         client.stop()
-        return records[0]
+        return records?.get(0)
     }
 
     /**
@@ -82,13 +81,16 @@ object Address {
             return arrayOf(dorkbox.netUtil.IPv6.toAddress(name))
         }
 
-        val combined: MutableList<InetAddress?> = ArrayList()
+        val combined: MutableList<InetAddress> = ArrayList()
         var client = DnsClient()
 
         // ipv4
         client.resolvedAddressTypes(ResolvedAddressTypes.IPV4_ONLY)
-        var resolved: List<InetAddress?> = client.resolve(name)
-        combined.addAll(resolved)
+        var resolved: List<InetAddress>? = client.resolve(name)
+        if (resolved != null) {
+            combined.addAll(resolved)
+        }
+
         client.stop()
 
         // ipv6
@@ -97,7 +99,10 @@ object Address {
         resolved = client.resolve(name)
         client.stop()
 
-        combined.addAll(resolved)
+        if (resolved != null) {
+            combined.addAll(resolved)
+        }
+
         return combined.toTypedArray()
     }
 
@@ -111,13 +116,12 @@ object Address {
      * @throws UnknownHostException There is no hostname for the address
      */
     @Throws(UnknownHostException::class)
-    fun getHostName(address: InetAddress): String {
+    fun getHostName(address: InetAddress): String? {
         val name = fromAddress(address)
         val client = DnsClient()
         client.resolvedAddressTypes(ResolvedAddressTypes.IPV4_ONLY)
 
-        val records: Array<DnsRecord>
-        records = try {
+        val records = try {
             client.query(name.toString(true), DnsRecordType.PTR)
         } catch (ignored: Throwable) {
             throw UnknownHostException("unknown address")
@@ -125,11 +129,8 @@ object Address {
             client.stop()
         }
 
-        if (records == null) {
-            throw UnknownHostException("unknown address")
-        }
-        val ptr = records[0] as PTRRecord
-        return ptr.target.toString()
+        val ptr = records?.get(0) as PTRRecord?
+        return ptr?.target?.toString()
     }
 
     /**

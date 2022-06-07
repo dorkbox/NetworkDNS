@@ -497,11 +497,10 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
      * @param hostname the hostname, ie: google.com, that you want to resolve
      * @param queryTimeoutSeconds the number of seconds to wait for host resolution
      *
-     * @return the list of resolved InetAddress or throws an exception if the hostname cannot be resolved
-     * @throws UnknownHostException if the hostname cannot be resolved
+     * @return the list of resolved InetAddress or throws an exception if the hostname cannot be resolved or null if not possible
      */
     @Throws(UnknownHostException::class)
-    fun resolve(hostname: String?, queryTimeoutSeconds: Int = 5): List<InetAddress> {
+    fun resolve(hostname: String?, queryTimeoutSeconds: Int = 5): List<InetAddress>? {
         if (hostname == null) {
             throw UnknownHostException("Cannot submit query for an unknown host")
         }
@@ -518,28 +517,20 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
             return try {
                 resolve.now
             } catch (e: Exception) {
-                val msg = "Could not ask question to DNS server"
-                logger.error(msg, e)
-                throw UnknownHostException(msg)
+                logger.error("Could not ask question to DNS server for: $hostname", e)
+                return null
             }
         }
-        val msg = "Could not ask question to DNS server for A/AAAA record: $hostname"
-        logger.error(msg)
-        throw resolve.cause() as UnknownHostException
+        logger.error("Could not ask question to DNS server for: $hostname")
+        return null
     }
 
 
     /**
      * Resolves a specific hostname record, of the specified type (PTR, MX, TXT, etc)
      *
-     *
-     *
-     *
      * Note: PTR queries absolutely MUST end in '.in-addr.arpa' in order for the DNS server to understand it.
      * -- because of this, we will automatically fix this in case that clients are unaware of this requirement
-     *
-     *
-     *
      *
      * Note: A/AAAA queries absolutely MUST end in a '.' -- because of this we will automatically fix this in case that clients are
      * unaware of this requirement
@@ -548,12 +539,10 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
      * @param type     the DnsRecordType you want to resolve (PTR, MX, TXT, etc)
      * @param queryTimeoutSeconds the number of seconds to wait for host resolution
      *
-     * @return the DnsRecords or throws an exception if the hostname cannot be resolved
-     *
-     * @throws @throws UnknownHostException if the hostname cannot be resolved
+     * @return the DnsRecords or throws an exception if the hostname cannot be resolved or null if it could not be resolved
      */
     @Throws(UnknownHostException::class)
-    fun query(hostname: String, type: Int, queryTimeoutSeconds: Int = 5): Array<DnsRecord> {
+    fun query(hostname: String, type: Int, queryTimeoutSeconds: Int = 5): List<DnsRecord>? {
         if (resolver == null) {
             start()
         }
@@ -580,12 +569,10 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
      *
      * @param queryTimeoutSeconds the number of seconds to wait for host resolution
      *
-     * @return the DnsRecords or throws an exception if the hostname cannot be resolved
-     *
-     * @throws @throws UnknownHostException if the hostname cannot be resolved
+     * @return the DnsRecords or throws an exception if the hostname cannot be resolved or null if it could not be resolved
      */
     @Throws(UnknownHostException::class)
-    fun query(dnsMessage: DnsQuestion, queryTimeoutSeconds: Int): Array<DnsRecord> {
+    fun query(dnsMessage: DnsQuestion, queryTimeoutSeconds: Int): List<DnsRecord>? {
         val questionCount = dnsMessage.header.getCount(DnsSection.QUESTION)
         if (questionCount > 1) {
             throw UnknownHostException("Cannot ask more than 1 question at a time! You tried to ask $questionCount questions at once")
@@ -601,20 +588,18 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
             try {
                 val code = response.header.rcode
                 if (code == DnsResponseCode.NOERROR) {
-                    return response.getSectionArray(DnsSection.ANSWER)
+                    return response.getSectionArray(DnsSection.ANSWER).toList()
                 }
                 val msg =
                     "Could not ask question to DNS server: Error code " + code + " for type: " + type + " - " + DnsRecordType.string(type)
                 logger.error(msg)
-                throw UnknownHostException(msg)
+                return null
             } finally {
                 response.release()
             }
         }
 
-        val msg = "Could not ask question to DNS server for type: " + DnsRecordType.string(type)
-        logger.error(msg)
-        val cause = query.cause() as UnknownHostException
-        throw cause
+        logger.error("Could not ask question to DNS server for type: " + DnsRecordType.string(type))
+        return null
     }
 }

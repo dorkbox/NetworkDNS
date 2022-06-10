@@ -20,7 +20,6 @@ import dorkbox.dns.dns.Mnemonic
 import dorkbox.dns.dns.exceptions.InvalidTypeException
 import dorkbox.dns.dns.records.DnsRecord
 import dorkbox.dns.dns.records.DnsTypeProtoAssignment
-import io.netty.util.internal.StringUtil
 
 /**
  * Constants and functions relating to DNS Types
@@ -537,16 +536,13 @@ object DnsRecordType {
                     return hostName + ptrSuffix
                 }
                 // resolving a hostname -> ip address, the hostname MUST end in a dot
-                if (!StringUtil.endsWith(hostName, '.')) {
+                if (!hostName.endsWith('.')) {
                     "$hostName."
                 } else {
                     hostName
                 }
             }
-            A, AAAA, CAA, CNAME, MX, NAPTR, NS, SOA, SPF, SRV, TXT -> if (!StringUtil.endsWith(
-                    hostName, '.'
-                )
-            ) {
+            A, AAAA, CAA, CNAME, MX, NAPTR, NS, SOA, SPF, SRV, TXT -> if (!hostName.endsWith('.')) {
                 "$hostName."
             } else {
                 hostName

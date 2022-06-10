@@ -20,7 +20,6 @@ import io.netty.util.concurrent.EventExecutor
 import io.netty.util.concurrent.Future
 import io.netty.util.concurrent.FutureListener
 import io.netty.util.concurrent.Promise
-import io.netty.util.internal.StringUtil
 import java.util.concurrent.*
 
 // FIXME(trustin): Find a better name and move it to the 'resolver' module.
@@ -83,7 +82,7 @@ class InflightNameResolver<T> internal constructor(
     }
 
     override fun toString(): String {
-        return StringUtil.simpleClassName(this) + '(' + delegate + ')'
+        return this.javaClass.simpleName + '(' + delegate + ')'
     }
 
     companion object {

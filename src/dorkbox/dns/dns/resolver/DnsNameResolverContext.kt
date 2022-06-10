@@ -35,7 +35,6 @@ import io.netty.util.concurrent.Future
 import io.netty.util.concurrent.FutureListener
 import io.netty.util.concurrent.Promise
 import io.netty.util.internal.PlatformDependent
-import io.netty.util.internal.StringUtil
 import io.netty.util.internal.ThrowableUtil
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -58,7 +57,7 @@ internal abstract class DnsNameResolverContext<T>(
     private var triedCNAME = false
 
     fun resolve(promise: Promise<T>) {
-        if (parent.searchDomains().size == 0 || parent.ndots() == 0 || StringUtil.endsWith(hostname, '.')) {
+        if (parent.searchDomains().isEmpty() || parent.ndots() == 0 || hostname.endsWith('.')) {
             internalResolve(promise)
         } else {
             var dots = 0

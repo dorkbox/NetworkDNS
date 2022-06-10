@@ -391,8 +391,7 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
          * @param type The record's type.
          * @param dclass The record's class.
          * @param ttl The record's time to live.
-         * @param data The complete rdata of the record, in uncompressed DNS wire
-         * format.
+         * @param data The complete rdata of the record, in uncompressed DNS wire format.
          */
         fun newRecord(name: Name, type: Int, dclass: Int, ttl: Long, data: ByteArray): DnsRecord? {
             return newRecord(name, type, dclass, ttl, data.size, data)
@@ -406,10 +405,9 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
          * @param dclass The record's class.
          * @param ttl The record's time to live.
          * @param length The length of the record's data.
-         * @param data The rdata of the record, in uncompressed DNS wire format.  Only
-         * the first length bytes are used.
+         * @param data The rdata of the record, in uncompressed DNS wire format.  Only the first length bytes are used.
          */
-        fun newRecord(name: Name, type: Int, dclass: Int, ttl: Long, length: Int, data: ByteArray?): DnsRecord? {
+        fun newRecord(name: Name, type: Int, dclass: Int, ttl: Long, length: Int, data: ByteArray): DnsRecord? {
             if (!name.isAbsolute) {
                 throw RelativeNameException(name)
             }
@@ -418,27 +416,30 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
             DnsClass.check(dclass)
             TTL.check(ttl)
 
-            val `in` = data?.let { DnsInput(it) }
+            val dnsInput = DnsInput(data)
             return try {
-                newRecord(name, type, dclass, ttl, length, `in`)
+                newRecord(name, type, dclass, ttl, length, dnsInput)
             } catch (e: IOException) {
                 null
             }
         }
 
         @Throws(IOException::class)
-        private fun newRecord(name: Name, type: Int, dclass: Int, ttl: Long, length: Int, `in`: DnsInput?): DnsRecord {
-            val rec = getEmptyRecord(name, type, dclass, ttl, `in` != null)
-            if (`in` != null) {
-                if (`in`.remaining() < length) {
-                    throw WireParseException("truncated record")
+        private fun newRecord(name: Name, type: Int, dclass: Int, ttl: Long, length: Int, dnsInput: DnsInput): DnsRecord {
+            val hasData = length > 0
+            val rec = getEmptyRecord(name, type, dclass, ttl, hasData)
+            if (hasData) {
+                if (dnsInput.remaining() < length) {
+                    throw WireParseException("truncated record for $name type: $type (record: $rec)")
                 }
-                `in`.setActive(length)
-                rec.rrFromWire(`in`)
-                val remaining = `in`.remaining()
-                `in`.restoreActive()
+
+                dnsInput.setActive(length)
+                rec.rrFromWire(dnsInput)
+                val remaining = dnsInput.remaining()
+
+                dnsInput.restoreActive()
                 if (remaining > 0) {
-                    throw WireParseException("invalid record length")
+                    throw WireParseException("invalid record length for $name type: $type (record: $rec)")
                 }
             }
             return rec

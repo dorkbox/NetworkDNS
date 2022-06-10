@@ -452,7 +452,7 @@ internal abstract class DnsNameResolverContext<T>(
         promise: Promise<T>
     ) {
         // There are no queries left to try.
-        if (!queriesInProgress.isEmpty()) {
+        if (queriesInProgress.isNotEmpty()) {
             queryLifecycleObserver.queryCancelled(allowedQueries)
 
             // There are still some queries we did not receive responses for.

@@ -336,11 +336,7 @@ class AddressTest : TestCase() {
 
     @Throws(UnknownHostException::class)
     fun test_getByName_invalid() {
-        try {
-            getByName("example.invalid")
-            fail("UnknownHostException not thrown")
-        } catch (ignored: UnknownHostException) {
-        }
+        assertNull(getByName("example.invalid"))
 
         try {
             val byName = getByName("")

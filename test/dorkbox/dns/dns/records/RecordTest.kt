@@ -192,7 +192,7 @@ class RecordTest : TestCase() {
         val ttl = 0xDBE8
         val data = byteArrayOf(123.toByte(), 232.toByte(), 0.toByte(), 255.toByte())
         val exp = InetAddress.getByName("123.232.0.255")
-        var rec = newRecord(n, t, d, ttl.toLong(), 0, null)
+        var rec = newRecord(n, t, d, ttl.toLong(), 0, byteArrayOf())
         assertTrue(rec is EmptyRecord)
         assertEquals(n, rec!!.name)
         assertEquals(t, rec.type)
@@ -227,7 +227,7 @@ class RecordTest : TestCase() {
         assertNull(newRecord(n, t, d, ttl.toLong(), data.size + 1, data))
         assertNull(newRecord(n, t, d, ttl.toLong(), 5, byteArrayOf(data[0], data[1], data[2], data[3], 0)))
         try {
-            newRecord(r, t, d, ttl.toLong(), 0, null)
+            newRecord(r, t, d, ttl.toLong(), 0, byteArrayOf())
             fail("RelativeNameException not thrown")
         } catch (ignored: RelativeNameException) {
         }

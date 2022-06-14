@@ -69,7 +69,7 @@ class DnsServer(host: String?, tcpPort: Int) : Shutdownable(DnsServer::class.jav
         /**
          * Gets the version number.
          */
-        val version = "2.4"
+        val version = "2.5"
 
         var workerThreadPoolSize = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
 

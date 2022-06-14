@@ -17,7 +17,7 @@ Maven Info
     <dependency>
       <groupId>com.dorkbox</groupId>
       <artifactId>NetworkDNS</artifactId>
-      <version>2.4</version>
+      <version>2.5</version>
     </dependency>
 </dependencies>
 ```
@@ -27,7 +27,7 @@ Gradle Info
 ```
 dependencies {
     ...
-    implementation("com.dorkbox:NetworkDNS:2.4")
+    implementation("com.dorkbox:NetworkDNS:2.5")
 }
 ```
 

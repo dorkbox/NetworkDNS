@@ -49,7 +49,7 @@ class CNAMERecordTest : TestCase() {
 
     fun test_getObject() {
         val d = CNAMERecord()
-        val r = d.`object`
+        val r = d.dnsRecord
         assertTrue(r is CNAMERecord)
     }
 }

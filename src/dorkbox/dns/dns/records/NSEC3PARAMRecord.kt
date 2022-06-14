@@ -62,7 +62,7 @@ class NSEC3PARAMRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = NSEC3PARAMRecord()
 
     @Throws(IOException::class)

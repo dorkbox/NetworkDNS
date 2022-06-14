@@ -49,7 +49,7 @@ class URIRecord : DnsRecord {
         target = byteArrayOf()
     }
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = URIRecord()
 
     @Throws(IOException::class)

@@ -47,7 +47,7 @@ class NSAP_PTRRecordTest : TestCase() {
 
     fun test_getObject() {
         val d = NSAP_PTRRecord()
-        val r = d.`object`
+        val r = d.dnsRecord
         assertTrue(r is NSAP_PTRRecord)
     }
 }

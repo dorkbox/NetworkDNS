@@ -52,7 +52,7 @@ class RecordTest : TestCase() {
         constructor() {}
         constructor(name: Name?, type: Int, dclass: Int, ttl: Long) : super(name!!, type, dclass, ttl) {}
 
-        override val `object`: DnsRecord
+        override val dnsRecord: DnsRecord
             get() = this
 
         @Throws(IOException::class)

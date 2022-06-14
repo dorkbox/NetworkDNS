@@ -59,7 +59,7 @@ class SSHFPRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = SSHFPRecord()
 
     @Throws(IOException::class)

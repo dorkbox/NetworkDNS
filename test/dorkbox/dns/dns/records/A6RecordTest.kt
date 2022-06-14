@@ -69,7 +69,7 @@ class A6RecordTest : TestCase() {
 
     fun test_getObject() {
         val ar = A6Record()
-        val r = ar.`object`
+        val r = ar.dnsRecord
         assertTrue(r is A6Record)
     }
 

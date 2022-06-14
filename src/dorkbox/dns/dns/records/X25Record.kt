@@ -34,7 +34,7 @@ class X25Record : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = X25Record()
 
     @Throws(IOException::class)

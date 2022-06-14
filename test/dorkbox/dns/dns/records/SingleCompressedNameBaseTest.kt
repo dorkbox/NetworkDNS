@@ -32,7 +32,7 @@ class SingleCompressedNameBaseTest : TestCase() {
             name, type, dclass, ttl, singleName, desc
         )
 
-        override val `object`: DnsRecord
+        override val dnsRecord: DnsRecord
             get() = this
     }
 

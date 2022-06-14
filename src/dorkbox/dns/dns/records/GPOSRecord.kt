@@ -38,7 +38,7 @@ class GPOSRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = GPOSRecord()
 
     @Throws(IOException::class)

@@ -58,7 +58,7 @@ class DNSKEYRecord : KEYBase {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = DNSKEYRecord()
 
     @Throws(IOException::class)

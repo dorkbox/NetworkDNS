@@ -79,7 +79,7 @@ class IPSECKEYRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = IPSECKEYRecord()
 
     @Throws(IOException::class)

@@ -49,7 +49,7 @@ class NXTRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = NXTRecord()
 
     @Throws(IOException::class)

@@ -42,7 +42,7 @@ class OPENPGPKEYRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = OPENPGPKEYRecord()
 
     @Throws(IOException::class)

@@ -45,7 +45,7 @@ class CAARecord : DnsRecord {
         const val IssuerCritical = 128
     }
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = CAARecord()
 
     @Throws(IOException::class)

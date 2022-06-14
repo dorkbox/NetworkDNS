@@ -58,7 +58,7 @@ class SRVRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = SRVRecord()
 
     @Throws(IOException::class)

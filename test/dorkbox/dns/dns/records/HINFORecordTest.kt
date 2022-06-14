@@ -42,7 +42,7 @@ class HINFORecordTest : TestCase() {
 
     fun test_getObject() {
         val dr = HINFORecord()
-        val r = dr.`object`
+        val r = dr.dnsRecord
         assertTrue(r is HINFORecord)
     }
 

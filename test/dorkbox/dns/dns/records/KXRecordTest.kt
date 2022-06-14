@@ -24,7 +24,7 @@ import junit.framework.TestCase
 class KXRecordTest : TestCase() {
     fun test_getObject() {
         val d = KXRecord()
-        val r = d.`object`
+        val r = d.dnsRecord
         assertTrue(r is KXRecord)
     }
 

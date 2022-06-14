@@ -45,7 +45,7 @@ class GPOSRecordTest : TestCase() {
 
     fun test_getObject() {
         val gr = GPOSRecord()
-        val r = gr.`object`
+        val r = gr.dnsRecord
         assertTrue(r is GPOSRecord)
     }
 

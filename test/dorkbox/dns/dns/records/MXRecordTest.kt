@@ -26,7 +26,7 @@ import java.util.*
 class MXRecordTest : TestCase() {
     fun test_getObject() {
         val d = MXRecord()
-        val r = d.`object`
+        val r = d.dnsRecord
         assertTrue(r is MXRecord)
     }
 

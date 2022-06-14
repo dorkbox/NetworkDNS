@@ -47,7 +47,7 @@ class MGRecordTest : TestCase() {
 
     fun test_getObject() {
         val d = MGRecord()
-        val r = d.`object`
+        val r = d.dnsRecord
         assertTrue(r is MGRecord)
     }
 }

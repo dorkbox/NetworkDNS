@@ -35,7 +35,7 @@ class NSAPRecord : DnsRecord {
 
     internal constructor()
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = NSAPRecord()
 
     @Throws(IOException::class)

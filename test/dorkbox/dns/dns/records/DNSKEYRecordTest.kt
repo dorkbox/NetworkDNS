@@ -48,7 +48,7 @@ class DNSKEYRecordTest : TestCase() {
 
     fun test_getObject() {
         val ar = DNSKEYRecord()
-        val r = ar.`object`
+        val r = ar.dnsRecord
         assertTrue(r is DNSKEYRecord)
     }
 

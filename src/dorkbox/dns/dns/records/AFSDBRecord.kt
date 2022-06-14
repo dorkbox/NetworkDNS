@@ -27,7 +27,7 @@ import dorkbox.dns.dns.constants.DnsRecordType
 class AFSDBRecord : U16NameBase {
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = AFSDBRecord()
 
     /**

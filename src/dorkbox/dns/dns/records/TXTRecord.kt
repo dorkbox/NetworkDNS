@@ -26,7 +26,7 @@ import dorkbox.dns.dns.constants.DnsRecordType
 class TXTRecord : TXTBase {
     internal constructor()
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = TXTRecord()
 
     /**

@@ -65,7 +65,7 @@ class ARecordTest : TestCase() {
 
     fun test_getObject() {
         val ar = ARecord()
-        val r = ar.`object`
+        val r = ar.dnsRecord
         assertTrue(r is ARecord)
     }
 

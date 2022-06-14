@@ -47,7 +47,7 @@ class MRRecordTest : TestCase() {
 
     fun test_getObject() {
         val d = MRRecord()
-        val r = d.`object`
+        val r = d.dnsRecord
         assertTrue(r is MRRecord)
     }
 }

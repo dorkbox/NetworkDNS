@@ -110,7 +110,7 @@ object SOARecordTest {
 
         fun test_getObject() {
             val ar = SOARecord()
-            val r = ar.`object`
+            val r = ar.dnsRecord
             assertTrue(r is SOARecord)
         }
 

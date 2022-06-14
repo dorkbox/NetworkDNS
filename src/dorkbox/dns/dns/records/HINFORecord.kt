@@ -35,7 +35,7 @@ class HINFORecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = HINFORecord()
 
     @Throws(IOException::class)

@@ -38,7 +38,7 @@ class NULLRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = NULLRecord()
 
     @Throws(IOException::class)

@@ -34,7 +34,7 @@ import java.util.*
 class SIGRecord : SIGBase {
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = SIGRecord()
 
     /**

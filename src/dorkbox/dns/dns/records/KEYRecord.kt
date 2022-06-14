@@ -331,7 +331,7 @@ class KEYRecord : KEYBase {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = KEYRecord()
 
     @Throws(IOException::class)

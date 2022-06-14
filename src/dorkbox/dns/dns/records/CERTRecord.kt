@@ -149,7 +149,7 @@ class CERTRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = CERTRecord()
 
     @Throws(IOException::class)

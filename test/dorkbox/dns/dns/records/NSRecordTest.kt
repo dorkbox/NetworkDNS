@@ -49,7 +49,7 @@ class NSRecordTest : TestCase() {
 
     fun test_getObject() {
         val d = NSRecord()
-        val r = d.`object`
+        val r = d.dnsRecord
         assertTrue(r is NSRecord)
     }
 }

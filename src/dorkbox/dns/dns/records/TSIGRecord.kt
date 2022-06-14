@@ -81,7 +81,7 @@ class TSIGRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = TSIGRecord()
 
     @Throws(IOException::class)

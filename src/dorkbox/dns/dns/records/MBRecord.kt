@@ -26,7 +26,7 @@ import dorkbox.dns.dns.constants.DnsRecordType
 class MBRecord : SingleNameBase {
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = MBRecord()
 
     /**

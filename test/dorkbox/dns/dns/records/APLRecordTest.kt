@@ -123,7 +123,7 @@ object APLRecordTest {
 
         fun test_getObject() {
             val ar = APLRecord()
-            val r = ar.`object`
+            val r = ar.dnsRecord
             assertTrue(r is APLRecord)
         }
 

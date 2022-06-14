@@ -49,7 +49,7 @@ class PXRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = PXRecord()
 
     @Throws(IOException::class)

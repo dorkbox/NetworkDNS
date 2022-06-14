@@ -50,7 +50,7 @@ class U16NameBaseTest : TestCase() {
         ) {
         }
 
-        override val `object`: DnsRecord
+        override val dnsRecord: DnsRecord
             get() = this
     }
 

@@ -49,7 +49,7 @@ class DNAMERecordTest : TestCase() {
 
     fun test_getObject() {
         val d = DNAMERecord()
-        val r = d.`object`
+        val r = d.dnsRecord
         assertTrue(r is DNAMERecord)
     }
 }

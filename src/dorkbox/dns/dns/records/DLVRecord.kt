@@ -61,7 +61,7 @@ class DLVRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = DLVRecord()
 
     @Throws(IOException::class)

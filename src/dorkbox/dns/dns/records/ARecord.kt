@@ -41,7 +41,7 @@ class ARecord : DnsRecord {
     private var addr = 0
 
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = ARecord()
 
     @Throws(IOException::class)

@@ -35,7 +35,7 @@ class UNKRecord internal constructor() : DnsRecord() {
     lateinit var data: ByteArray
         private set
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = UNKRecord()
 
     @Throws(IOException::class)

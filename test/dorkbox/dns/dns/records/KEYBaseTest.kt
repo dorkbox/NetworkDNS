@@ -38,7 +38,7 @@ class KEYBaseTest : TestCase() {
         ) {
         }
 
-        override val `object`: DnsRecord
+        override val dnsRecord: DnsRecord
             get() = this
 
         @Throws(IOException::class)

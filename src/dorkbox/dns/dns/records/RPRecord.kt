@@ -45,7 +45,7 @@ class RPRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = RPRecord()
 
     @Throws(IOException::class)

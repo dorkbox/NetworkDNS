@@ -47,7 +47,7 @@ class NSECRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = NSECRecord()
 
     @Throws(IOException::class)

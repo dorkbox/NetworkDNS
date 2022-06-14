@@ -66,9 +66,9 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
     var ttl: Long = 0
 
     /**
-     * Creates an empty record of the correct type; must be overriden
+     * Creates an empty record of the correct type; must be overridden
      */
-    abstract val `object`: DnsRecord
+    abstract val dnsRecord: DnsRecord
 
     protected constructor(name: Name, type: Int, dclass: Int, ttl: Long) : this() {
         if (!name.isAbsolute) {
@@ -439,7 +439,8 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
 
                 dnsInput.restoreActive()
                 if (remaining > 0) {
-                    throw WireParseException("invalid record length for $name type: $type (record: $rec)")
+                    val prototype = DnsRecordType.getProto<DnsRecord>(type)?.dnsRecord
+                    throw WireParseException("invalid record length for $name type: $type (${prototype.dnsRecord.name}) (record: $rec)")
                 }
             }
             return rec
@@ -451,7 +452,7 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
 
             if (hasData) {
                 proto = DnsRecordType.getProto(type)
-                rec = proto?.`object` ?: UNKRecord()
+                rec = proto?.dnsRecord ?: UNKRecord()
             } else {
                 rec = EmptyRecord()
             }

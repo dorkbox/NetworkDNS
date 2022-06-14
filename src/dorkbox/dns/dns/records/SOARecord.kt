@@ -74,7 +74,7 @@ class SOARecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = SOARecord()
 
     @Throws(IOException::class)

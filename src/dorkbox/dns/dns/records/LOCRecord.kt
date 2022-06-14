@@ -41,7 +41,7 @@ class LOCRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = LOCRecord()
 
     @Throws(IOException::class)

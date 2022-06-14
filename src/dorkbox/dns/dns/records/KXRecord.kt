@@ -49,7 +49,7 @@ class KXRecord : U16NameBase {
 
 
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = KXRecord()
 
     /**

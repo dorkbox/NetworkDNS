@@ -46,7 +46,7 @@ class MINFORecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = MINFORecord()
 
     @Throws(IOException::class)

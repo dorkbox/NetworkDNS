@@ -24,7 +24,7 @@ import junit.framework.TestCase
 class RTRecordTest : TestCase() {
     fun test_getObject() {
         val d = RTRecord()
-        val r = d.`object`
+        val r = d.dnsRecord
         assertTrue(r is RTRecord)
     }
 

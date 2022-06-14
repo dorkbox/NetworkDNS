@@ -24,7 +24,7 @@ import junit.framework.TestCase
 class AFSDBRecordTest : TestCase() {
     fun test_getObject() {
         val d = AFSDBRecord()
-        val r = d.`object`
+        val r = d.dnsRecord
         assertTrue(r is AFSDBRecord)
     }
 

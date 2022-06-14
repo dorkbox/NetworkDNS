@@ -94,7 +94,7 @@ class TLSARecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = TLSARecord()
 
     @Throws(IOException::class)

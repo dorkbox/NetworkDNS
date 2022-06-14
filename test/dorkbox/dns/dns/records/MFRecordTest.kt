@@ -49,7 +49,7 @@ class MFRecordTest : TestCase() {
 
     fun test_getObject() {
         val d = MFRecord()
-        val r = d.`object`
+        val r = d.dnsRecord
         assertTrue(r is MFRecord)
     }
 }

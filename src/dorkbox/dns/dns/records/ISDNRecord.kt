@@ -35,7 +35,7 @@ class ISDNRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = ISDNRecord()
 
     @Throws(IOException::class)

@@ -46,7 +46,7 @@ class URIRecordTest : TestCase() {
 
     fun test_getObject() {
         val dr = URIRecord()
-        val r = dr.`object`
+        val r = dr.dnsRecord
         assertTrue(r is URIRecord)
     }
 

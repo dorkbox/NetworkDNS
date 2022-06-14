@@ -29,7 +29,7 @@ import java.io.IOException
  * @author Brian Wellington
  */
 class EmptyRecord : DnsRecord() {
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = EmptyRecord()
 
     @Throws(IOException::class)

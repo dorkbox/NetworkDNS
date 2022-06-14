@@ -43,7 +43,7 @@ class OPTRecord : DnsRecord {
 
     internal constructor() {}
 
-    override val `object`: DnsRecord
+    override val dnsRecord: DnsRecord
         get() = OPTRecord()
 
     @Throws(IOException::class)

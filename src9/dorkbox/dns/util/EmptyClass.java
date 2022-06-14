@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package dorkbox.dns.dns;
+package dorkbox.dns.util;
 
 /**
  * Required for intellij to not complain regarding `module-info` for a multi-release jar.

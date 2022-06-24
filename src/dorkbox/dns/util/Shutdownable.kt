@@ -304,7 +304,6 @@ open class Shutdownable(protected val type: Class<out Shutdownable?>) {
             shutdownChannelsPre()
             shutdownAllChannels()
             shutdownEventLoops()
-            logger.trace("Stopping endpoint.")
 
             // there is no need to call "stop" again if we close the connection.
             // however, if this is called WHILE from the shutdown hook, blammo! problems!

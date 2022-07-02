@@ -439,8 +439,8 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
 
                 dnsInput.restoreActive()
                 if (remaining > 0) {
-                    val prototype = DnsRecordType.getProto<DnsRecord>(type)?.dnsRecord
-                    throw WireParseException("invalid record length for $name type: $type (${prototype.dnsRecord.name}) (record: $rec)")
+                    val prototype = DnsRecordType.getProto<DnsRecord>(type).dnsRecord
+                    throw WireParseException("invalid record length for $name type: $type (${prototype.dnsRecord?.javaClass}) (record: $rec)")
                 }
             }
             return rec

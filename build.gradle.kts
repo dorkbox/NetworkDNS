@@ -30,7 +30,7 @@ plugins {
     id("com.dorkbox.VersionUpdate") version "2.5"
     id("com.dorkbox.GradlePublish") version "1.13"
 
-    kotlin("jvm") version "1.7.20"
+    kotlin("jvm") version "1.7.22"
 }
 
 object Extras {
@@ -87,7 +87,7 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    api("com.dorkbox:NetworkUtils:2.19")
+    api("com.dorkbox:NetworkUtils:2.19.1")
     api("com.dorkbox:OS:1.0")
     api("com.dorkbox:Utilities:1.30")
     api("com.dorkbox:Updates:1.1")
@@ -99,10 +99,10 @@ dependencies {
     api("io.netty:netty-transport-classes-kqueue:$nettyVer")
     api("io.netty:netty-codec:$nettyVer")
 
-    api("org.slf4j:slf4j-api:1.8.0-beta4")
+    api("org.slf4j:slf4j-api:2.0.6")
 
     testImplementation("junit:junit:4.13.2")
-    testImplementation("ch.qos.logback:logback-classic:1.3.0-alpha4")
+    testImplementation("ch.qos.logback:logback-classic:1.4.5")
 }
 
 publishToSonatype {

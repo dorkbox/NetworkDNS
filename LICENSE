@@ -1,7 +1,7 @@
  - NetworkDNS - 
    [The Apache Software License, Version 2.0]
    https://git.dorkbox.com/dorkbox/NetworkDNS
-   Copyright 2022
+   Copyright 2023
      Dorkbox LLC
    High-performance and event-driven/reactive DNS stack for Java 8+
 
@@ -15,14 +15,14 @@
      - Netty - An event-driven asynchronous network application framework
        [The Apache Software License, Version 2.0]
        https://netty.io
-       Copyright 2022
+       Copyright 2023
          The Netty Project
          Contributors. See source NOTICE
 
      - SLF4J - Simple facade or abstraction for various logging frameworks
        [MIT License]
        http://www.slf4j.org
-       Copyright 2022
+       Copyright 2023
          QOS.ch
 
      - Kotlin - 

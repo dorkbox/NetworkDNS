@@ -436,30 +436,36 @@ object DNSSEC {
 
     @Throws(DNSSECException::class)
     private fun verify(key: PublicKey, alg: Int, data: ByteArray, signature: ByteArray) {
-        var signature = signature
-        if (key is DSAPublicKey) {
-            signature = try {
-                DSASignaturefromDNS(signature)
-            } catch (e: IOException) {
-                throw IllegalStateException()
-            }
-        } else if (key is ECPublicKey) {
-            signature = try {
-                when (alg) {
-                    Algorithm.ECC_GOST -> ECGOSTSignaturefromDNS(signature, GOST)
-                    Algorithm.ECDSAP256SHA256 -> ECDSASignaturefromDNS(signature, ECDSA_P256)
-                    Algorithm.ECDSAP384SHA384 -> ECDSASignaturefromDNS(signature, ECDSA_P384)
-                    else -> throw UnsupportedAlgorithmException(alg)
+        val properSignature = when (key) {
+            is DSAPublicKey -> {
+                try {
+                    DSASignaturefromDNS(signature)
+                } catch (e: IOException) {
+                    throw IllegalStateException()
                 }
-            } catch (e: IOException) {
-                throw IllegalStateException()
+            }
+            is ECPublicKey -> {
+                try {
+                    when (alg) {
+                        Algorithm.ECC_GOST -> ECGOSTSignaturefromDNS(signature, GOST)
+                        Algorithm.ECDSAP256SHA256 -> ECDSASignaturefromDNS(signature, ECDSA_P256)
+                        Algorithm.ECDSAP384SHA384 -> ECDSASignaturefromDNS(signature, ECDSA_P384)
+                        else -> throw UnsupportedAlgorithmException(alg)
+                    }
+                } catch (e: IOException) {
+                    throw IllegalStateException()
+                }
+            }
+            else -> {
+                signature
             }
         }
+
         try {
             val s = Signature.getInstance(algString(alg))
             s.initVerify(key)
             s.update(data)
-            if (!s.verify(signature)) {
+            if (!s.verify(properSignature)) {
                 throw SignatureVerificationException()
             }
         } catch (e: GeneralSecurityException) {

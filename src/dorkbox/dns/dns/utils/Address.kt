@@ -111,9 +111,7 @@ object Address {
      *
      * @param address The address to look up
      *
-     * @return The associated host name
-     *
-     * @throws UnknownHostException There is no hostname for the address
+     * @return The associated host name or null if there is no hostname for the address
      */
     @Throws(UnknownHostException::class)
     fun getHostName(address: InetAddress): String? {
@@ -124,7 +122,7 @@ object Address {
         val records = try {
             client.query(name.toString(true), DnsRecordType.PTR)
         } catch (ignored: Throwable) {
-            throw UnknownHostException("unknown address")
+            return null
         } finally {
             client.stop()
         }

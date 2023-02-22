@@ -369,8 +369,9 @@ class AddressTest : TestCase() {
     @Throws(UnknownHostException::class)
     fun test_getAllByName_invalid() {
         try {
-            getAllByName("example.invalid")
-            fail("UnknownHostException not thrown")
+            if (getAllByName("example.invalid").isNotEmpty()) {
+                fail("getAllByName should be empty!")
+            }
         } catch (ignored: UnknownHostException) {
         }
 
@@ -379,7 +380,8 @@ class AddressTest : TestCase() {
             assertEquals("127.0.0.1", byName[0]!!.hostAddress)
             assertEquals("0:0:0:0:0:0:0:1", byName[1]!!.hostAddress)
         } catch (ignored: UnknownHostException) {
-            fail("UnknownHostException thrown")
+            ignored.printStackTrace()
+            fail("${ignored.javaClass} thrown!")
         }
     }
 
@@ -402,8 +404,9 @@ class AddressTest : TestCase() {
         assertEquals("a.root-servers.net.", out)
 
         try {
-            getHostName(InetAddress.getByName("192.168.1.1"))
-            fail("UnknownHostException not thrown")
+            if (getHostName(InetAddress.getByName("192.168.1.1")) != null) {
+                fail("getHostName should be null!")
+            }
         } catch (ignored: UnknownHostException) {
         }
     }

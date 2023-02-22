@@ -50,16 +50,32 @@ import io.netty.util.concurrent.FastThreadLocal
 import io.netty.util.concurrent.Future
 import io.netty.util.concurrent.Promise
 import io.netty.util.internal.ObjectUtil
-import io.netty.util.internal.UnstableApi
 import org.slf4j.LoggerFactory
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.util.function.*
 
 /**
- * A DNS-based [InetNameResolver]
- */
-@UnstableApi
+ * Creates a new DNS-based name resolver  [InetNameResolver] that communicates with the specified list of DNS servers.
+ *
+ * @param eventLoop the [EventLoop] which will perform the communication with the DNS servers
+ * @param channelFactory the [ChannelFactory] that will create a [DatagramChannel]
+ * @param resolveCache the DNS resolved entries cache
+ * @param authoritativeDnsServerCache the cache used to find the authoritative DNS server for a domain
+ * @param dnsQueryLifecycleObserverFactory used to generate new instances of [DnsQueryLifecycleObserver] which can be used to track metrics for DNS servers.
+ * @param queryTimeoutMillis timeout of each DNS query in millis
+ * @param resolvedAddressTypes the preferred address types
+ * @param recursionDesired if recursion desired flag must be set
+ * @param maxQueriesPerResolve the maximum allowed number of DNS queries for a given name resolution
+ * @param traceEnabled if trace is enabled
+ * @param maxPayloadSize the capacity of the datagram packet buffer
+ * @param dnsServerAddressStreamProvider The [DnsServerAddressStreamProvider] used to determine the name servers for each hostname lookup.
+ * @param searchDomains the list of search domain (can be null, if so, will try to default to the underlying platform ones)
+ * @param ndots the ndots value
+ * @param decodeIdn `true` if domain / host names should be decoded to unicode when received.
+ *
+ * See [rfc3492](https://tools.ietf.org/html/rfc3492).
+*/
 class DnsNameResolver(
     eventLoop: EventLoop,
     channelFactory: ChannelFactory<out DatagramChannel>,
@@ -123,27 +139,6 @@ class DnsNameResolver(
 
     private var dnsQueryLifecycleObserverFactory: DnsQueryLifecycleObserverFactory? = null
 
-    /**
-     * Creates a new DNS-based name resolver that communicates with the specified list of DNS servers.
-     *
-     * @param eventLoop the [EventLoop] which will perform the communication with the DNS servers
-     * @param channelFactory the [ChannelFactory] that will create a [DatagramChannel]
-     * @param resolveCache the DNS resolved entries cache
-     * @param authoritativeDnsServerCache the cache used to find the authoritative DNS server for a domain
-     * @param dnsQueryLifecycleObserverFactory used to generate new instances of [DnsQueryLifecycleObserver] which can be used to track metrics for DNS servers.
-     * @param queryTimeoutMillis timeout of each DNS query in millis
-     * @param resolvedAddressTypes the preferred address types
-     * @param recursionDesired if recursion desired flag must be set
-     * @param maxQueriesPerResolve the maximum allowed number of DNS queries for a given name resolution
-     * @param traceEnabled if trace is enabled
-     * @param maxPayloadSize the capacity of the datagram packet buffer
-     * @param dnsServerAddressStreamProvider The [DnsServerAddressStreamProvider] used to determine the name servers for each hostname lookup.
-     * @param searchDomains the list of search domain (can be null, if so, will try to default to the underlying platform ones)
-     * @param ndots the ndots value
-     * @param decodeIdn `true` if domain / host names should be decoded to unicode when received.
-     *
-     * See [rfc3492](https://tools.ietf.org/html/rfc3492).
-     */
     init {
         this.queryTimeoutMillis = ObjectUtil.checkPositive(queryTimeoutMillis, "queryTimeoutMillis")
         this.resolvedAddressTypes = resolvedAddressTypes ?: DEFAULT_RESOLVE_ADDRESS_TYPES
@@ -609,7 +604,7 @@ class DnsNameResolver(
     }
 
     companion object {
-        val logger = LoggerFactory.getLogger(DnsNameResolver::class.java)
+        internal val logger = LoggerFactory.getLogger(DnsNameResolver::class.java)
 
         private const val LOCALHOST = "localhost"
         private val LOCALHOST_ADDRESS: InetAddress

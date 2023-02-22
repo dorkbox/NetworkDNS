@@ -222,7 +222,7 @@ class RecordTest : TestCase() {
         val d = DnsClass.IN
         val ttl = 0xDBE8
         val data = byteArrayOf(123.toByte(), 232.toByte(), 0.toByte(), 255.toByte())
-        assertNull(newRecord(n, t, d, ttl.toLong(), 0, ByteArray(0)))
+        assertNotNull(newRecord(n, t, d, ttl.toLong(), 0, ByteArray(0)))
         assertNull(newRecord(n, t, d, ttl.toLong(), 1, ByteArray(0)))
         assertNull(newRecord(n, t, d, ttl.toLong(), data.size + 1, data))
         assertNull(newRecord(n, t, d, ttl.toLong(), 5, byteArrayOf(data[0], data[1], data[2], data[3], 0)))

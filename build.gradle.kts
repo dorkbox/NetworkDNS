@@ -25,12 +25,12 @@ import java.time.Instant
 gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS   // always show the stacktrace!
 
 plugins {
-    id("com.dorkbox.GradleUtils") version "3.3.1"
-    id("com.dorkbox.Licensing") version "2.17"
-    id("com.dorkbox.VersionUpdate") version "2.5"
-    id("com.dorkbox.GradlePublish") version "1.13"
+    id("com.dorkbox.GradleUtils") version "3.13"
+    id("com.dorkbox.Licensing") version "2.22"
+    id("com.dorkbox.VersionUpdate") version "2.7"
+    id("com.dorkbox.GradlePublish") version "1.18"
 
-    kotlin("jvm") version "1.7.22"
+    kotlin("jvm") version "1.8.0"
 }
 
 object Extras {
@@ -88,11 +88,11 @@ tasks.jar.get().apply {
 
 dependencies {
     api("com.dorkbox:NetworkUtils:2.19.1")
-    api("com.dorkbox:OS:1.0")
-    api("com.dorkbox:Utilities:1.30")
+    api("com.dorkbox:OS:1.6")
+    api("com.dorkbox:Utilities:1.40")
     api("com.dorkbox:Updates:1.1")
 
-    val nettyVer = "4.1.84.Final"
+    val nettyVer = "4.1.89.Final"
     api("io.netty:netty-buffer:$nettyVer")
     api("io.netty:netty-transport:$nettyVer")
     api("io.netty:netty-transport-native-epoll:$nettyVer")

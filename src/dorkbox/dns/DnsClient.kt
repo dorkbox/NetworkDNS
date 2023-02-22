@@ -84,7 +84,7 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
         /**
          * Gets the version number.
          */
-        val version = "2.7.2"
+        const val version = "2.8"
 
         init {
             // Add this project to the updates system, which verifies this class + UUID + version information
@@ -130,7 +130,7 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
          * @return a [ResolvedAddressTypes]
          */
         fun computeResolvedAddressTypes(vararg internetProtocolFamilies: InternetProtocolFamily): ResolvedAddressTypes {
-            if (internetProtocolFamilies == null || internetProtocolFamilies.size == 0) {
+            if (internetProtocolFamilies.isEmpty()) {
                 return DnsNameResolver.DEFAULT_RESOLVE_ADDRESS_TYPES
             }
             require(internetProtocolFamilies.size <= 2) { "No more than 2 InternetProtocolFamilies" }

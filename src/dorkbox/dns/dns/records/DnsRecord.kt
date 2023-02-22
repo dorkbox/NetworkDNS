@@ -632,9 +632,12 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
             if (!name.isAbsolute) {
                 throw RelativeNameException(name)
             }
+
             DnsRecordType.check(type)
             DnsClass.check(dclass)
             TTL.check(ttl)
+
+
             var t = st.get()
             if (t.type == Tokenizer.IDENTIFIER && t.value == "\\#") {
                 val length = st.getUInt16()
@@ -652,9 +655,11 @@ abstract class DnsRecord() : Cloneable, Comparable<Any?>, Serializable {
             rec = getEmptyRecord(name, type, dclass, ttl, true)
             rec.rdataFromString(st, origin)
             t = st.get()
+
             if (t.type != Tokenizer.EOL && t.type != Tokenizer.EOF) {
                 throw st.exception("unexpected tokens at end of record")
             }
+
             return rec
         }
 

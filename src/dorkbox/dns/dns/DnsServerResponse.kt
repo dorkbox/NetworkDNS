@@ -19,7 +19,6 @@ import dorkbox.dns.dns.records.DnsMessage
 import io.netty.channel.AddressedEnvelope
 import io.netty.util.internal.UnstableApi
 import java.net.InetSocketAddress
-import java.net.SocketAddress
 
 /**
  * A [DnsServerResponse] implementation for UDP/IP.
@@ -49,19 +48,18 @@ class DnsServerResponse(dnsQuestion: DnsMessage, localAddress: InetSocketAddress
         if (other !is AddressedEnvelope<*, *>) {
             return false
         }
-        val that = other as AddressedEnvelope<*, SocketAddress?>
         if (sender() == null) {
-            if (that.sender() != null) {
+            if (other.sender() != null) {
                 return false
             }
-        } else if (sender() != that.sender()) {
+        } else if (sender() != other.sender()) {
             return false
         }
         if (recipient() == null) {
-            if (that.recipient() != null) {
+            if (other.recipient() != null) {
                 return false
             }
-        } else if (recipient() != that.recipient()) {
+        } else if (recipient() != other.recipient()) {
             return false
         }
         return true

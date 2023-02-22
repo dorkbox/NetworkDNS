@@ -68,11 +68,11 @@ class APLRecord : DnsRecord {
             return address.hashCode() + prefixLength + if (negative) 1 else 0
         }
 
-        override fun equals(arg: Any?): Boolean {
-            if (arg == null || arg !is Element) {
+        override fun equals(other: Any?): Boolean {
+            if (other == null || other !is Element) {
                 return false
             }
-            val elt = arg
+            val elt = other
             return family == elt.family && negative == elt.negative && prefixLength == elt.prefixLength && address == elt.address
         }
 

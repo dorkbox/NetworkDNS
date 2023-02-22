@@ -85,11 +85,10 @@ open class Mnemonic(private val description: String, private val wordcase: Int) 
      * @param string The text string
      */
     fun add(value: Int, string: String) {
-        var string = string
         check(value)
-        string = sanitize(string)
-        strings.put(string, value)
-        values.put(value, string)
+        val sanitizedString = sanitize(string)
+        strings.put(sanitizedString, value)
+        values.put(value, sanitizedString)
     }
 
     /**
@@ -149,27 +148,26 @@ open class Mnemonic(private val description: String, private val wordcase: Int) 
     /**
      * Gets the numeric value corresponding to a text mnemonic.
      *
-     * @param str The text mnemonic
+     * @param string The text mnemonic
      *
      * @return The corresponding numeric value, or -1 if there is none
      */
-    fun getValue(str: String): Int {
-        var str = str
-        str = sanitize(str)
-        val value = strings[str, INVALID_VALUE]
+    fun getValue(string: String): Int {
+        val sanitizedString = sanitize(string)
+        val value = strings[sanitizedString, INVALID_VALUE]
         if (value != INVALID_VALUE) {
             return value
         }
         if (prefix != null) {
-            if (str.startsWith(prefix!!)) {
-                val `val` = parseNumeric(str.substring(prefix!!.length))
+            if (sanitizedString.startsWith(prefix!!)) {
+                val `val` = parseNumeric(sanitizedString.substring(prefix!!.length))
                 if (`val` >= 0) {
                     return `val`
                 }
             }
         }
         return if (numericok) {
-            parseNumeric(str)
+            parseNumeric(sanitizedString)
         } else INVALID_VALUE
     }
 

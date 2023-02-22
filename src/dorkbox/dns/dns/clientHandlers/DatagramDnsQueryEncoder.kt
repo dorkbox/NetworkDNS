@@ -18,7 +18,7 @@ package dorkbox.dns.dns.clientHandlers
 import dorkbox.dns.dns.DnsOutput
 import dorkbox.dns.dns.DnsQuestion
 import dorkbox.dns.dns.records.DnsMessage
-import dorkbox.util.logger
+import dorkbox.dns.dns.resolver.DnsNameResolver.Companion.logger
 import io.netty.channel.AddressedEnvelope
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.ChannelHandlerContext
@@ -45,7 +45,7 @@ class DatagramDnsQueryEncoder(private val maxPayloadSize: Int) : MessageToMessag
             out.add(DatagramPacket(buf, recipient, null))
             success = true
         } catch (e: Exception) {
-            logger().error(e) { "UNABLE TO ENCODE MESSAGE?" }
+            logger.error("UNABLE TO ENCODE MESSAGE?", e)
         } finally {
             if (!success) {
                 buf.release()

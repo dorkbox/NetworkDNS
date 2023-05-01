@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 dorkbox, llc
+ * Copyright 2023 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,33 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver.lifecycle;
+package dorkbox.dns.dns.resolver.lifecycle
 
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
+import dorkbox.dns.dns.records.DnsMessage
+import io.netty.util.internal.ObjectUtil
+import io.netty.util.internal.logging.InternalLogLevel
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+internal class TraceDnsQueryLifeCycleObserverFactory(
+        logger: Logger = DEFAULT_LOGGER,
+        level: InternalLogLevel = DEFAULT_LEVEL) : DnsQueryLifecycleObserverFactory {
 
-import dorkbox.dns.dns.records.DnsMessage;
-import io.netty.util.internal.logging.InternalLogLevel;
-
-final
-class TraceDnsQueryLifeCycleObserverFactory implements DnsQueryLifecycleObserverFactory {
-    private static final Logger DEFAULT_LOGGER = LoggerFactory.getLogger(TraceDnsQueryLifeCycleObserverFactory.class);
-    private static final InternalLogLevel DEFAULT_LEVEL = InternalLogLevel.DEBUG;
-    private final Logger logger;
-
-    TraceDnsQueryLifeCycleObserverFactory() {
-        this(DEFAULT_LOGGER, DEFAULT_LEVEL);
+    companion object {
+        private val DEFAULT_LOGGER = LoggerFactory.getLogger(TraceDnsQueryLifeCycleObserverFactory::class.java)
+        private val DEFAULT_LEVEL = InternalLogLevel.DEBUG
     }
 
-    TraceDnsQueryLifeCycleObserverFactory(Logger logger, InternalLogLevel level) {
-        this.logger = checkNotNull(logger, "logger");
+    private val logger: Logger
+
+    init {
+        this.logger = ObjectUtil.checkNotNull(logger, "logger")
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver newDnsQueryLifecycleObserver(DnsMessage question) {
-        return new TraceDnsQueryLifecycleObserver(question, logger);
+    override fun newDnsQueryLifecycleObserver(question: DnsMessage): DnsQueryLifecycleObserver {
+        return TraceDnsQueryLifecycleObserver(question, logger)
     }
 }

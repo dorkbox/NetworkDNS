@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 dorkbox, llc
+ * Copyright 2023 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver.lifecycle;
+package dorkbox.dns.dns.resolver.lifecycle
 
-import dorkbox.dns.dns.records.DnsMessage;
-import io.netty.util.internal.UnstableApi;
+import dorkbox.dns.dns.records.DnsMessage
+import io.netty.util.internal.UnstableApi
 
 @UnstableApi
-public final
-class NoopDnsQueryLifecycleObserverFactory implements DnsQueryLifecycleObserverFactory {
-    public static final NoopDnsQueryLifecycleObserverFactory INSTANCE = new NoopDnsQueryLifecycleObserverFactory();
-
-    private
-    NoopDnsQueryLifecycleObserverFactory() {
+class NoopDnsQueryLifecycleObserverFactory private constructor() : DnsQueryLifecycleObserverFactory {
+    companion object {
+        val INSTANCE = NoopDnsQueryLifecycleObserverFactory()
     }
 
-    @Override
-    public
-    DnsQueryLifecycleObserver newDnsQueryLifecycleObserver(DnsMessage question) {
-        return NoopDnsQueryLifecycleObserver.INSTANCE;
+    override fun newDnsQueryLifecycleObserver(question: DnsMessage): DnsQueryLifecycleObserver {
+        return NoopDnsQueryLifecycleObserver.INSTANCE
     }
 }

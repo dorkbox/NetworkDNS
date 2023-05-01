@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 dorkbox, llc
+ * Copyright 2023 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dorkbox.dns.dns.resolver.lifecycle;
+package dorkbox.dns.dns.resolver.lifecycle
 
-import dorkbox.dns.dns.records.DnsMessage;
-import io.netty.util.internal.UnstableApi;
+import dorkbox.dns.dns.records.DnsMessage
+import io.netty.util.internal.UnstableApi
 
 /**
- * Used to generate new instances of {@link DnsQueryLifecycleObserver}.
+ * Used to generate new instances of [DnsQueryLifecycleObserver].
  */
 @UnstableApi
-public
 interface DnsQueryLifecycleObserverFactory {
     /**
-     * Create a new instance of a {@link DnsQueryLifecycleObserver}. This will be called at the start of a new query.
+     * Create a new instance of a [DnsQueryLifecycleObserver]. This will be called at the start of a new query.
      *
      * @param question The question being asked.
      *
-     * @return a new instance of a {@link DnsQueryLifecycleObserver}.
+     * @return a new instance of a [DnsQueryLifecycleObserver].
      */
-    DnsQueryLifecycleObserver newDnsQueryLifecycleObserver(DnsMessage question);
+    fun newDnsQueryLifecycleObserver(question: DnsMessage): DnsQueryLifecycleObserver
 }

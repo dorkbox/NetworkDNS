@@ -84,7 +84,7 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
         /**
          * Gets the version number.
          */
-        const val version = "2.8"
+        const val version = "2.9"
 
         init {
             // Add this project to the updates system, which verifies this class + UUID + version information

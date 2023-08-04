@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 dorkbox, llc
+ * Copyright 2023 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import dorkbox.dns.dns.resolver.addressProvider.DnsServerAddressStreamProvider
 import dorkbox.dns.dns.resolver.addressProvider.SequentialDnsServerAddressStreamProvider
 import dorkbox.dns.dns.resolver.cache.DefaultDnsCache
 import dorkbox.dns.dns.resolver.cache.DnsCache
+import dorkbox.dns.dns.utils.NamedThreadFactory
 import dorkbox.dns.util.NativeLibrary
 import dorkbox.dns.util.Shutdownable
 import dorkbox.netUtil.Dns.defaultNameServers
@@ -37,7 +38,6 @@ import dorkbox.os.OS.isAndroid
 import dorkbox.os.OS.isLinux
 import dorkbox.os.OS.isMacOsX
 import dorkbox.updates.Updates.add
-import dorkbox.util.NamedThreadFactory
 import io.netty.channel.EventLoopGroup
 import io.netty.channel.ReflectiveChannelFactory
 import io.netty.channel.epoll.EpollDatagramChannel
@@ -84,7 +84,7 @@ class DnsClient(nameServerAddresses: Collection<InetSocketAddress?>? = defaultNa
         /**
          * Gets the version number.
          */
-        const val version = "2.9"
+        const val version = "2.10"
 
         init {
             // Add this project to the updates system, which verifies this class + UUID + version information

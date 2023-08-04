@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 dorkbox, llc
+ * Copyright 2023 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,20 +19,16 @@ import dorkbox.dns.dns.DnsQuestion
 import dorkbox.dns.dns.constants.DnsRecordType
 import dorkbox.dns.dns.records.ARecord
 import dorkbox.dns.dns.serverHandlers.DnsServerHandler
+import dorkbox.dns.dns.utils.NamedThreadFactory
 import dorkbox.dns.util.NativeLibrary
 import dorkbox.dns.util.Shutdownable
 import dorkbox.netUtil.IP.toBytes
 import dorkbox.os.OS.isLinux
 import dorkbox.os.OS.isMacOsX
 import dorkbox.updates.Updates.add
-import dorkbox.util.NamedThreadFactory
 import io.netty.bootstrap.Bootstrap
 import io.netty.buffer.PooledByteBufAllocator
-import io.netty.channel.ChannelFuture
-import io.netty.channel.ChannelOption
-import io.netty.channel.DefaultEventLoopGroup
-import io.netty.channel.EventLoopGroup
-import io.netty.channel.WriteBufferWaterMark
+import io.netty.channel.*
 import io.netty.channel.epoll.EpollDatagramChannel
 import io.netty.channel.epoll.EpollEventLoopGroup
 import io.netty.channel.kqueue.KQueueDatagramChannel
@@ -69,7 +65,7 @@ class DnsServer(host: String?, tcpPort: Int) : Shutdownable(DnsServer::class.jav
         /**
          * Gets the version number.
          */
-        const val version = "2.9"
+        const val version = "2.10"
 
         var workerThreadPoolSize = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
 

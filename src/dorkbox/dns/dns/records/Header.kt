@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 dorkbox, llc
+ * Copyright 2023 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,7 @@ import dorkbox.dns.dns.constants.DnsResponseCode
 import dorkbox.dns.dns.constants.DnsSection
 import dorkbox.dns.dns.constants.Flags
 import dorkbox.os.OS.LINE_SEPARATOR
-import dorkbox.util.FastThreadLocal
-import dorkbox.util.MersenneTwisterFast
+import kotlin.random.Random
 
 /**
  * A DNS message header
@@ -271,9 +270,9 @@ class Header : Cloneable {
     }
 
     companion object {
-        private val random: FastThreadLocal<MersenneTwisterFast> = object : FastThreadLocal<MersenneTwisterFast>() {
-            override fun initialValue(): MersenneTwisterFast {
-                return MersenneTwisterFast()
+        private val random: ThreadLocal<Random> = object : ThreadLocal<Random>() {
+            override fun initialValue(): Random {
+                return Random(System.nanoTime())
             }
         }
 

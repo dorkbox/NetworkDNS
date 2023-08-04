@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 dorkbox, llc
+ * Copyright 2023 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import java.time.Instant
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 ///////////////////////////////
 //////    PUBLISH TO SONATYPE / MAVEN CENTRAL
@@ -25,9 +25,9 @@ import java.time.Instant
 gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS   // always show the stacktrace!
 
 plugins {
-    id("com.dorkbox.GradleUtils") version "3.13"
-    id("com.dorkbox.Licensing") version "2.22"
-    id("com.dorkbox.VersionUpdate") version "2.7"
+    id("com.dorkbox.GradleUtils") version "3.17"
+    id("com.dorkbox.Licensing") version "2.25"
+    id("com.dorkbox.VersionUpdate") version "2.8"
     id("com.dorkbox.GradlePublish") version "1.18"
 
     kotlin("jvm") version "1.8.0"
@@ -37,7 +37,7 @@ object Extras {
     // set for the project
     const val description = "High-performance and event-driven/reactive DNS stack for Java 8+"
     const val group = "com.dorkbox"
-    const val version = "2.9"
+    const val version = "2.10"
 
     // set as project.ext
     const val name = "NetworkDNS"
@@ -45,8 +45,6 @@ object Extras {
     const val vendor = "Dorkbox LLC"
     const val vendorUrl = "https://dorkbox.com"
     const val url = "https://git.dorkbox.com/dorkbox/NetworkDNS"
-
-    val buildDate = Instant.now().toString()
 }
 
 ///////////////////////////////
@@ -81,25 +79,25 @@ tasks.jar.get().apply {
         attributes["Specification-Vendor"] = Extras.vendor
 
         attributes["Implementation-Title"] = "${Extras.group}.${Extras.id}"
-        attributes["Implementation-Version"] = Extras.buildDate
+        attributes["Implementation-Version"] = GradleUtils.now()
         attributes["Implementation-Vendor"] = Extras.vendor
     }
 }
 
 dependencies {
-    api("com.dorkbox:NetworkUtils:2.19.1")
+    api("com.dorkbox:Collections:2.0")
+    api("com.dorkbox:NetworkUtils:2.22")
     api("com.dorkbox:OS:1.6")
-    api("com.dorkbox:Utilities:1.40")
     api("com.dorkbox:Updates:1.1")
 
-    val nettyVer = "4.1.89.Final"
+    val nettyVer = "4.1.96.Final"
     api("io.netty:netty-buffer:$nettyVer")
     api("io.netty:netty-transport:$nettyVer")
     api("io.netty:netty-transport-native-epoll:$nettyVer")
     api("io.netty:netty-transport-classes-kqueue:$nettyVer")
     api("io.netty:netty-codec:$nettyVer")
 
-    api("org.slf4j:slf4j-api:2.0.6")
+    api("org.slf4j:slf4j-api:2.0.7")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("ch.qos.logback:logback-classic:1.4.5")
@@ -127,4 +125,15 @@ publishToSonatype {
         name = Extras.vendor
         email = "email@dorkbox.com"
     }
+}
+repositories {
+    mavenCentral()
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }

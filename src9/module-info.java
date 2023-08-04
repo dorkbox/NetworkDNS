@@ -5,7 +5,6 @@ module dorkbox.dns {
     exports dorkbox.dns.dns.records;
 
     requires dorkbox.netutil;
-    requires dorkbox.utilities;
     requires dorkbox.collections;
     requires dorkbox.updates;
     requires dorkbox.os;

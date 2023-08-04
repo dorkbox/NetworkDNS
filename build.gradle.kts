@@ -87,19 +87,19 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    api("com.dorkbox:NetworkUtils:2.19.1")
+    api("com.dorkbox:Collections:2.0")
+    api("com.dorkbox:NetworkUtils:2.22")
     api("com.dorkbox:OS:1.6")
-    api("com.dorkbox:Utilities:1.40")
     api("com.dorkbox:Updates:1.1")
 
-    val nettyVer = "4.1.89.Final"
+    val nettyVer = "4.1.96.Final"
     api("io.netty:netty-buffer:$nettyVer")
     api("io.netty:netty-transport:$nettyVer")
     api("io.netty:netty-transport-native-epoll:$nettyVer")
     api("io.netty:netty-transport-classes-kqueue:$nettyVer")
     api("io.netty:netty-codec:$nettyVer")
 
-    api("org.slf4j:slf4j-api:2.0.6")
+    api("org.slf4j:slf4j-api:2.0.7")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("ch.qos.logback:logback-classic:1.4.5")

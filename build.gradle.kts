@@ -85,7 +85,7 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    api("com.dorkbox:Collections:2.0")
+    api("com.dorkbox:Collections:2.3")
     api("com.dorkbox:NetworkUtils:2.22")
     api("com.dorkbox:OS:1.6")
     api("com.dorkbox:Updates:1.1")

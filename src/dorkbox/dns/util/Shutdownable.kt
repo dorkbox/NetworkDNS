@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 dorkbox, llc
+ * Copyright 2023 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -267,7 +267,7 @@ open class Shutdownable(protected val type: Class<out Shutdownable?>) {
         // This occurs when calling stop from within a listener callback.
         val currentThread = Thread.currentThread()
         val threadName = currentThread.name
-        val isShutdownThread = threadName != shutdownHookName && threadName != stopTreadName
+        val isShutdownThread = currentThread != shutdownHook && threadName != stopTreadName
 
         // used to check the event groups to see if we are running from one of them. NOW we force to
         // ALWAYS shutdown inside a NEW thread
@@ -310,7 +310,7 @@ open class Shutdownable(protected val type: Class<out Shutdownable?>) {
 
             // Also, you can call client/server.stop from another thread, which is run when the JVM is shutting down
             // (as there is nothing left to do), and also have problems.
-            if (Thread.currentThread().name != shutdownHookName) {
+            if (Thread.currentThread() != shutdownHook) {
                 try {
                     Runtime.getRuntime().removeShutdownHook(shutdownHook)
                 } catch (e: Exception) {

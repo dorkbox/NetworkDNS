@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 dorkbox, llc
+ * Copyright 2023 dorkbox, llc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -723,8 +723,6 @@ internal abstract class DnsNameResolverContext<T>(
             if (authority.size == 0) {
                 return null
             }
-
-            System.err.println("TYODO")
 
             val serverNames = AuthoritativeNameServerList(questionName)
             for (i in authority.indices) {

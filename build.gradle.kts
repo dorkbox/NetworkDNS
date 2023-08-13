@@ -37,7 +37,7 @@ object Extras {
     // set for the project
     const val description = "High-performance and event-driven/reactive DNS stack for Java 8+"
     const val group = "com.dorkbox"
-    const val version = "2.11"
+    const val version = "2.12"
 
     // set as project.ext
     const val name = "NetworkDNS"

@@ -28,16 +28,16 @@ plugins {
     id("com.dorkbox.GradleUtils") version "3.17"
     id("com.dorkbox.Licensing") version "2.26"
     id("com.dorkbox.VersionUpdate") version "2.8"
-    id("com.dorkbox.GradlePublish") version "1.18"
+    id("com.dorkbox.GradlePublish") version "1.20"
 
-    kotlin("jvm") version "1.8.0"
+    kotlin("jvm") version "1.9.0"
 }
 
 object Extras {
     // set for the project
     const val description = "High-performance and event-driven/reactive DNS stack for Java 8+"
     const val group = "com.dorkbox"
-    const val version = "2.15"
+    const val version = "2.16"
 
     // set as project.ext
     const val name = "NetworkDNS"

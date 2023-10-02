@@ -25,8 +25,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS   // always show the stacktrace!
 
 plugins {
-    id("com.dorkbox.GradleUtils") version "3.17"
-    id("com.dorkbox.Licensing") version "2.26"
+    id("com.dorkbox.GradleUtils") version "3.18"
+    id("com.dorkbox.Licensing") version "2.28"
     id("com.dorkbox.VersionUpdate") version "2.8"
     id("com.dorkbox.GradlePublish") version "1.20"
 
@@ -85,19 +85,19 @@ tasks.jar.get().apply {
 }
 
 dependencies {
-    api("com.dorkbox:Collections:2.5")
+    api("com.dorkbox:Collections:2.6")
     api("com.dorkbox:NetworkUtils:2.23")
     api("com.dorkbox:OS:1.8")
     api("com.dorkbox:Updates:1.1")
 
-    val nettyVer = "4.1.97.Final"
+    val nettyVer = "4.1.99.Final"
     api("io.netty:netty-buffer:$nettyVer")
     api("io.netty:netty-transport:$nettyVer")
     api("io.netty:netty-transport-native-epoll:$nettyVer")
     api("io.netty:netty-transport-classes-kqueue:$nettyVer")
     api("io.netty:netty-codec:$nettyVer")
 
-    implementation("org.slf4j:slf4j-api:2.0.7")
+    implementation("org.slf4j:slf4j-api:2.0.9")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("ch.qos.logback:logback-classic:1.4.5")

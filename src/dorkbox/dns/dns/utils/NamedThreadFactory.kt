@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.*
 /**
  * The default thread factory with names and daemon state
  */
-class NamedThreadFactory(
+internal class NamedThreadFactory(
     /** @param namePrefix what you want the subsequent threads to be named. */
     val namePrefix: String,
 
